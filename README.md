@@ -1,319 +1,301 @@
-# Tijori 🔐
+Welcome to your new TanStack app! 
 
-**Tijori** (Hindi for "vault/safe") is a secure environment variables manager that allows teams to store, manage, and share encrypted environment variables across projects.
+# Getting Started
 
-## Overview
-
-Tijori solves the problem of securely sharing environment variables within teams. Instead of sharing `.env` files through insecure channels, Tijori provides:
-
-- 🔒 **Client-side encryption** - Variables are encrypted/decrypted in the browser
-- 🏢 **Project-based organization** - Group variables by project
-- 🌍 **Multiple environments** - Separate dev, prod, staging, etc.
-- 🔑 **Passcode protection** - 6-digit passcode to access variables
-- 🛡️ **Master key recovery** - Recover forgotten passcodes securely
-
----
-
-## Architecture
-
-### Database Schema
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                                  PROJECTS                                   │
-│  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │  id (UUID)                                                             │ │
-│  │  name                                                                  │ │
-│  │  description                                                           │ │
-│  │  encryptedPasscode  ←── Passcode encrypted with master key            │ │
-│  │  masterKeyHash      ←── Hash of master key (for verification)         │ │
-│  │  passcodeSalt       ←── Salt for deriving encryption key              │ │
-│  └────────────────────────────────────────────────────────────────────────┘ │
-│                                      │                                      │
-│                                      │ 1:N                                  │
-│                                      ▼                                      │
-│  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │                            ENVIRONMENTS                                │ │
-│  │  id (UUID)                                                             │ │
-│  │  projectId (FK)                                                        │ │
-│  │  name (e.g., "dev", "prod", "staging")                                │ │
-│  │  description                                                           │ │
-│  └────────────────────────────────────────────────────────────────────────┘ │
-│                                      │                                      │
-│                                      │ 1:N                                  │
-│                                      ▼                                      │
-│  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │                        ENVIRONMENT VARIABLES                           │ │
-│  │  id (UUID)                                                             │ │
-│  │  environmentId (FK)                                                    │ │
-│  │  name (plain text - for searchability)                                │ │
-│  │  encryptedValue  ←── Value encrypted with passcode-derived key        │ │
-│  └────────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Security Model
-
-#### Encryption Flow
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                           PROJECT CREATION                                   │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  User provides:  MASTER_KEY + PASSCODE (6-digit)                            │
-│                                                                              │
-│  ┌─────────────┐                                                            │
-│  │ MASTER_KEY  │──┬──► SHA-256 Hash ──────────► masterKeyHash (stored)      │
-│  └─────────────┘  │                                                         │
-│                   └──► AES Encrypt(PASSCODE) ──► encryptedPasscode (stored) │
-│                                                                              │
-│  ┌─────────────┐      ┌──────────────┐                                      │
-│  │  PASSCODE   │──────│ Random Salt  │──► passcodeSalt (stored)             │
-│  └─────────────┘      └──────────────┘                                      │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                         VARIABLE ENCRYPTION                                  │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  PASSCODE + passcodeSalt ──► PBKDF2 ──► Derived Key                         │
-│                                              │                               │
-│  ENV_VALUE ──────────────────────────────────┼──► AES-256-GCM               │
-│                                              │         │                     │
-│                                              ▼         ▼                     │
-│                                         encryptedValue (stored)              │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-#### Decryption Flow (Client-Side)
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                          ACCESSING VARIABLES                                 │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  1. User enters 6-digit PASSCODE                                            │
-│                                                                              │
-│  2. Fetch project data (encryptedValue, passcodeSalt)                       │
-│                                                                              │
-│  3. PASSCODE + passcodeSalt ──► PBKDF2 ──► Derived Key                      │
-│                                                 │                            │
-│  4. encryptedValue ─────────────────────────────┼──► AES-256-GCM Decrypt    │
-│                                                 │           │                │
-│                                                 ▼           ▼                │
-│                                            Plain text ENV_VALUE              │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-#### Passcode Recovery Flow
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                          FORGOT PASSCODE?                                    │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  1. User enters MASTER_KEY                                                  │
-│                                                                              │
-│  2. SHA-256(MASTER_KEY) ══► Compare with masterKeyHash                      │
-│                                    │                                         │
-│                              ┌─────┴─────┐                                   │
-│                              │  Match?   │                                   │
-│                              └─────┬─────┘                                   │
-│                                    │                                         │
-│                         ┌──────────┴──────────┐                              │
-│                         ▼                     ▼                              │
-│                       [YES]                 [NO]                             │
-│                         │                     │                              │
-│   MASTER_KEY ──► Decrypt(encryptedPasscode)   └──► Access Denied            │
-│                         │                                                    │
-│                         ▼                                                    │
-│                   PASSCODE revealed                                          │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Shared Secrets (Zero-Knowledge Sharing)
-
-Tijori allows secure sharing of environment variables via a **URL + Passcode** without requiring the recipient to have an account.
-
-#### Security Model
-
-| Data | Sent Over Network? | Notes |
-|------|-------------------|-------|
-| `share_id` | ✅ Yes | To fetch the share record from DB |
-| `encryptedPayload` | ✅ Yes | Encrypted with share key (useless without it) |
-| `encryptedShareKey` | ✅ Yes | Encrypted with passcode (useless without it) |
-| `passcodeSalt` | ✅ Yes | Safe to share; required for key derivation |
-| `iv`, `authTag` | ✅ Yes | Required for AES-GCM decryption |
-| **Passcode** | ❌ **NEVER** | Entered by user, stays in browser |
-| **Share Key (decrypted)** | ❌ **NEVER** | Derived in browser only |
-| **Secrets (decrypted)** | ❌ **NEVER** | Decrypted in browser only |
-
-#### Create Share Flow
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                           CREATE SHARED SECRET                               │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  1. User selects environment variables to share                              │
-│                                                                              │
-│  2. Generate random SHARE_KEY (256-bit)                                      │
-│                                                                              │
-│  3. Encrypt secrets with SHARE_KEY:                                          │
-│     SECRETS ──► AES-256-GCM(SHARE_KEY) ──► encryptedPayload                 │
-│                                                                              │
-│  4. User enters SHARE_PASSCODE                                               │
-│                                                                              │
-│  5. Derive key from passcode:                                                │
-│     SHARE_PASSCODE + salt ──► PBKDF2 ──► derivedKey                         │
-│                                                                              │
-│  6. Encrypt share key with derived key:                                      │
-│     SHARE_KEY ──► AES-256-GCM(derivedKey) ──► encryptedShareKey             │
-│                                                                              │
-│  7. Store in database:                                                       │
-│     • encryptedPayload                                                       │
-│     • encryptedShareKey                                                      │
-│     • passcodeSalt, iv, authTag, payloadIv, payloadAuthTag                  │
-│                                                                              │
-│  8. Generate URL: https://tijori.app/share/[share_id]                       │
-│                                                                              │
-│  9. Share URL + PASSCODE with recipient (via any channel)                   │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-#### Access Share Flow
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                           ACCESS SHARED SECRET                               │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  1. Recipient opens URL: https://tijori.app/share/[share_id]                │
-│                                                                              │
-│  2. Frontend fetches share metadata from server:                             │
-│     • encryptedPayload                                                       │
-│     • encryptedShareKey                                                      │
-│     • passcodeSalt, iv, authTag, payloadIv, payloadAuthTag                  │
-│     • description (optional)                                                 │
-│     • expiresAt (check if expired)                                           │
-│                                                                              │
-│  3. User enters SHARE_PASSCODE ◄─── (never sent to server)                  │
-│                                                                              │
-│  4. Derive key from passcode (in browser):                                   │
-│     SHARE_PASSCODE + passcodeSalt ──► PBKDF2 ──► derivedKey                 │
-│                                                                              │
-│  5. Decrypt share key (in browser):                                          │
-│     encryptedShareKey ──► AES-256-GCM(derivedKey) ──► SHARE_KEY             │
-│                                                                              │
-│  6. Decrypt secrets (in browser):                                            │
-│     encryptedPayload ──► AES-256-GCM(SHARE_KEY) ──► SECRETS                 │
-│                                                                              │
-│  7. Display secrets in UI                                                    │
-│                                                                              │
-│  8. Update lastAccessedAt in database                                        │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-#### What the Server Can See (Even if Compromised)
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                         SERVER COMPROMISE SCENARIO                           │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  Attacker gains access to database. They see:                                │
-│                                                                              │
-│  • encryptedPayload ──► ❌ Useless (encrypted with unknown share key)       │
-│  • encryptedShareKey ─► ❌ Useless (encrypted with passcode)                │
-│  • passcodeSalt ──────► ⚠️  Only useful if they brute-force the passcode    │
-│                                                                              │
-│  Without the PASSCODE, the data is cryptographically meaningless.            │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-## Tech Stack
-
-- **Framework**: [Next.js](https://nextjs.org) (App Router)
-- **Database**: PostgreSQL with [Supabase](https://supabase.com)
-- **ORM**: [Drizzle ORM](https://orm.drizzle.team)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com)
-- **Validation**: [Zod](https://zod.dev)
-- **Environment**: [@t3-oss/env-nextjs](https://env.t3.gg)
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- PostgreSQL database (or Supabase project)
-
-### Installation
+To run this application:
 
 ```bash
-# Install dependencies
 npm install
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your database credentials
-
-# Push database schema
-npm run db:push
-
-# Start development server
 npm run dev
 ```
 
-### Database Commands
+# Building For Production
+
+To build this application for production:
 
 ```bash
-npm run db:generate  # Generate migrations
-npm run db:migrate   # Run migrations
-npm run db:push      # Push schema directly (dev)
-npm run db:studio    # Open Drizzle Studio
+npm run build
 ```
 
----
+## Testing
 
-## Project Structure
+This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
 
-```
-src/
-├── app/                    # Next.js App Router
-├── server/
-│   └── db/
-│       ├── index.ts        # Database connection
-│       └── schema.ts       # Drizzle schema definitions
-├── env.js                  # Environment validation
-└── styles/
-    └── globals.css         # Global styles
+```bash
+npm run test
 ```
 
----
+## Styling
 
-## Security Considerations
+This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
 
-> ⚠️ **Important**: The master key is never stored in the database. Users must keep it safe. If lost, there is no way to recover the passcode.
 
-- All encryption/decryption happens **client-side**
-- Server never sees plain text values or passcodes
-- Passcode-derived keys use PBKDF2 with high iteration count
-- AES-256-GCM provides authenticated encryption
+## Linting & Formatting
 
----
 
-## License
+This project uses [eslint](https://eslint.org/) and [prettier](https://prettier.io/) for linting and formatting. Eslint is configured using [tanstack/eslint-config](https://tanstack.com/config/latest/docs/eslint). The following scripts are available:
 
-MIT
+```bash
+npm run lint
+npm run format
+npm run check
+```
+
+
+
+## Routing
+This project uses [TanStack Router](https://tanstack.com/router). The initial setup is a file based router. Which means that the routes are managed as files in `src/routes`.
+
+### Adding A Route
+
+To add a new route to your application just add another a new file in the `./src/routes` directory.
+
+TanStack will automatically generate the content of the route file for you.
+
+Now that you have two routes you can use a `Link` component to navigate between them.
+
+### Adding Links
+
+To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
+
+```tsx
+import { Link } from "@tanstack/react-router";
+```
+
+Then anywhere in your JSX you can use it like so:
+
+```tsx
+<Link to="/about">About</Link>
+```
+
+This will create a link that will navigate to the `/about` route.
+
+More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
+
+### Using A Layout
+
+In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you use the `<Outlet />` component.
+
+Here is an example layout that includes a header:
+
+```tsx
+import { Outlet, createRootRoute } from '@tanstack/react-router'
+import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+
+import { Link } from "@tanstack/react-router";
+
+export const Route = createRootRoute({
+  component: () => (
+    <>
+      <header>
+        <nav>
+          <Link to="/">Home</Link>
+          <Link to="/about">About</Link>
+        </nav>
+      </header>
+      <Outlet />
+      <TanStackRouterDevtools />
+    </>
+  ),
+})
+```
+
+The `<TanStackRouterDevtools />` component is not required so you can remove it if you don't want it in your layout.
+
+More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
+
+
+## Data Fetching
+
+There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
+
+For example:
+
+```tsx
+const peopleRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/people",
+  loader: async () => {
+    const response = await fetch("https://swapi.dev/api/people");
+    return response.json() as Promise<{
+      results: {
+        name: string;
+      }[];
+    }>;
+  },
+  component: () => {
+    const data = peopleRoute.useLoaderData();
+    return (
+      <ul>
+        {data.results.map((person) => (
+          <li key={person.name}>{person.name}</li>
+        ))}
+      </ul>
+    );
+  },
+});
+```
+
+Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
+
+### React-Query
+
+React-Query is an excellent addition or alternative to route loading and integrating it into you application is a breeze.
+
+First add your dependencies:
+
+```bash
+npm install @tanstack/react-query @tanstack/react-query-devtools
+```
+
+Next we'll need to create a query client and provider. We recommend putting those in `main.tsx`.
+
+```tsx
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+// ...
+
+const queryClient = new QueryClient();
+
+// ...
+
+if (!rootElement.innerHTML) {
+  const root = ReactDOM.createRoot(rootElement);
+
+  root.render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  );
+}
+```
+
+You can also add TanStack Query Devtools to the root route (optional).
+
+```tsx
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+
+const rootRoute = createRootRoute({
+  component: () => (
+    <>
+      <Outlet />
+      <ReactQueryDevtools buttonPosition="top-right" />
+      <TanStackRouterDevtools />
+    </>
+  ),
+});
+```
+
+Now you can use `useQuery` to fetch your data.
+
+```tsx
+import { useQuery } from "@tanstack/react-query";
+
+import "./App.css";
+
+function App() {
+  const { data } = useQuery({
+    queryKey: ["people"],
+    queryFn: () =>
+      fetch("https://swapi.dev/api/people")
+        .then((res) => res.json())
+        .then((data) => data.results as { name: string }[]),
+    initialData: [],
+  });
+
+  return (
+    <div>
+      <ul>
+        {data.map((person) => (
+          <li key={person.name}>{person.name}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default App;
+```
+
+You can find out everything you need to know on how to use React-Query in the [React-Query documentation](https://tanstack.com/query/latest/docs/framework/react/overview).
+
+## State Management
+
+Another common requirement for React applications is state management. There are many options for state management in React. TanStack Store provides a great starting point for your project.
+
+First you need to add TanStack Store as a dependency:
+
+```bash
+npm install @tanstack/store
+```
+
+Now let's create a simple counter in the `src/App.tsx` file as a demonstration.
+
+```tsx
+import { useStore } from "@tanstack/react-store";
+import { Store } from "@tanstack/store";
+import "./App.css";
+
+const countStore = new Store(0);
+
+function App() {
+  const count = useStore(countStore);
+  return (
+    <div>
+      <button onClick={() => countStore.setState((n) => n + 1)}>
+        Increment - {count}
+      </button>
+    </div>
+  );
+}
+
+export default App;
+```
+
+One of the many nice features of TanStack Store is the ability to derive state from other state. That derived state will update when the base state updates.
+
+Let's check this out by doubling the count using derived state.
+
+```tsx
+import { useStore } from "@tanstack/react-store";
+import { Store, Derived } from "@tanstack/store";
+import "./App.css";
+
+const countStore = new Store(0);
+
+const doubledStore = new Derived({
+  fn: () => countStore.state * 2,
+  deps: [countStore],
+});
+doubledStore.mount();
+
+function App() {
+  const count = useStore(countStore);
+  const doubledCount = useStore(doubledStore);
+
+  return (
+    <div>
+      <button onClick={() => countStore.setState((n) => n + 1)}>
+        Increment - {count}
+      </button>
+      <div>Doubled - {doubledCount}</div>
+    </div>
+  );
+}
+
+export default App;
+```
+
+We use the `Derived` class to create a new store that is derived from another store. The `Derived` class has a `mount` method that will start the derived store updating.
+
+Once we've created the derived store we can use it in the `App` component just like we would any other store using the `useStore` hook.
+
+You can find out everything you need to know on how to use TanStack Store in the [TanStack Store documentation](https://tanstack.com/store/latest).
+
+# Demo files
+
+Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
+
+# Learn More
+
+You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
