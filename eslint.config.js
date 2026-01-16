@@ -2,4 +2,16 @@
 
 import { tanstackConfig } from '@tanstack/eslint-config'
 
-export default [...tanstackConfig]
+export default [
+  ...tanstackConfig,
+  {
+    ignores: [
+      '.agent',
+      '.opencode',
+      'convex/_generated/**',
+      'init.md',
+      'progress-log/**',
+      'learning.md',
+    ],
+  },
+]
