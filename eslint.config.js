@@ -12,6 +12,8 @@ export default [
       'init.md',
       'progress-log/**',
       'learning.md',
+      'eslint.config.js',
+      'prettier.config.js',
     ],
   },
 ]
