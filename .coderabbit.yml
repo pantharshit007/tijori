@@ -1,12 +1,12 @@
 # Complete reference: https://docs.coderabbit.ai/reference/configuration
 
 # Language for the review
-language: "en-US"
+language: 'en-US'
 
 reviews:
-  profile: "chill"
+  profile: 'chill'
   ignored_branches:
-    - "none"
+    - 'none'
   # Automatically review pull requests
   auto_review:
     enabled: true
@@ -14,19 +14,19 @@ reviews:
     drafts: false
   # Exclude certain files from review
   path_filters:
-    - "!**/pnpm-lock.yaml"
-    - "!**/bun.lock"
-    - "!**/LICENSE"
-    - "!**/.gitignore"
-    - "!**/example.env"
-    - "!**/.env.example"
+    - '!**/pnpm-lock.yaml'
+    - '!**/bun.lock'
+    - '!**/LICENSE'
+    - '!**/.gitignore'
+    - '!**/example.env'
+    - '!**/.env.example'
 
   # Generate a high-level summary of the changes in the PR description.
   high_level_summary: true
 
   # Path-specific review instructions.
   file_path_instructions:
-    - path: "**/*" # General instructions for all files
+    - path: '**/*' # General instructions for all files
       instructions: |
         Please review the following changes for correctness, clarity, and adherence to project conventions.
         - **Context**: This is "Tijori", a secure environment variables manager. We are pivoting from Next.js/Supabase to **TanStack Start + Convex**.
@@ -36,7 +36,7 @@ reviews:
         - Cross-check with `@init.md` for architectural alignment.
         - Every new change (in the form of PR) should bump the version in package.json.
 
-    - path: "convex/**/*.{ts,tsx}"
+    - path: 'convex/**/*.{ts,tsx}'
       instructions: |
         These are Convex backend functions and schema definitions.
         - Verify `v.*` validators are strict and appropriate.
@@ -44,21 +44,21 @@ reviews:
         - Check for security: Ensure authentication checks (e.g., `getUser`) are present in mutations/queries where required.
         - **Security**: The server should NEVER see plain text secrets. Ensure only encrypted values are stored.
 
-    - path: "src/utils/crypto.ts"
+    - path: 'src/utils/crypto.ts'
       instructions: |
         CRITICAL: Client-side cryptography logic.
         - Verify AES-256-GCM implementation.
         - Verify PBKDF2 key derivation settings (iterations > 100,000, correct salt usage).
         - Ensure no secrets are logged or exposed.
 
-    - path: "**/*.md"
+    - path: '**/*.md'
       instructions: |
         Documentation changes (including `init.md`, `learning.md`).
         - Check for clarity and accuracy.
         - Ensure `init.md` reflects the current progress and architectural decisions.
         - Check grammar and formatting.
 
-    - path: "src/components/**/*.{tsx,ts}"
+    - path: 'src/components/**/*.{tsx,ts}'
       instructions: |
         These are changes to UI components. Please check for:
         - Correct rendering and functionality.
@@ -66,7 +66,7 @@ reviews:
         - Responsiveness and accessibility.
         - Proper use of state management (React Context for decrypted keys).
 
-    - path: "package.json"
+    - path: 'package.json'
       instructions: |
         Dependency changes detected. Please verify:
         - The necessity of any new dependencies (Prefer minimal dependencies).
