@@ -134,9 +134,10 @@ _One-time share links._
 
 ### Phase 0: Workflow & Documentation (Continuous)
 *Applies to every phase below.*
-1.  **Commit Often**: Create a git commit after completing each sub-task.
-2.  **Progress Log**: Create/Update a file in `./progress-log/` (e.g., `progress-01.md`) detailing what was completed.
-3.  **Learnings**: Update `./learning.md` with any new insights, technical challenges, or decisions made.
+1. **Branch Often**: Create a new branch for each phase.
+2.  **Commit Often**: Create a git commit after completing each sub-task.
+3.  **Progress Log**: Create/Update a file in `./progress-log/` (e.g., `progress-01.md`) detailing what was completed.
+4.  **Learnings**: Update `./learning.md` with any new insights, technical challenges, or decisions made.
 
 ---
 
