@@ -40,3 +40,13 @@ When migrating from one stack to another (Next.js â†’ TanStack Start, Supabase â
 - **`v.id("table")`**: Always use this for foreign keys to ensure referential integrity and better typing.
 - **Computed Creation Time**: All Convex tables automatically get a `_creationTime` and `_id`, so there's no need to define them in `schema.ts`.
 - **Compound Indexes**: Extremely useful for junction tables like `projectMembers` to quickly check permissions (`projectId`, `userId`).
+
+---
+
+## 2026-01-16 - Phase 2, Task 2.3 & 2.4
+
+### Backend Access Control in Convex
+- **`ctx.auth.getUserIdentity()`**: This is the source of truth for auth. Always link it to your `users` table via `tokenIdentifier`.
+- **RBAC Checks**: Since Convex doesn't have RLS (it has simplified "Entitlements" in some modes but usually you do it in handlers), manually verifying the `projectMembers` junction table is the standard way to enforce security.
+- **Shared Helpers**: Creating a small helper function like `checkProjectAccess` inside your mutation/query files keeps the code dry and secure.
+- **Atomic Operations**: Convex mutations are atomic. When creating a project, creating the `projectMembers` entrance and the default `Development` environment in the same mutation ensures data consistency.
