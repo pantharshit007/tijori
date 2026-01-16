@@ -30,3 +30,13 @@ When migrating from one stack to another (Next.js â†’ TanStack Start, Supabase â
 ### Future: Cloud Deployment
 - Run `npx convex login` to authenticate and link to a cloud deployment.
 - This will update `.env.local` with a cloud URL.
+
+---
+
+## 2026-01-16 - Phase 2, Task 2.1
+
+### Convex Schema Design
+- **No Explicit Unique Constraints**: Convex indexes are used for performance, but uniqueness must often be enforced at the application/logic level in mutations.
+- **`v.id("table")`**: Always use this for foreign keys to ensure referential integrity and better typing.
+- **Computed Creation Time**: All Convex tables automatically get a `_creationTime` and `_id`, so there's no need to define them in `schema.ts`.
+- **Compound Indexes**: Extremely useful for junction tables like `projectMembers` to quickly check permissions (`projectId`, `userId`).
