@@ -1,11 +1,4 @@
-# Pull Request Template
-
-<!--
-CodeRabbit integration:
-- The line `@coderabbitai summary` in the Summary section will be replaced by CodeRabbit's auto-generated summary if CodeRabbit is installed on this repo.
-- To remove references to CodeRabbit or this tip, simply delete this entire comment block and/or the line `@coderabbitai summary` in the Summary section.
-- To change the PR title, use the GitHub web UI to edit the PR title directly. CodeRabbit does not provide a command for changing PR titles.
--->
+# Description 
 
 ## Summary
 
