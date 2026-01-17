@@ -19,9 +19,12 @@ export default defineSchema({
     passcodeSalt: v.string(), // Salt for PBKDF2 (passcode → KEY_A)
     iv: v.string(), // IV for encryptedPasscode
     authTag: v.string(), // AuthTag for encryptedPasscode
+    // Verification blob: encrypted "TIJORI_VERIFY" string for passcode verification
+    verificationBlob: v.string(),
+    verificationIv: v.string(),
+    verificationAuthTag: v.string(),
     ownerId: v.id('users'), // Link to the owner
   }).index('by_ownerId', ['ownerId']),
-
 
   projectMembers: defineTable({
     projectId: v.id('projects'),

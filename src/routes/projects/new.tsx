@@ -16,7 +16,9 @@ import {
 } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 
-import { deriveKey, encrypt, generateSalt } from '@/lib/crypto'
+import { deriveKey, encrypt, generateSalt, hash as cryptoHash } from '@/lib/crypto'
+
+const VERIFICATION_STRING = 'TIJORI_VERIFY'
 
 function NewProject() {
   const navigate = useNavigate()
@@ -58,6 +60,14 @@ function NewProject() {
     setIsLoading(true)
 
     try {
+      // Verify master key matches stored hash
+      const enteredHash = await cryptoHash(masterKey)
+      if (enteredHash !== user?.masterKeyHash) {
+        setError('Invalid master key. Please enter the correct master key.')
+        setIsLoading(false)
+        return
+      }
+
       // 1. Generate salt for passcode encryption
       const passcodeSalt = generateSalt()
 
@@ -67,7 +77,11 @@ function NewProject() {
       // 3. Encrypt the passcode with the recovery key
       const { encryptedValue, iv, authTag } = await encrypt(passcode, recoveryKey)
 
-      // 4. Create the project in Convex
+      // 4. Derive key from passcode and encrypt verification blob
+      const passcodeKey = await deriveKey(passcode, passcodeSalt)
+      const verification = await encrypt(VERIFICATION_STRING, passcodeKey)
+
+      // 5. Create the project in Convex
       const projectId = await createProject({
         name: name.trim(),
         description: description.trim() || undefined,
@@ -75,6 +89,9 @@ function NewProject() {
         passcodeSalt,
         iv,
         authTag,
+        verificationBlob: verification.encryptedValue,
+        verificationIv: verification.iv,
+        verificationAuthTag: verification.authTag,
       })
 
       // Navigate to the new project

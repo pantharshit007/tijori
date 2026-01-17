@@ -33,8 +33,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 
-
 import { deriveKey, encrypt, decrypt } from '@/lib/crypto'
+
+import { VERIFICATION_STRING } from '@/utilities/constants'
 
 function ProjectView() {
   const { projectId } = useParams({ from: '/projects/$projectId' })
@@ -44,6 +45,7 @@ function ProjectView() {
   const environments = useQuery(api.environments.list, {
     projectId: projectId as Id<'projects'>,
   })
+  const createEnvironment = useMutation(api.environments.create)
 
   const [activeEnv, setActiveEnv] = useState<string | null>(null)
   const [passcode, setPasscode] = useState('')
@@ -51,6 +53,10 @@ function ProjectView() {
   const [isUnlocking, setIsUnlocking] = useState(false)
   const [unlockError, setUnlockError] = useState<string | null>(null)
   const [showUnlockDialog, setShowUnlockDialog] = useState(false)
+
+  const [showNewEnvDialog, setShowNewEnvDialog] = useState(false)
+  const [newEnvName, setNewEnvName] = useState('')
+  const [isCreatingEnv, setIsCreatingEnv] = useState(false)
 
   // Set first environment as active when loaded
   useEffect(() => {
@@ -66,12 +72,35 @@ function ProjectView() {
     setUnlockError(null)
 
     try {
+      // Derive key from passcode
       const key = await deriveKey(passcode, project.passcodeSalt)
+
+      // Verify passcode by decrypting verification blob
+      try {
+        const decrypted = await decrypt(
+          project.verificationBlob,
+          project.verificationIv,
+          project.verificationAuthTag,
+          key,
+        )
+
+        if (decrypted !== VERIFICATION_STRING) {
+          setUnlockError('Invalid passcode. Please try again.')
+          setIsUnlocking(false)
+          return
+        }
+      } catch {
+        setUnlockError('Invalid passcode. Please try again.')
+        setIsUnlocking(false)
+        return
+      }
+
+      // Passcode verified, save the key
       setDerivedKey(key)
       setShowUnlockDialog(false)
       setPasscode('')
     } catch (err: any) {
-      setUnlockError('Failed to derive key. Please check your passcode.')
+      setUnlockError('Failed to unlock. Please check your passcode.')
     } finally {
       setIsUnlocking(false)
     }
@@ -79,6 +108,24 @@ function ProjectView() {
 
   function handleLock() {
     setDerivedKey(null)
+  }
+
+  async function handleCreateEnvironment() {
+    if (!newEnvName.trim()) return
+
+    setIsCreatingEnv(true)
+    try {
+      await createEnvironment({
+        projectId: projectId as Id<'projects'>,
+        name: newEnvName.trim(),
+      })
+      setNewEnvName('')
+      setShowNewEnvDialog(false)
+    } catch (err) {
+      console.error('Failed to create environment:', err)
+    } finally {
+      setIsCreatingEnv(false)
+    }
   }
 
   if (project === undefined || environments === undefined) {
@@ -122,7 +169,9 @@ function ProjectView() {
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">{project.name}</h1>
+              <h1 className="text-2xl font-bold tracking-tight">
+                {project.name}
+              </h1>
               <Badge variant="outline">{project.role}</Badge>
             </div>
             <p className="text-muted-foreground">
@@ -168,8 +217,13 @@ function ProjectView() {
                   )}
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleUnlock} disabled={isUnlocking || !passcode}>
-                    {isUnlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Button
+                    onClick={handleUnlock}
+                    disabled={isUnlocking || !passcode}
+                  >
+                    {isUnlocking && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
                     Unlock
                   </Button>
                 </DialogFooter>
@@ -197,10 +251,47 @@ function ProjectView() {
                 </TabsTrigger>
               ))}
             </TabsList>
-            <Button variant="ghost" size="sm" className="gap-1">
-              <Plus className="h-3 w-3" />
-              Add
-            </Button>
+            <Dialog open={showNewEnvDialog} onOpenChange={setShowNewEnvDialog}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-1">
+                  <Plus className="h-3 w-3" />
+                  Add
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Environment</DialogTitle>
+                  <DialogDescription>
+                    Create a new environment for this project.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="envName">Environment Name</Label>
+                    <Input
+                      id="envName"
+                      placeholder="Production"
+                      value={newEnvName}
+                      onChange={(e) => setNewEnvName(e.target.value)}
+                      onKeyDown={(e) =>
+                        e.key === 'Enter' && handleCreateEnvironment()
+                      }
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    onClick={handleCreateEnvironment}
+                    disabled={isCreatingEnv || !newEnvName.trim()}
+                  >
+                    {isCreatingEnv && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Create
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {environments.map((env) => (
@@ -208,7 +299,6 @@ function ProjectView() {
               <EnvironmentVariables
                 environmentId={env._id as Id<'environments'>}
                 derivedKey={derivedKey}
-                projectSalt={project.passcodeSalt}
               />
             </TabsContent>
           ))}
@@ -227,18 +317,18 @@ function ProjectView() {
 function EnvironmentVariables({
   environmentId,
   derivedKey,
-  projectSalt,
 }: {
   environmentId: Id<'environments'>
   derivedKey: CryptoKey | null
-  projectSalt: string
 }) {
   const variables = useQuery(api.variables.list, { environmentId })
   const saveVariable = useMutation(api.variables.save)
   const removeVariable = useMutation(api.variables.remove)
 
   const [revealedVars, setRevealedVars] = useState<Set<string>>(new Set())
-  const [decryptedValues, setDecryptedValues] = useState<Record<string, string>>({})
+  const [decryptedValues, setDecryptedValues] = useState<
+    Record<string, string>
+  >({})
   const [copied, setCopied] = useState<string | null>(null)
 
   // New variable form
@@ -247,7 +337,12 @@ function EnvironmentVariables({
   const [newValue, setNewValue] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
-  async function handleReveal(varId: string, encryptedValue: string, iv: string, authTag: string) {
+  async function handleReveal(
+    varId: string,
+    encryptedValue: string,
+    iv: string,
+    authTag: string,
+  ) {
     if (!derivedKey) return
 
     if (revealedVars.has(varId)) {
@@ -269,7 +364,12 @@ function EnvironmentVariables({
     }
   }
 
-  async function handleCopy(varId: string, encryptedValue: string, iv: string, authTag: string) {
+  async function handleCopy(
+    varId: string,
+    encryptedValue: string,
+    iv: string,
+    authTag: string,
+  ) {
     if (!derivedKey) return
 
     try {
@@ -290,7 +390,10 @@ function EnvironmentVariables({
 
     setIsSaving(true)
     try {
-      const { encryptedValue, iv, authTag } = await encrypt(newValue, derivedKey)
+      const { encryptedValue, iv, authTag } = await encrypt(
+        newValue,
+        derivedKey,
+      )
       await saveVariable({
         environmentId,
         name: newName.trim(),
@@ -356,7 +459,9 @@ function EnvironmentVariables({
           <CardContent className="pt-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="newName" className="text-xs">Name</Label>
+                <Label htmlFor="newName" className="text-xs">
+                  Name
+                </Label>
                 <Input
                   id="newName"
                   placeholder="VARIABLE_NAME"
@@ -366,7 +471,9 @@ function EnvironmentVariables({
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="newValue" className="text-xs">Value</Label>
+                <Label htmlFor="newValue" className="text-xs">
+                  Value
+                </Label>
                 <Input
                   id="newValue"
                   placeholder="secret_value"
@@ -408,7 +515,9 @@ function EnvironmentVariables({
             className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/30 transition-colors"
           >
             <div className="flex-1 min-w-0">
-              <code className="text-sm font-semibold font-mono">{variable.name}</code>
+              <code className="text-sm font-semibold font-mono">
+                {variable.name}
+              </code>
               <div className="text-sm text-muted-foreground font-mono truncate mt-0.5">
                 {revealedVars.has(variable._id) && decryptedValues[variable._id]
                   ? decryptedValues[variable._id]
@@ -426,7 +535,7 @@ function EnvironmentVariables({
                     variable._id,
                     variable.encryptedValue,
                     variable.iv,
-                    variable.authTag
+                    variable.authTag,
                   )
                 }
               >
@@ -446,7 +555,7 @@ function EnvironmentVariables({
                     variable._id,
                     variable.encryptedValue,
                     variable.iv,
-                    variable.authTag
+                    variable.authTag,
                   )
                 }
               >

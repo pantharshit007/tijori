@@ -34,6 +34,9 @@ export const create = mutation({
     passcodeSalt: v.string(),
     iv: v.string(),
     authTag: v.string(),
+    verificationBlob: v.string(),
+    verificationIv: v.string(),
+    verificationAuthTag: v.string(),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -63,8 +66,12 @@ export const create = mutation({
       passcodeSalt: args.passcodeSalt,
       iv: args.iv,
       authTag: args.authTag,
+      verificationBlob: args.verificationBlob,
+      verificationIv: args.verificationIv,
+      verificationAuthTag: args.verificationAuthTag,
       ownerId: user._id,
     });
+
 
     // Add the creator as the owner in projectMembers
     await ctx.db.insert("projectMembers", {

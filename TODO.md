@@ -1,0 +1,4 @@
+- [ ] haven't thought about how to add a new memeber to a project
+- [ ] either remove the settings button or add something to it in /projects/$projectId
+- [ ] update the sidebar with the correct functionality, log out button, and settings button and profile, along with correct user info.
+- [ ] do we need a profile page? what is even the use case for it?
