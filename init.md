@@ -135,7 +135,7 @@ _One-time share links._
 
 ### Phase 0: Workflow & Documentation (Continuous)
 
-_Applies to every phase below._ 
+_Applies to every phase below._
 **Default Branch**: Use `master` branch.
 
 1. **Branch Often**: Create a new branch for each phase.
@@ -214,9 +214,9 @@ _Goal: Build the UI shell and client-side encryption layer._
 - [x] Implement `hash(text)` using SHA-256.
 - [ ] _Test_: Verify these work reliably in the browser environment.
 
-
 #### Task 3.2: Layout & Navigation
 
+- [ ] Integrate shadcn/ui component library for universal UI primitives.
 - [ ] Create `App` layout with Sidebar/Navigation.
 - [ ] Implement Authentication UI (Login/Logout protection).
 - [ ] Design "Premium" global theme (Dark mode, fonts, colors).
