@@ -37,8 +37,54 @@ Implemented a comprehensive client-side encryption module using the Web Crypto A
 ## Next Steps
 
 - [ ] _Test_: Verify crypto functions work in the browser.
-- **Task 3.2**: Layout & Navigation.
+- ~~**Task 3.2**: Layout & Navigation~~ ✅
+
+---
+
+# Task 3.2: Layout & Navigation ✅
+
+**Date**: 2026-01-17
+
+## Summary
+
+Integrated shadcn/ui component library and created a premium dark-themed layout with sidebar navigation.
+
+## Implementation Details
+
+### 1. shadcn/ui Integration
+- Initialized shadcn/ui with TanStack Start template.
+- Installed core components: `button`, `card`, `input`, `label`, `sidebar`, `sheet`, `avatar`, `dropdown-menu`, `separator`, `tooltip`, `skeleton`.
+- Configured CSS variables for dark mode theming.
+
+### 2. AppSidebar Component (`src/components/app-sidebar.tsx`)
+- Created main navigation with links to Dashboard, Projects, Shared Secrets, and Settings.
+- User avatar dropdown in footer with profile/settings/logout options.
+- Collapsible sidebar with icon tooltips.
+
+### 3. Root Layout (`src/routes/__root.tsx`)
+- Wrapped app in `SidebarProvider` and `SidebarInset`.
+- Set `dark` class on `<html>` for dark mode.
+- Added Inter font from Google Fonts.
+- Updated SEO meta tags for Tijori.
+
+### 4. Theme & Styling
+- Dark mode colors using oklch color space (shadcn default for zinc).
+- Inter font as primary sans-serif.
+- Premium look with proper spacing and borders.
+
+## Files Created/Modified
+- `src/components/app-sidebar.tsx` - New
+- `src/components/ui/*.tsx` - New (shadcn components)
+- `src/lib/utils.ts` - New (cn utility)
+- `src/hooks/use-mobile.ts` - New
+- `src/routes/__root.tsx` - Modified
+- `src/styles.css` - Modified
+- `components.json` - New (shadcn config)
+
+## Next Steps
+- [ ] Implement Authentication UI (Clerk integration).
 
 ---
 
 *Logged by Antigravity Agent*
+

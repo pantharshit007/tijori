@@ -216,10 +216,11 @@ _Goal: Build the UI shell and client-side encryption layer._
 
 #### Task 3.2: Layout & Navigation
 
-- [ ] Integrate shadcn/ui component library for universal UI primitives.
-- [ ] Create `App` layout with Sidebar/Navigation.
+- [x] Integrate shadcn/ui component library for universal UI primitives.
+- [x] Create `App` layout with Sidebar/Navigation.
 - [ ] Implement Authentication UI (Login/Logout protection).
-- [ ] Design "Premium" global theme (Dark mode, fonts, colors).
+- [x] Design "Premium" global theme (Dark mode, fonts, colors).
+
 
 #### Task 3.3: Project & Environment UI
 
