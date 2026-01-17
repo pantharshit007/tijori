@@ -212,18 +212,18 @@ _Goal: Build the UI shell and client-side encryption layer._
 - [x] Implement `encrypt(text, key)` using AES-GCM.
 - [x] Implement `decrypt(encryptedData, key)` using AES-GCM.
 - [x] Implement `hash(text)` using SHA-256.
-- [ ] _Test_: Verify these work reliably in the browser environment.
+- [x] _Test_: Verify these work reliably in the browser environment.
 
 #### Task 3.2: Layout & Navigation
 
 - [x] Integrate shadcn/ui component library for universal UI primitives.
 - [x] Create `App` layout with Sidebar/Navigation.
-- [ ] Implement Authentication UI (Login/Logout protection).
+- [x] Implement Authentication UI (Login/Logout protection).
 - [x] Design "Premium" global theme (Dark mode, fonts, colors).
-
 
 #### Task 3.3: Project & Environment UI
 
+- [ ] check convex working: it works for our dev mode via `npx convex dev` or locally.
 - [ ] **Dashboard**: List all projects.
 - [ ] **Project View**: Tabs for different environments (Dev, Prod).
 - [ ] **Variables Grid**:
