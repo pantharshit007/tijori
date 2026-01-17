@@ -70,3 +70,38 @@ export const me = query({
       .unique();
   },
 });
+
+/**
+ * Set or update the user's master key.
+ * The master key hash and salt are stored - never the plaintext.
+ */
+export const setMasterKey = mutation({
+  args: {
+    masterKeyHash: v.string(),
+    masterKeySalt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthenticated");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tokenIdentifier", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    await ctx.db.patch(user._id, {
+      masterKeyHash: args.masterKeyHash,
+      masterKeySalt: args.masterKeySalt,
+    });
+
+    return { success: true };
+  },
+});
