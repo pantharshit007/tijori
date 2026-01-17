@@ -7,18 +7,21 @@ export default defineSchema({
     name: v.optional(v.string()),
     email: v.string(),
     image: v.optional(v.string()),
+    // Master key for all projects (set in Settings)
+    masterKeyHash: v.optional(v.string()), // SHA-256 hash of Master Key
+    masterKeySalt: v.optional(v.string()), // Salt for PBKDF2 derivation
   }).index('by_tokenIdentifier', ['tokenIdentifier']),
 
   projects: defineTable({
     name: v.string(),
     description: v.optional(v.string()),
-    encryptedPasscode: v.string(), // AES-256-GCM encrypted 6-digit passcode
-    masterKeyHash: v.string(), // SHA-256 hash of Master Key
-    passcodeSalt: v.string(), // Salt for PBKDF2
+    encryptedPasscode: v.string(), // AES-256-GCM encrypted passcode
+    passcodeSalt: v.string(), // Salt for PBKDF2 (passcode → KEY_A)
     iv: v.string(), // IV for encryptedPasscode
     authTag: v.string(), // AuthTag for encryptedPasscode
     ownerId: v.id('users'), // Link to the owner
   }).index('by_ownerId', ['ownerId']),
+
 
   projectMembers: defineTable({
     projectId: v.id('projects'),

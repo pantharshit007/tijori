@@ -125,3 +125,35 @@ bunx convex env set VARIABLE_NAME "value"
 ```
 
 Note: The dashboard URL for anonymous deployments may 404 - use the CLI instead.
+
+---
+
+## 2026-01-18 - Master Key Architecture
+
+### User-Level Master Key (Design Decision)
+
+Originally, each project had its own master key. This was changed to a **single master key per user**:
+
+**Old Design (per-project):**
+- `projects.masterKeyHash` - Each project stores its own master key hash
+- User must remember a different master key per project
+- Poor UX for users with many projects
+
+**New Design (per-user):**
+- `users.masterKeyHash` + `users.masterKeySalt` - Single master key stored at user level
+- Master key is set once in Settings
+- All project passcodes are encrypted using the same master key
+- Much better UX
+
+### Flow:
+1. User sets master key in **Settings** (one-time setup)
+2. When creating a project, user enters:
+   - **Passcode**: For daily use to encrypt/decrypt secrets
+   - **Master Key**: To encrypt the passcode for recovery
+3. The passcode is encrypted with a key derived from the master key
+4. If user forgets passcode, they can recover it using the master key
+
+### Important:
+- Master key hash is stored, never the plaintext
+- Changing the master key requires re-encrypting all project passcodes
+- This is enforced: users cannot create projects without setting a master key first

@@ -24,35 +24,52 @@ async function getUserId(ctx: any) {
 /**
  * Create a new project.
  * This also creates a default "Development" environment.
+ * Requires user to have master key set (checked on frontend).
  */
 export const create = mutation({
   args: {
     name: v.string(),
     description: v.optional(v.string()),
     encryptedPasscode: v.string(),
-    masterKeyHash: v.string(),
     passcodeSalt: v.string(),
     iv: v.string(),
     authTag: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getUserId(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthenticated");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tokenIdentifier", (q: any) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (!user.masterKeyHash) {
+      throw new Error("Master key not configured. Please set it in Settings.");
+    }
 
     const projectId = await ctx.db.insert("projects", {
       name: args.name,
       description: args.description,
       encryptedPasscode: args.encryptedPasscode,
-      masterKeyHash: args.masterKeyHash,
       passcodeSalt: args.passcodeSalt,
       iv: args.iv,
       authTag: args.authTag,
-      ownerId: userId,
+      ownerId: user._id,
     });
 
     // Add the creator as the owner in projectMembers
     await ctx.db.insert("projectMembers", {
       projectId,
-      userId,
+      userId: user._id,
       role: "owner",
     });
 
@@ -66,6 +83,7 @@ export const create = mutation({
     return projectId;
   },
 });
+
 
 /**
  * List all projects the current user is a member of.
