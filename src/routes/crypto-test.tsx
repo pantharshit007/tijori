@@ -7,337 +7,429 @@ import {
   Hash as HashIcon,
   Info,
   AlertCircle,
+  Copy,
+  Check,
 } from 'lucide-react'
 
-function arrayBufferToHex(b: ArrayBuffer) {
-  return Array.from(new Uint8Array(b))
-    .map((x) => x.toString(16).padStart(2, '0'))
-    .join('')
-}
-function base64Encode(buf: ArrayBuffer) {
-  return btoa(String.fromCharCode(...new Uint8Array(buf)))
-}
-function base64Decode(s: string): ArrayBuffer {
-  const bin = atob(s)
-  return new Uint8Array([...bin].map((c) => c.charCodeAt(0))).buffer
-}
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+
+import {
+  deriveKey as cryptoDeriveKey,
+  encrypt as cryptoEncrypt,
+  decrypt as cryptoDecrypt,
+  hash as cryptoHash,
+  generateSalt,
+} from '@/lib/crypto'
 
 function CryptoTest() {
   const [passcode, setPasscode] = useState('')
   const [salt, setSalt] = useState('')
   const [text, setText] = useState('')
-  const [derivedKeyHex, setDerivedKeyHex] = useState('')
+  const [derivedKeyDisplay, setDerivedKeyDisplay] = useState('')
   const [derivedKey, setDerivedKey] = useState<CryptoKey | null>(null)
   const [encrypted, setEncrypted] = useState('')
   const [iv, setIv] = useState('')
+  const [authTag, setAuthTag] = useState('')
   const [decrypted, setDecrypted] = useState('')
-  const [hashHex, setHashHex] = useState('')
+  const [hashResult, setHashResult] = useState('')
   const [operation, setOperation] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState<string | null>(null)
 
-  // Derive Key using PBKDF2
-  async function deriveKey() {
+  async function handleGenerateSalt() {
+    const newSalt = generateSalt()
+    setSalt(newSalt)
+  }
+
+  async function handleDeriveKey() {
     setOperation('Deriving key...')
     setError(null)
     try {
-      const enc = new TextEncoder()
-      const raw = enc.encode(passcode)
-      const saltBytes = enc.encode(salt)
-      const imp = await window.crypto.subtle.importKey(
-        'raw',
-        raw,
-        { name: 'PBKDF2' },
-        false,
-        ['deriveKey'],
-      )
-      const key = await window.crypto.subtle.deriveKey(
-        {
-          name: 'PBKDF2',
-          salt: saltBytes,
-          iterations: 100000,
-          hash: 'SHA-256',
-        },
-        imp,
-        { name: 'AES-GCM', length: 256 },
-        true,
-        ['encrypt', 'decrypt'],
-      )
+      if (!passcode || !salt) {
+        throw new Error('Passcode and salt are required')
+      }
+      const key = await cryptoDeriveKey(passcode, salt)
       setDerivedKey(key)
-      // Export for display
-      const exported = await window.crypto.subtle.exportKey('raw', key)
-      setDerivedKeyHex(arrayBufferToHex(exported))
-      setOperation('Key derived')
+
+      // Export for display (hex format)
+      const exported = await crypto.subtle.exportKey('raw', key)
+      const hex = Array.from(new Uint8Array(exported))
+        .map((x) => x.toString(16).padStart(2, '0'))
+        .join('')
+      setDerivedKeyDisplay(hex)
+      setOperation('Key derived successfully!')
     } catch (e: any) {
       setError(e.message)
       setOperation('')
     }
   }
 
-  // Encrypt using AES-GCM
-  async function encrypt() {
+  async function handleEncrypt() {
     setOperation('Encrypting...')
     setError(null)
     try {
-      if (!derivedKey) throw new Error('Key not derived yet!')
-      const enc = new TextEncoder()
-      const ivRaw = window.crypto.getRandomValues(new Uint8Array(12))
-      setIv(base64Encode(ivRaw.buffer))
-      const ct = await window.crypto.subtle.encrypt(
-        { name: 'AES-GCM', iv: ivRaw },
-        derivedKey,
-        enc.encode(text),
-      )
-      setEncrypted(base64Encode(ct))
-      setOperation('Encrypted')
+      if (!derivedKey) throw new Error('Derive a key first!')
+      if (!text) throw new Error('Enter text to encrypt')
+
+      const result = await cryptoEncrypt(text, derivedKey)
+      setEncrypted(result.encryptedValue)
+      setIv(result.iv)
+      setAuthTag(result.authTag)
+      setOperation('Encrypted successfully!')
     } catch (e: any) {
       setError(e.message)
       setOperation('')
     }
   }
 
-  // Decrypt using AES-GCM
-  async function decrypt() {
+  async function handleDecrypt() {
     setOperation('Decrypting...')
     setError(null)
     try {
-      if (!derivedKey) throw new Error('Key not derived yet!')
-      const dec = new TextDecoder()
-      const ivRaw = new Uint8Array(base64Decode(iv))
-      const ctRaw = base64Decode(encrypted)
-      const pt = await window.crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv: ivRaw },
-        derivedKey,
-        ctRaw,
-      )
-      setDecrypted(dec.decode(pt))
-      setOperation('Decrypted')
+      if (!derivedKey) throw new Error('Derive a key first!')
+      if (!encrypted || !iv || !authTag)
+        throw new Error('Encrypted data, IV, and AuthTag are required')
+
+      const result = await cryptoDecrypt(encrypted, iv, authTag, derivedKey)
+      setDecrypted(result)
+      setOperation('Decrypted successfully!')
     } catch (e: any) {
-      setError(e.message)
+      setError(e.message || 'Decryption failed - check your inputs')
       setOperation('')
     }
   }
 
-  // Hash using SHA-256
-  async function doHash() {
+  async function handleHash() {
     setOperation('Hashing...')
     setError(null)
     try {
-      const enc = new TextEncoder()
-      const hash = await window.crypto.subtle.digest(
-        'SHA-256',
-        enc.encode(passcode),
-      )
-      setHashHex(arrayBufferToHex(hash))
-      setOperation('Hashed')
+      if (!passcode) throw new Error('Enter a passcode to hash')
+      const result = await cryptoHash(passcode)
+      setHashResult(result)
+      setOperation('Hashed successfully!')
     } catch (e: any) {
       setError(e.message)
       setOperation('')
     }
   }
 
+  async function copyToClipboard(text: string, label: string) {
+    await navigator.clipboard.writeText(text)
+    setCopied(label)
+    setTimeout(() => setCopied(null), 2000)
+  }
+
   return (
-    <div className="max-w-xl mx-auto my-12 p-6 border border-slate-800 bg-slate-900/80 rounded-xl shadow-2xl text-slate-200">
-      <div className="mb-8 bg-sky-950/80 p-4 rounded-lg flex items-start gap-3">
-        <Info
-          className="w-6 h-6 text-cyan-400 flex-shrink-0 mt-1"
-          aria-hidden
-        />
-        <div>
-          <h2 className="text-xl font-bold mb-1">Crypto Test UI</h2>
-          <ul className="text-xs text-slate-300 list-disc pl-5">
-            <li>
-              Fill passcode and salt, click <b>Derive Key</b>{' '}
-              <KeyRound className="inline ml-1 w-4 h-4" aria-label="key icon" />{' '}
-              to generate a key
-            </li>
-            <li>
-              Enter text and click <b>Encrypt</b>{' '}
-              <Lock className="inline ml-1 w-4 h-4" aria-label="lock icon" /> to
-              encipher
-            </li>
-            <li>
-              Test decryption by clicking <b>Decrypt</b>{' '}
-              <Unlock
-                className="inline ml-1 w-4 h-4"
-                aria-label="unlock icon"
-              />
-              ; alter inputs to verify failures
-            </li>
-            <li>
-              Compute a SHA-256 hash of passcode or text with <b>Hash</b>{' '}
-              <HashIcon
-                className="inline ml-1 w-4 h-4"
-                aria-label="hash icon"
-              />
-            </li>
-          </ul>
-        </div>
+    <div className="container mx-auto max-w-3xl py-8 px-4">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">Crypto Test UI</h1>
+        <p className="text-muted-foreground mt-2">
+          Test the client-side encryption module using PBKDF2 key derivation and
+          AES-256-GCM encryption.
+        </p>
       </div>
+
+      {/* Instructions */}
+      <Card className="mb-6 border-primary/20 bg-primary/5">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Info className="h-5 w-5 text-primary" />
+            How to Use
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+            <li>
+              Enter a passcode and generate a salt, then click{' '}
+              <strong>Derive Key</strong>
+            </li>
+            <li>
+              Enter text and click <strong>Encrypt</strong> to encrypt it
+            </li>
+            <li>
+              Click <strong>Decrypt</strong> to verify decryption works
+            </li>
+            <li>
+              Test <strong>Hash</strong> to compute SHA-256 of the passcode
+            </li>
+          </ol>
+        </CardContent>
+      </Card>
+
       {/* Derive Key Section */}
-      <section className="mb-8 p-4 rounded-lg bg-slate-800/70 shadow-md">
-        <h3 className="font-semibold mb-2 flex items-center gap-2 text-cyan-400">
-          <KeyRound className="w-5 h-5" aria-hidden />
-          Derive Key (PBKDF2)
-        </h3>
-        <div className="flex flex-col gap-2">
-          <label className="text-xs opacity-80">
-            Passcode
-            <input
-              aria-label="Passcode"
-              className="block w-2/3 mt-1 px-2 py-2 rounded-md bg-slate-900 border border-slate-600 focus:border-cyan-500 focus:ring focus:ring-cyan-700/20 outline-none text-base"
-              value={passcode}
-              onChange={(e) => setPasscode(e.target.value)}
-              autoComplete="off"
-            />
-          </label>
-          <label className="text-xs opacity-80">
-            Salt
-            <input
-              aria-label="Salt"
-              className="block w-2/3 mt-1 px-2 py-2 rounded-md bg-slate-900 border border-slate-600 focus:border-cyan-500 focus:ring focus:ring-cyan-700/20 outline-none"
-              value={salt}
-              onChange={(e) => setSalt(e.target.value)}
-              placeholder="Random string"
-              autoComplete="off"
-            />
-          </label>
-          <button
-            type="button"
-            aria-label="Derive Key"
-            onClick={deriveKey}
-            className="mt-4 w-max flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold bg-cyan-600 hover:bg-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-300 transition text-white shadow-md text-base"
-          >
-            <KeyRound className="w-5 h-5" aria-hidden />
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-cyan-400">
+            <KeyRound className="h-5 w-5" />
+            Derive Key (PBKDF2)
+          </CardTitle>
+          <CardDescription>
+            100,000 iterations with SHA-256 to derive AES-256 key
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="passcode">Passcode</Label>
+              <Input
+                id="passcode"
+                type="password"
+                placeholder="Enter your passcode"
+                value={passcode}
+                onChange={(e) => setPasscode(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="salt">Salt (Base64)</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="salt"
+                  placeholder="Generate or enter salt"
+                  value={salt}
+                  onChange={(e) => setSalt(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateSalt}
+                >
+                  Generate
+                </Button>
+              </div>
+            </div>
+          </div>
+          <Button onClick={handleDeriveKey} className="gap-2">
+            <KeyRound className="h-4 w-4" />
             Derive Key
-          </button>
-          {derivedKeyHex && (
-            <div className="text-xs font-mono mt-1 break-all text-cyan-300 select-all">
-              Key: {derivedKeyHex}
+          </Button>
+          {derivedKeyDisplay && (
+            <div className="mt-4 p-3 rounded-lg bg-muted">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Derived Key (Hex)
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2"
+                  onClick={() => copyToClipboard(derivedKeyDisplay, 'key')}
+                >
+                  {copied === 'key' ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </Button>
+              </div>
+              <code className="text-xs font-mono text-cyan-400 break-all">
+                {derivedKeyDisplay}
+              </code>
             </div>
           )}
-        </div>
-      </section>
+        </CardContent>
+      </Card>
+
       {/* Encrypt Section */}
-      <section className="mb-8 p-4 rounded-lg bg-slate-800/70 shadow-md">
-        <h3 className="font-semibold mb-2 flex items-center gap-2 text-green-400">
-          <Lock className="w-5 h-5" aria-hidden />
-          Encrypt (AES-GCM)
-        </h3>
-        <label className="text-xs opacity-80 mb-2">
-          Text to Encrypt
-          <input
-            aria-label="Text to Encrypt"
-            className="block w-5/6 mt-1 px-2 py-2 rounded-md bg-slate-900 border border-slate-600 focus:border-green-500 focus:ring focus:ring-green-700/20 outline-none"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            autoComplete="off"
-          />
-        </label>
-        <div className="flex items-center gap-4 mt-2">
-          <button
-            type="button"
-            aria-label="Encrypt"
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-green-400">
+            <Lock className="h-5 w-5" />
+            Encrypt (AES-256-GCM)
+          </CardTitle>
+          <CardDescription>Encrypt text with the derived key</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="plaintext">Text to Encrypt</Label>
+            <Input
+              id="plaintext"
+              placeholder="Enter secret text..."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+          </div>
+          <Button
+            onClick={handleEncrypt}
             disabled={!derivedKey}
-            onClick={encrypt}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold bg-green-600 hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-300 disabled:bg-green-900/60 disabled:cursor-not-allowed transition text-white shadow-md text-base"
+            className="gap-2"
+            variant="secondary"
           >
-            <Lock className="w-5 h-5" aria-hidden />
+            <Lock className="h-4 w-4" />
             Encrypt
-          </button>
+          </Button>
           {encrypted && (
-            <button
-              className="ml-2 px-2 py-1 rounded bg-slate-600 text-xs text-white hover:bg-slate-700"
-              type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(encrypted)
-              }}
-              aria-label="Copy encrypted result to clipboard"
-            >
-              <span>Copy Encrypted</span>
-            </button>
-          )}
-        </div>
-        {encrypted && (
-          <>
-            <div className="text-xs font-mono mt-2 break-all text-green-300 select-all">
-              Encrypted: {encrypted}
+            <div className="space-y-3 mt-4">
+              <div className="p-3 rounded-lg bg-muted">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Encrypted Value
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2"
+                    onClick={() => copyToClipboard(encrypted, 'encrypted')}
+                  >
+                    {copied === 'encrypted' ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </Button>
+                </div>
+                <code className="text-xs font-mono text-green-400 break-all">
+                  {encrypted}
+                </code>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="p-3 rounded-lg bg-muted">
+                  <span className="text-xs font-medium text-muted-foreground block mb-1">
+                    IV
+                  </span>
+                  <code className="text-xs font-mono break-all">{iv}</code>
+                </div>
+                <div className="p-3 rounded-lg bg-muted">
+                  <span className="text-xs font-medium text-muted-foreground block mb-1">
+                    Auth Tag
+                  </span>
+                  <code className="text-xs font-mono break-all">{authTag}</code>
+                </div>
+              </div>
             </div>
-            <div className="text-xs font-mono mt-1 select-all">IV: {iv}</div>
-          </>
-        )}
-      </section>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Decrypt Section */}
-      <section className="mb-8 p-4 rounded-lg bg-slate-800/70 shadow-md">
-        <h3 className="font-semibold mb-2 flex items-center gap-2 text-yellow-300">
-          <Unlock className="w-5 h-5" aria-hidden />
-          Decrypt (AES-GCM)
-        </h3>
-        <div className="flex flex-col gap-2">
-          <input
-            aria-label="Encrypted Data (base64)"
-            placeholder="Encrypted Data (base64)"
-            className="block w-5/6 px-2 py-2 rounded-md bg-slate-900 border border-slate-600 focus:border-yellow-400 focus:ring focus:ring-yellow-400/20 outline-none"
-            value={encrypted}
-            onChange={(e) => setEncrypted(e.target.value)}
-            autoComplete="off"
-          />
-          <input
-            aria-label="IV (base64)"
-            placeholder="IV (base64)"
-            className="block w-3/5 mt-1 px-2 py-2 rounded-md bg-slate-900 border border-slate-600 focus:border-yellow-400 focus:ring focus:ring-yellow-400/20 outline-none"
-            value={iv}
-            onChange={(e) => setIv(e.target.value)}
-            autoComplete="off"
-          />
-          <button
-            type="button"
-            aria-label="Decrypt"
-            disabled={!derivedKey || !encrypted || !iv}
-            onClick={decrypt}
-            className="w-max flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold bg-yellow-500 hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-200/80 disabled:bg-yellow-950/60 disabled:cursor-not-allowed transition text-black shadow-md text-base mt-1"
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-yellow-400">
+            <Unlock className="h-5 w-5" />
+            Decrypt (AES-256-GCM)
+          </CardTitle>
+          <CardDescription>
+            Decrypt using the encrypted value, IV, and auth tag
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="encrypted">Encrypted Data (Base64)</Label>
+            <Input
+              id="encrypted"
+              placeholder="Paste encrypted data..."
+              value={encrypted}
+              onChange={(e) => setEncrypted(e.target.value)}
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="iv">IV (Base64)</Label>
+              <Input
+                id="iv"
+                placeholder="IV..."
+                value={iv}
+                onChange={(e) => setIv(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="authTag">Auth Tag (Base64)</Label>
+              <Input
+                id="authTag"
+                placeholder="Auth tag..."
+                value={authTag}
+                onChange={(e) => setAuthTag(e.target.value)}
+              />
+            </div>
+          </div>
+          <Button
+            onClick={handleDecrypt}
+            disabled={!derivedKey || !encrypted || !iv || !authTag}
+            className="gap-2"
+            variant="secondary"
           >
-            <Unlock className="w-5 h-5" aria-hidden />
+            <Unlock className="h-4 w-4" />
             Decrypt
-          </button>
-        </div>
-        {decrypted && (
-          <div className="text-xs font-mono mt-2 break-all text-yellow-400 select-all">
-            Plain: {decrypted}
-          </div>
-        )}
-      </section>
+          </Button>
+          {decrypted && (
+            <div className="mt-4 p-3 rounded-lg bg-muted">
+              <span className="text-xs font-medium text-muted-foreground block mb-1">
+                Decrypted Text
+              </span>
+              <code className="text-sm font-mono text-yellow-400">
+                {decrypted}
+              </code>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Hash Section */}
-      <section className="mb-8 p-4 rounded-lg bg-slate-800/70 shadow-md">
-        <h3 className="font-semibold mb-2 flex items-center gap-2 text-fuchsia-400">
-          <HashIcon className="w-5 h-5" aria-hidden />
-          Hash (SHA-256)
-        </h3>
-        <button
-          type="button"
-          aria-label="Hash Passcode / Text"
-          onClick={doHash}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold bg-fuchsia-700 hover:bg-fuchsia-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-400 transition text-white shadow-md text-base"
-        >
-          <HashIcon className="w-5 h-5" aria-hidden />
-          Hash Passcode / Text (SHA-256)
-        </button>
-        {hashHex && (
-          <div className="text-xs font-mono mt-2 break-all text-fuchsia-300 select-all">
-            Hash: {hashHex}
-          </div>
-        )}
-      </section>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-fuchsia-400">
+            <HashIcon className="h-5 w-5" />
+            Hash (SHA-256)
+          </CardTitle>
+          <CardDescription>
+            Compute SHA-256 hash of the passcode (used for masterKeyHash)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button onClick={handleHash} className="gap-2" variant="secondary">
+            <HashIcon className="h-4 w-4" />
+            Hash Passcode
+          </Button>
+          {hashResult && (
+            <div className="mt-4 p-3 rounded-lg bg-muted">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-muted-foreground">
+                  SHA-256 Hash (Base64)
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2"
+                  onClick={() => copyToClipboard(hashResult, 'hash')}
+                >
+                  {copied === 'hash' ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </Button>
+              </div>
+              <code className="text-xs font-mono text-fuchsia-400 break-all">
+                {hashResult}
+              </code>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Separator className="my-6" />
+
       {/* Feedback Section */}
-      <div aria-live="polite">
+      <div aria-live="polite" className="space-y-2">
         {operation && (
-          <div className="mt-4 flex items-center gap-2 text-cyan-300">
-            <Info className="w-4 h-4" aria-hidden />
+          <div className="flex items-center gap-2 text-sm text-primary">
+            <Info className="h-4 w-4" />
             <span>{operation}</span>
           </div>
         )}
         {error && (
-          <div className="mt-4 flex items-center gap-2 text-rose-400">
-            <AlertCircle className="w-4 h-4" aria-hidden />
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4" />
             <span>Error: {error}</span>
           </div>
         )}
