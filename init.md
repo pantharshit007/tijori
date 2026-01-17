@@ -93,6 +93,7 @@ _One-time share links._
 - `payloadIv`: `v.string()` (For Payload)
 - `payloadAuthTag`: `v.string()` (For Payload)
 - `expiresAt`: `v.optional(v.number())`
+- `isIndefinite`: `v.boolean()` (If true, expiresAt is ignored)
 - `views`: `v.number()`
   _(Indexes: `by_projectId`, `by_expiry`)_
 
@@ -133,101 +134,121 @@ _One-time share links._
 ## 🚀 Implementation Plan
 
 ### Phase 0: Workflow & Documentation (Continuous)
-*Applies to every phase below.*
-0. **Default Branch**: Use `master` branch.
+
+_Applies to every phase below._ 0. **Default Branch**: Use `master` branch.
+
 1. **Branch Often**: Create a new branch for each phase.
-2.  **Commit Often**: Create a git commit after completing each sub-task.
-3.  **Progress Log**: Create/Update a file in `./progress-log/` (e.g., `progress-01.md`) detailing what was completed.
-4.  **Learnings**: Update `./learning.md` with any new insights, technical challenges, or decisions made.
+2. **Commit Often**: Create a git commit after completing each sub-task.
+3. **Progress Log**: Create/Update a file in `./progress-log/` (e.g., `progress-01.md`) detailing what was completed.
+4. **Learnings**: Update `./learning.md` with any new insights, technical challenges, or decisions made.
 
 ---
 
 ### Phase 1: Clean Up & Initialization
-*Goal: Remove old stack debris and establish the new foundation.*
+
+_Goal: Remove old stack debris and establish the new foundation._
 
 #### Task 1.1: Archive & Cleanup
-+ [x] Remove `drizzle.config.ts`, `next.config.js`, `next-env.d.ts`.
-+ [x] Remove `supabase/` directory and `drizzle/` (or `src/server/db`) directories.
-+ [x] Remove unused dependencies from `package.json` (Next.js, Supabase, Drizzle, etc.).
-+ [x] Preserve `src/utils/crypto.ts` (or equivalent logic) if it contains reusable algorithms.
+
+- [x] Remove `drizzle.config.ts`, `next.config.js`, `next-env.d.ts`.
+- [x] Remove `supabase/` directory and `drizzle/` (or `src/server/db`) directories.
+- [x] Remove unused dependencies from `package.json` (Next.js, Supabase, Drizzle, etc.).
+- [x] Preserve `src/utils/crypto.ts` (or equivalent logic) if it contains reusable algorithms.
 
 #### Task 1.2: Initialize TanStack Start
-+ [x] Run `npm create tanstack-start@latest` (or equivalent) in the current directory.
-+ [x] Configure `vite.config.ts` (if applicable) and basic routing structure.
-+ [x] Install Tailwind CSS v4 and configure basic global styles.
+
+- [x] Run `npm create tanstack-start@latest` (or equivalent) in the current directory.
+- [x] Configure `vite.config.ts` (if applicable) and basic routing structure.
+- [x] Install Tailwind CSS v4 and configure basic global styles.
 
 #### Task 1.3: Initialize Convex
-+ [x] Install Convex: `npm install convex`.
-+ [x] Run `npx convex dev` to initialize the project.
-+ [x] Set up `convex/` directory structure.
+
+- [x] Install Convex: `npm install convex`.
+- [x] Run `npx convex dev` to initialize the project.
+- [x] Set up `convex/` directory structure.
 
 ---
 
 ### Phase 2: Backend Core (Convex)
-*Goal: Implement the Data Model and Security Logic.*
+
+_Goal: Implement the Data Model and Security Logic._
 
 #### Task 2.1: Schema Definition
-+ [x] Define `users` table with Clerk/Auth integration fields.
-+ [x] Define `projects` table with all security fields (`encryptedPasscode`, `masterKeyHash`, etc.).
-+ [x] Define `projectMembers` for RBAC.
-+ [x] Define `environments` and `variables` tables.
-+ [x] Define `sharedSecrets` table.
-+ [x] *Validation*: Ensure all fields use strict `v.*` validaters.
+
+- [x] Define `users` table with Clerk/Auth integration fields.
+- [x] Define `projects` table with all security fields (`encryptedPasscode`, `masterKeyHash`, etc.).
+- [x] Define `projectMembers` for RBAC.
+- [x] Define `environments` and `variables` tables.
+- [x] Define `sharedSecrets` table.
+- [x] _Validation_: Ensure all fields use strict `v.*` validaters.
 
 #### Task 2.2: Authentication Setup
-+ [x] Configure `convex/auth.config.ts`.
-+ [x] Create helper function `getUser` to retrieve authenticated user identity securely.
+
+- [x] Configure `convex/auth.config.ts`.
+- [x] Create helper function `getUser` to retrieve authenticated user identity securely.
 
 #### Task 2.3: Project Management Functions
-+ [x] `create` mutation: Handles `masterKeyHash` and `encryptedPasscode` storage.
-+ [x] `list` query: Returns projects the user is a member of.
-+ [x] `get` query: Returns project details (excluding secrets if user not authorized).
+
+- [x] `create` mutation: Handles `masterKeyHash` and `encryptedPasscode` storage.
+- [x] `list` query: Returns projects the user is a member of.
+- [x] `get` query: Returns project details (excluding secrets if user not authorized).
 
 #### Task 2.4: Variable Management Functions
-+ [x] `listVariables` query: Returns encrypted values for a specific environment.
-+ [x] `updateVariable` mutation: Stores `encryptedValue`, `iv`, `authTag`.
-+ [x] *Security Check*: Ensure only project members can access these functions.
+
+- [x] `listVariables` query: Returns encrypted values for a specific environment.
+- [x] `updateVariable` mutation: Stores `encryptedValue`, `iv`, `authTag`.
+- [x] _Security Check_: Ensure only project members can access these functions.
 
 ---
 
 ### Phase 3: Frontend Foundation & Crypto
-*Goal: Build the UI shell and client-side encryption layer.*
+
+_Goal: Build the UI shell and client-side encryption layer._
 
 #### Task 3.1: Crypto Module (Client-Side)
+
 - [ ] Implement `deriveKey(passcode, salt)` using PBKDF2.
 - [ ] Implement `encrypt(text, key)` using AES-GCM.
 - [ ] Implement `decrypt(encryptedData, key)` using AES-GCM.
 - [ ] Implement `hash(text)` using SHA-256.
-- [ ] *Test*: Verify these work reliably in the browser environment.
+- [ ] _Test_: Verify these work reliably in the browser environment.
 
 #### Task 3.2: Layout & Navigation
+
 - [ ] Create `App` layout with Sidebar/Navigation.
 - [ ] Implement Authentication UI (Login/Logout protection).
 - [ ] Design "Premium" global theme (Dark mode, fonts, colors).
 
 #### Task 3.3: Project & Environment UI
+
 - [ ] **Dashboard**: List all projects.
 - [ ] **Project View**: Tabs for different environments (Dev, Prod).
 - [ ] **Variables Grid**:
-    - [ ] Display variables.
-    - [ ] "Reveal" button triggers decryption (prompts for Passcode if key not in memory).
-    - [ ] "Edit" button triggers encryption.
+  - [ ] Display variables.
+  - [ ] "Reveal" button triggers decryption (prompts for Passcode if key not in memory).
+  - [ ] "Edit" button triggers encryption.
 
 #### Task 3.4: State Management
-- [ ] Use React State / Context to hold the *decrypted* passcode-derived key temporarily.
+
+- [ ] Use React State / Context to hold the _decrypted_ passcode-derived key temporarily.
 - [ ] Ensure key is wiped on page reload or logout.
 
 ---
 
 ### Phase 4: Shared Secrets (Magic Links)
-*Goal: Implement the Zero-Knowledge sharing flow.*
+
+_Goal: Implement the Zero-Knowledge sharing flow._
 
 #### Task 4.1: Share Creation Flow
+
 - [ ] UI to select variables.
+- [ ] UI to set expiry (duration or indefinite).
 - [ ] Client-side encryption: Generate `ShareKey`, encrypt vars, encrypt `ShareKey` with `Passcode`.
+
 - [ ] Mutation to store `encryptedPayload` in `sharedSecrets`.
 
 #### Task 4.2: Public Access View
+
 - [ ] Public route `tijori.app/share/[id]`.
 - [ ] Fetch encrypted payload.
 - [ ] UI prompts for Passcode.
