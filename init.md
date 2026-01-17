@@ -223,18 +223,19 @@ _Goal: Build the UI shell and client-side encryption layer._
 
 #### Task 3.3: Project & Environment UI
 
-- [ ] check convex working: it works for our dev mode via `npx convex dev` or locally.
-- [ ] **Dashboard**: List all projects.
-- [ ] **Project View**: Tabs for different environments (Dev, Prod).
-- [ ] **Variables Grid**:
-  - [ ] Display variables.
-  - [ ] "Reveal" button triggers decryption (prompts for Passcode if key not in memory).
-  - [ ] "Edit" button triggers encryption.
+- [x] check convex working: it works for our dev mode via `npx convex dev` or locally.
+- [x] **Dashboard**: List all projects.
+- [x] **Project View**: Tabs for different environments (Dev, Prod).
+- [x] **Variables Grid**:
+  - [x] Display variables.
+  - [x] "Reveal" button triggers decryption (prompts for Passcode if key not in memory).
+  - [x] "Edit" button triggers encryption.
 
 #### Task 3.4: State Management
 
-- [ ] Use React State / Context to hold the _decrypted_ passcode-derived key temporarily.
-- [ ] Ensure key is wiped on page reload or logout.
+- [x] Use React State / Context to hold the _decrypted_ passcode-derived key temporarily.
+- [x] Ensure key is wiped on page reload or logout.
+
 
 ---
 

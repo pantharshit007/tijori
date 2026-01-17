@@ -123,3 +123,72 @@ Integrated Clerk authentication with TanStack Start for login/logout protection.
 ---
 
 _Logged by Antigravity Agent_
+
+---
+
+# Task 3.3: Project & Environment UI ✅
+
+**Date**: 2026-01-18
+
+## Summary
+
+Implemented full project management UI with Convex integration, environment tabs, and encrypted variable CRUD operations.
+
+## Implementation Details
+
+### 1. Convex Client Setup (`src/lib/convex.ts`)
+- Created Convex client with React Query integration.
+- Uses `VITE_CONVEX_URL` for local/cloud deployments.
+
+### 2. Root Layout Updates
+- Added `ConvexProviderWithClerk` for authenticated Convex access.
+- Wrapped app in `QueryClientProvider`.
+
+### 3. Dashboard (`src/routes/index.tsx`)
+- Lists all projects user is a member of.
+- Shows project cards with name, role, description, and creation date.
+- Empty state with "Create Project" CTA.
+- Loading skeletons.
+
+### 4. New Project (`src/routes/projects/new.tsx`)
+- Form for project name, description.
+- Security configuration: Passcode + Master Key.
+- Client-side encryption before storing:
+  - Hash master key → `masterKeyHash`.
+  - Derive key from master key → encrypt passcode.
+  - Store encrypted passcode, salt, IV, authTag.
+
+### 5. Project View (`src/routes/projects/$projectId.tsx`)
+- Environment tabs (e.g., Development, Production).
+- Variables grid with:
+  - Reveal button (decrypts using passcode-derived key).
+  - Copy to clipboard.
+  - Delete.
+  - Add new variable with client-side encryption.
+- Unlock/Lock dialog for passcode entry.
+
+### Dependencies Added
+- `@convex-dev/react-query` - Convex + React Query integration.
+- `@tanstack/react-query` - Data fetching/caching.
+
+### shadcn/ui Components Added
+- `tabs`, `badge`, `dialog`.
+
+## Technical Notes
+- Derived key is held in React state and wiped on page reload.
+- All encryption/decryption happens client-side.
+- TypeScript errors for `api.*` will resolve with `bunx convex dev`.
+
+---
+
+## Phase 3 Complete! 🎉
+
+- ✅ Task 3.1: Crypto Module
+- ✅ Task 3.2: Layout & Navigation + Auth
+- ✅ Task 3.3: Project & Environment UI
+- ✅ Task 3.4: State Management
+
+---
+
+_Logged by Antigravity Agent_
+
