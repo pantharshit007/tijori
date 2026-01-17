@@ -135,7 +135,8 @@ _One-time share links._
 
 ### Phase 0: Workflow & Documentation (Continuous)
 
-_Applies to every phase below._ 0. **Default Branch**: Use `master` branch.
+_Applies to every phase below._ 
+**Default Branch**: Use `master` branch.
 
 1. **Branch Often**: Create a new branch for each phase.
 2. **Commit Often**: Create a git commit after completing each sub-task.
@@ -207,11 +208,12 @@ _Goal: Build the UI shell and client-side encryption layer._
 
 #### Task 3.1: Crypto Module (Client-Side)
 
-- [ ] Implement `deriveKey(passcode, salt)` using PBKDF2.
-- [ ] Implement `encrypt(text, key)` using AES-GCM.
-- [ ] Implement `decrypt(encryptedData, key)` using AES-GCM.
-- [ ] Implement `hash(text)` using SHA-256.
+- [x] Implement `deriveKey(passcode, salt)` using PBKDF2.
+- [x] Implement `encrypt(text, key)` using AES-GCM.
+- [x] Implement `decrypt(encryptedData, key)` using AES-GCM.
+- [x] Implement `hash(text)` using SHA-256.
 - [ ] _Test_: Verify these work reliably in the browser environment.
+
 
 #### Task 3.2: Layout & Navigation
 
