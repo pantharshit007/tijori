@@ -146,20 +146,20 @@ _One-time share links._
 *Goal: Remove old stack debris and establish the new foundation.*
 
 #### Task 1.1: Archive & Cleanup
-- [ ] Remove `drizzle.config.ts`, `next.config.js`, `next-env.d.ts`.
-- [ ] Remove `supabase/` directory and `drizzle/` (or `src/server/db`) directories.
-- [ ] Remove unused dependencies from `package.json` (Next.js, Supabase, Drizzle, etc.).
-- [ ] Preserve `src/utils/crypto.ts` (or equivalent logic) if it contains reusable algorithms.
++ [x] Remove `drizzle.config.ts`, `next.config.js`, `next-env.d.ts`.
++ [x] Remove `supabase/` directory and `drizzle/` (or `src/server/db`) directories.
++ [x] Remove unused dependencies from `package.json` (Next.js, Supabase, Drizzle, etc.).
++ [x] Preserve `src/utils/crypto.ts` (or equivalent logic) if it contains reusable algorithms.
 
 #### Task 1.2: Initialize TanStack Start
-- [ ] Run `npm create tanstack-start@latest` (or equivalent) in the current directory.
-- [ ] Configure `vite.config.ts` (if applicable) and basic routing structure.
-- [ ] Install Tailwind CSS v4 and configure basic global styles.
++ [x] Run `npm create tanstack-start@latest` (or equivalent) in the current directory.
++ [x] Configure `vite.config.ts` (if applicable) and basic routing structure.
++ [x] Install Tailwind CSS v4 and configure basic global styles.
 
 #### Task 1.3: Initialize Convex
-- [ ] Install Convex: `npm install convex`.
-- [ ] Run `npx convex dev` to initialize the project.
-- [ ] Set up `convex/` directory structure.
++ [x] Install Convex: `npm install convex`.
++ [x] Run `npx convex dev` to initialize the project.
++ [x] Set up `convex/` directory structure.
 
 ---
 
@@ -167,26 +167,26 @@ _One-time share links._
 *Goal: Implement the Data Model and Security Logic.*
 
 #### Task 2.1: Schema Definition
-- [ ] Define `users` table with Clerk/Auth integration fields.
-- [ ] Define `projects` table with all security fields (`encryptedPasscode`, `masterKeyHash`, etc.).
-- [ ] Define `projectMembers` for RBAC.
-- [ ] Define `environments` and `variables` tables.
-- [ ] Define `sharedSecrets` table.
-- [ ] *Validation*: Ensure all fields use strict `v.*` validaters.
++ [x] Define `users` table with Clerk/Auth integration fields.
++ [x] Define `projects` table with all security fields (`encryptedPasscode`, `masterKeyHash`, etc.).
++ [x] Define `projectMembers` for RBAC.
++ [x] Define `environments` and `variables` tables.
++ [x] Define `sharedSecrets` table.
++ [x] *Validation*: Ensure all fields use strict `v.*` validaters.
 
 #### Task 2.2: Authentication Setup
-- [ ] Configure `convex/auth.config.ts`.
-- [ ] Create helper function `getUser` to retrieve authenticated user identity securely.
++ [x] Configure `convex/auth.config.ts`.
++ [x] Create helper function `getUser` to retrieve authenticated user identity securely.
 
 #### Task 2.3: Project Management Functions
-- [ ] `create` mutation: Handles `masterKeyHash` and `encryptedPasscode` storage.
-- [ ] `list` query: Returns projects the user is a member of.
-- [ ] `get` query: Returns project details (excluding secrets if user not authorized).
++ [x] `create` mutation: Handles `masterKeyHash` and `encryptedPasscode` storage.
++ [x] `list` query: Returns projects the user is a member of.
++ [x] `get` query: Returns project details (excluding secrets if user not authorized).
 
 #### Task 2.4: Variable Management Functions
-- [ ] `listVariables` query: Returns encrypted values for a specific environment.
-- [ ] `updateVariable` mutation: Stores `encryptedValue`, `iv`, `authTag`.
-- [ ] *Security Check*: Ensure only project members can access these functions.
++ [x] `listVariables` query: Returns encrypted values for a specific environment.
++ [x] `updateVariable` mutation: Stores `encryptedValue`, `iv`, `authTag`.
++ [x] *Security Check*: Ensure only project members can access these functions.
 
 ---
 
