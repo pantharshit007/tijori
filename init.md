@@ -298,7 +298,7 @@ _Goal: Implement the Zero-Knowledge sharing flow with proper management and visi
 - [x] Add disable/enable toggle in `/shared` dashboard.
 - [x] Add delete button with confirmation.
 - [x] Add extend expiry option for expired shares.
-- [ ] **Encrypt share passcode** in database using project key (Zero-Knowledge for dashboard).
+- [x] **Encrypt share passcode** in database using project key (Zero-Knowledge for dashboard).
 
 #### Task 4.5: Refactor & Structure Improvements
 - [x] Move environment variable logic into `EnvironmentVariables` component.

@@ -157,3 +157,36 @@ Originally, each project had its own master key. This was changed to a **single 
 - Master key hash is stored, never the plaintext
 - Changing the master key requires re-encrypting all project passcodes
 - This is enforced: users cannot create projects without setting a master key first
+
+---
+
+## 2026-01-19 - Phase 4
+
+### Zero-Knowledge Dashboard Management
+
+We implemented a way for users to see the passcodes of the links they've shared without storing those passcodes in plaintext. This uses a **Nested Encryption** approach:
+
+1. **The Shared Data**: Encrypted with a random `ShareKey`.
+2. **The ShareKey**: Encrypted with the **User-Defined 6-Digit Passcode**.
+3. **The 6-Digit Passcode**: Encrypted with the **Project Key** (which is derived from the project's own passcode).
+
+**Result**:
+- **Recipients** can decrypt the data using only the 6-digit passcode.
+- **Creators** can see the 6-digit passcode in their dashboard, but ONLY if they have unlocked the project (derived the Project Key).
+- **The DB/Server** never sees either the variables or the 6-digit passcode in plaintext.
+
+### In-Memory Key Persistence (SPAs)
+
+In a Single Page Application (SPA), we can use an in-memory singleton (like `keyStore.ts`) to persist sensitive `CryptoKey` objects across route navigations.
+
+- **Pros**: Key survives navigation between Dashboard, Projects, and Shared pages. No need to re-type the passcode every time you click a different environment.
+- **Cons**: Key is lost on hard reload (F5).
+- **Security**: Much safer than `localStorage` or `sessionStorage` because the key only lives in the JS heap and is never written to disk or accessible via XSS as easily as local storage strings.
+
+### Key Rotation Cost Analysis
+
+We learned to distinguish between **Master Key Rotation** and **Project Passcode Rotation**:
+
+- **Master Key Rotation (Low Cost)**: Since the Master Key only encrypts the *Project Passcode*, rotating it only requires re-encrypting a few small strings in the `projects` table.
+- **Project Passcode Rotation (High Cost)**: Since the Project Passcode is used to derive the Project Key which encrypts ALL variables and shared passcodes, rotating it requires a massive batch re-encryption job.
+- **Decision**: Always warn users about the cost and consider making high-cost rotations a background or multi-step process.
