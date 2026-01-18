@@ -14,6 +14,9 @@ export default [
       'learning.md',
       'eslint.config.js',
       'prettier.config.js',
+      '.output',
+      '.tanstack',
+      'src/components/ui/**',
     ],
   },
 ]

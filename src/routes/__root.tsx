@@ -3,15 +3,15 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import {
   ClerkProvider,
+  SignInButton,
   SignedIn,
   SignedOut,
-  SignInButton,
-  UserButton,
+  UserButton, useAuth 
 } from '@clerk/tanstack-react-start'
 import { ConvexProviderWithClerk } from 'convex/react-clerk'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { useAuth } from '@clerk/tanstack-react-start'
 
+import appCss from '../styles.css?url'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/app-sidebar'
 import { AuthenticatedLayout } from '@/components/authenticated-layout'
@@ -20,7 +20,6 @@ import { Separator } from '@/components/ui/separator'
 import { convex, queryClient } from '@/lib/convex'
 
 
-import appCss from '../styles.css?url'
 
 export const Route = createRootRoute({
   head: () => ({

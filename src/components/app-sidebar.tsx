@@ -1,3 +1,13 @@
+import { Link } from "@tanstack/react-router";
+import {
+  FolderKey,
+  Home,
+  KeyRound,
+  LogOut,
+  Settings,
+  Share2,
+  User,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -10,16 +20,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Link } from "@tanstack/react-router";
-import {
-  FolderKey,
-  Home,
-  KeyRound,
-  LogOut,
-  Settings,
-  Share2,
-  User,
-} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,

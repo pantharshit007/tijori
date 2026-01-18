@@ -1,20 +1,20 @@
-import { createFileRoute, Link, useParams } from '@tanstack/react-router'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from '../../../convex/_generated/api'
-import { Id } from '../../../convex/_generated/dataModel'
-import { useState, useEffect } from 'react'
+import { Link, createFileRoute, useParams } from '@tanstack/react-router'
+import { useMutation, useQuery } from 'convex/react'
+import { useEffect, useState } from 'react'
 import {
   ArrowLeft,
-  Plus,
+  Check,
+  Copy,
   Eye,
   EyeOff,
-  Copy,
-  Check,
-  Trash2,
   KeyRound,
-  Settings,
   Loader2,
+  Plus,
+  Settings,
+  Trash2,
 } from 'lucide-react'
+import { api } from '../../../convex/_generated/api'
+import type { Id } from '../../../convex/_generated/dataModel'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,7 +33,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 
-import { deriveKey, encrypt, decrypt } from '@/lib/crypto'
+import { decrypt, deriveKey, encrypt } from '@/lib/crypto'
 
 import { VERIFICATION_STRING } from '@/utilities/constants'
 

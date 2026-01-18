@@ -1,8 +1,8 @@
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from '../../../convex/_generated/api'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
-import { ArrowLeft, KeyRound, Loader2, AlertTriangle } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, KeyRound, Loader2 } from 'lucide-react'
+import { api } from '../../../convex/_generated/api'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 
-import { deriveKey, encrypt, generateSalt, hash as cryptoHash } from '@/lib/crypto'
+import { hash as cryptoHash, deriveKey, encrypt, generateSalt } from '@/lib/crypto'
 
 const VERIFICATION_STRING = 'TIJORI_VERIFY'
 

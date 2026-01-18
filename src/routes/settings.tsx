@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from '../../convex/_generated/api'
+import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
-import { KeyRound, Loader2, Check, AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Check, KeyRound, Loader2 } from 'lucide-react'
+import { api } from '../../convex/_generated/api'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
-import { hash, generateSalt } from '@/lib/crypto'
+import { generateSalt, hash } from '@/lib/crypto'
 
 function Settings() {
   const user = useQuery(api.users.me)
