@@ -267,27 +267,27 @@ _Goal: Fix security bugs and improve verification flow._
 
 ---
 
-### Phase 4: Shared Secrets (Magic Links)
+### Phase 4: Shared Secrets (Magic Links) ✅
 
 _Goal: Implement the Zero-Knowledge sharing flow._
 
-#### Task 4.1: Share Creation Flow
+#### Task 4.1: Share Creation Flow ✅
 
-- [ ] UI to select variables.
-- [ ] UI to set expiry (duration or indefinite).
-- [ ] Client-side encryption: Generate `ShareKey`, encrypt vars, encrypt `ShareKey` with `Passcode`.
+- [x] UI to select variables.
+- [x] UI to set expiry (duration or indefinite).
+- [x] Client-side encryption: Generate `ShareKey`, encrypt vars, encrypt `ShareKey` with `Passcode`.
+- [x] Mutation to store `encryptedPayload` in `sharedSecrets`.
 
-- [ ] Mutation to store `encryptedPayload` in `sharedSecrets`.
+#### Task 4.2: Public Access View ✅
 
-#### Task 4.2: Public Access View
-
-- [ ] Public route `tijori.app/share/[id]`.
-- [ ] Fetch encrypted payload.
-- [ ] UI prompts for Passcode.
-- [ ] Client-side decryption and display.
-- [ ] add a button to copy the shared key to clipboard.
+- [x] Public route `tijori.app/share/[id]`.
+- [x] Fetch encrypted payload.
+- [x] UI prompts for Passcode.
+- [x] Client-side decryption and display.
+- [x] Add a button to copy the shared key to clipboard.
 
 ---
+
 
 ### Phase 5: Master Key Management (Future)
 

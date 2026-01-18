@@ -12,6 +12,7 @@ import {
   Loader2,
   Plus,
   Settings,
+  Share2,
   Trash2,
 } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
@@ -24,6 +25,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -33,9 +35,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { hash as cryptoHash, decrypt, deriveKey, encrypt } from "@/lib/crypto";
 import { formatRelativeTime } from "@/lib/time";
+
 
 function ProjectView() {
   const { projectId } = useParams({ from: "/projects/$projectId" });
@@ -265,7 +275,11 @@ function ProjectView() {
 
           {environments.map((env) => (
             <TabsContent key={env._id} value={env._id} className="mt-4">
-              <EnvironmentVariables environment={env} derivedKey={derivedKey} />
+              <EnvironmentVariables
+                environment={env}
+                derivedKey={derivedKey}
+                passcodeSalt={project.passcodeSalt}
+              />
             </TabsContent>
           ))}
         </Tabs>
@@ -283,6 +297,7 @@ function ProjectView() {
 function EnvironmentVariables({
   environment,
   derivedKey,
+  passcodeSalt,
 }: {
   environment: {
     _id: Id<"environments">;
@@ -293,10 +308,12 @@ function EnvironmentVariables({
     description?: string;
   };
   derivedKey: CryptoKey | null;
+  passcodeSalt: string;
 }) {
   const variables = useQuery(api.variables.list, { environmentId: environment._id });
   const saveVariable = useMutation(api.variables.save);
   const removeVariable = useMutation(api.variables.remove);
+  const createShare = useMutation(api.sharedSecrets.create);
 
   const [revealedVars, setRevealedVars] = useState<Set<string>>(new Set());
   const [decryptedValues, setDecryptedValues] = useState<Record<string, string>>({});
@@ -412,15 +429,24 @@ function EnvironmentVariables({
           </div>
         </div>
         {derivedKey && (
-          <Button
-            size="sm"
-            onClick={() => setShowNewVar(true)}
-            disabled={showNewVar}
-            className="gap-1"
-          >
-            <Plus className="h-3 w-3" />
-            Add Variable
-          </Button>
+          <div className="flex items-center gap-2">
+            <ShareDialog
+              variables={variables}
+              environment={environment}
+              derivedKey={derivedKey}
+              passcodeSalt={passcodeSalt}
+              createShare={createShare}
+            />
+            <Button
+              size="sm"
+              onClick={() => setShowNewVar(true)}
+              disabled={showNewVar}
+              className="gap-1"
+            >
+              <Plus className="h-3 w-3" />
+              Add Variable
+            </Button>
+          </div>
         )}
       </div>
 
@@ -558,6 +584,318 @@ function EnvironmentVariables({
         )}
       </div>
     </div>
+  );
+}
+
+interface ShareDialogProps {
+  variables: Array<{
+    _id: string;
+    name: string;
+    encryptedValue: string;
+    iv: string;
+    authTag: string;
+  }>;
+  environment: {
+    _id: Id<"environments">;
+    name: string;
+    projectId: Id<"projects">;
+  };
+  derivedKey: CryptoKey;
+  passcodeSalt: string;
+  createShare: (args: {
+    projectId: Id<"projects">;
+    environmentId: Id<"environments">;
+    encryptedPayload: string;
+    encryptedShareKey: string;
+    passcodeSalt: string;
+    iv: string;
+    authTag: string;
+    payloadIv: string;
+    payloadAuthTag: string;
+    expiresAt?: number;
+    isIndefinite: boolean;
+  }) => Promise<Id<"sharedSecrets">>;
+}
+
+function ShareDialog({
+  variables,
+  environment,
+  derivedKey,
+  passcodeSalt,
+  createShare,
+}: ShareDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [selectedVars, setSelectedVars] = useState<Set<string>>(new Set());
+  const [expiry, setExpiry] = useState<"1h" | "24h" | "7d" | "30d" | "never">("24h");
+  const [isCreating, setIsCreating] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  function toggleVar(varId: string) {
+    setSelectedVars((prev) => {
+      const next = new Set(prev);
+      if (next.has(varId)) {
+        next.delete(varId);
+      } else {
+        next.add(varId);
+      }
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelectedVars(new Set(variables.map((v) => v._id)));
+  }
+
+  function deselectAll() {
+    setSelectedVars(new Set());
+  }
+
+  async function handleCreate() {
+    if (selectedVars.size === 0) return;
+
+    setIsCreating(true);
+
+    try {
+      // 1. Decrypt selected variables
+      const selectedVariables = variables.filter((v) => selectedVars.has(v._id));
+      const decryptedVars: Array<{ name: string; value: string }> = [];
+
+      for (const v of selectedVariables) {
+        const value = await decrypt(v.encryptedValue, v.iv, v.authTag, derivedKey);
+        decryptedVars.push({ name: v.name, value });
+      }
+
+      // 2. Generate a random ShareKey
+      const shareKeyBytes = crypto.getRandomValues(new Uint8Array(32));
+      const shareKeyBase64 = btoa(String.fromCharCode(...shareKeyBytes));
+
+      // 3. Import ShareKey for encryption
+      const shareKey = await crypto.subtle.importKey(
+        "raw",
+        shareKeyBytes,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt"]
+      );
+
+      // 4. Encrypt the variables with ShareKey
+      const payloadJson = JSON.stringify(decryptedVars);
+      const payloadIv = crypto.getRandomValues(new Uint8Array(12));
+      const payloadEncoder = new TextEncoder();
+      const payloadCiphertext = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: payloadIv },
+        shareKey,
+        payloadEncoder.encode(payloadJson)
+      );
+
+      // Split ciphertext and auth tag
+      const payloadCiphertextArray = new Uint8Array(payloadCiphertext);
+      const payloadAuthTagStart = payloadCiphertextArray.length - 16;
+      const payloadEncrypted = payloadCiphertextArray.slice(0, payloadAuthTagStart);
+      const payloadAuthTag = payloadCiphertextArray.slice(payloadAuthTagStart);
+
+      // 5. Encrypt ShareKey with passcode (using existing derivedKey)
+      const shareKeyIv = crypto.getRandomValues(new Uint8Array(12));
+      const shareKeyCiphertext = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: shareKeyIv },
+        derivedKey,
+        payloadEncoder.encode(shareKeyBase64)
+      );
+
+      const shareKeyCiphertextArray = new Uint8Array(shareKeyCiphertext);
+      const shareKeyAuthTagStart = shareKeyCiphertextArray.length - 16;
+      const shareKeyEncrypted = shareKeyCiphertextArray.slice(0, shareKeyAuthTagStart);
+      const shareKeyAuthTag = shareKeyCiphertextArray.slice(shareKeyAuthTagStart);
+
+      // 6. Calculate expiry
+      let expiresAt: number | undefined;
+      const isIndefinite = expiry === "never";
+      if (!isIndefinite) {
+        const durations: Record<string, number> = {
+          "1h": 60 * 60 * 1000,
+          "24h": 24 * 60 * 60 * 1000,
+          "7d": 7 * 24 * 60 * 60 * 1000,
+          "30d": 30 * 24 * 60 * 60 * 1000,
+        };
+        expiresAt = Date.now() + durations[expiry];
+      }
+
+      // 7. Create the share
+      const shareId = await createShare({
+        projectId: environment.projectId,
+        environmentId: environment._id,
+        encryptedPayload: btoa(String.fromCharCode(...payloadEncrypted)),
+        encryptedShareKey: btoa(String.fromCharCode(...shareKeyEncrypted)),
+        passcodeSalt,
+        iv: btoa(String.fromCharCode(...shareKeyIv)),
+        authTag: btoa(String.fromCharCode(...shareKeyAuthTag)),
+        payloadIv: btoa(String.fromCharCode(...payloadIv)),
+        payloadAuthTag: btoa(String.fromCharCode(...payloadAuthTag)),
+        expiresAt,
+        isIndefinite,
+      });
+
+      // 8. Generate share URL
+      const url = `${window.location.origin}/share/${shareId}`;
+      setShareUrl(url);
+    } catch (err) {
+      console.error("Failed to create share:", err);
+    } finally {
+      setIsCreating(false);
+    }
+  }
+
+  async function handleCopy() {
+    if (!shareUrl) return;
+    await navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleClose() {
+    setOpen(false);
+    // Reset state after dialog close animation
+    setTimeout(() => {
+      setSelectedVars(new Set());
+      setExpiry("24h");
+      setShareUrl(null);
+      setCopied(false);
+    }, 200);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => (isOpen ? setOpen(true) : handleClose())}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1">
+          <Share2 className="h-3 w-3" />
+          Share
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        {!shareUrl ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Share Variables</DialogTitle>
+              <DialogDescription>
+                Create a secure link to share variables from {environment.name}.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              {/* Variable selection */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Select Variables</Label>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={selectAll} className="h-7 text-xs">
+                      All
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={deselectAll}
+                      className="h-7 text-xs"
+                    >
+                      None
+                    </Button>
+                  </div>
+                </div>
+                <div className="max-h-48 overflow-y-auto rounded-lg border p-2 space-y-1">
+                  {variables.map((v) => (
+                    <label
+                      key={v._id}
+                      className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={selectedVars.has(v._id)}
+                        onCheckedChange={() => toggleVar(v._id)}
+                      />
+                      <code className="text-sm font-mono">{v.name}</code>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {selectedVars.size} of {variables.length} selected
+                </p>
+              </div>
+
+              {/* Expiry selection */}
+              <div className="space-y-2">
+                <Label>Link Expiry</Label>
+                <Select value={expiry} onValueChange={(v) => setExpiry(v as typeof expiry)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1h">1 hour</SelectItem>
+                    <SelectItem value="24h">24 hours</SelectItem>
+                    <SelectItem value="7d">7 days</SelectItem>
+                    <SelectItem value="30d">30 days</SelectItem>
+                    <SelectItem value="never">Never expires</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreate}
+                disabled={isCreating || selectedVars.size === 0}
+                className="gap-2"
+              >
+                {isCreating && <Loader2 className="h-4 w-4 animate-spin" />}
+                Create Link
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Check className="h-5 w-5 text-green-500" />
+                Link Created!
+              </DialogTitle>
+              <DialogDescription>
+                Share this link with anyone who needs access. They'll need the project passcode to
+                view the secrets.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="flex gap-2">
+                <Input value={shareUrl} readOnly className="font-mono text-sm" />
+                <Button onClick={handleCopy} className="gap-2 shrink-0">
+                  {copied ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Copy
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {expiry === "never"
+                  ? "This link never expires."
+                  : `This link expires in ${expiry.replace("h", " hour").replace("d", " day")}${expiry !== "1h" ? "s" : ""}.`}
+              </p>
+            </div>
+
+            <DialogFooter>
+              <Button onClick={handleClose}>Done</Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

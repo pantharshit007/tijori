@@ -10,6 +10,7 @@
 
 import type * as environments from "../environments.js";
 import type * as projects from "../projects.js";
+import type * as sharedSecrets from "../sharedSecrets.js";
 import type * as users from "../users.js";
 import type * as variables from "../variables.js";
 
@@ -22,6 +23,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   environments: typeof environments;
   projects: typeof projects;
+  sharedSecrets: typeof sharedSecrets;
   users: typeof users;
   variables: typeof variables;
 }>;
