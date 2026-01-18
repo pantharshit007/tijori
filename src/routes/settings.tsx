@@ -50,8 +50,8 @@ function Settings() {
     setIsLoading(true)
 
     try {
-      const masterKeyHash = await hash(masterKey)
       const masterKeySalt = generateSalt()
+      const masterKeyHash = await hash(masterKey, masterKeySalt)
 
       await setMasterKey({ masterKeyHash, masterKeySalt })
       setSuccess(true)
@@ -76,7 +76,9 @@ function Settings() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">Manage your account and security</p>
+        <p className="text-muted-foreground">
+          Manage your account and security
+        </p>
       </div>
 
       <Card>

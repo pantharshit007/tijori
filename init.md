@@ -1,5 +1,13 @@
 # Tijori - Agentic Workflow & Implementation Plan
 
+# ⚡ Package & Runtime Management
+
+As of Jan 2026, **Tijori uses [bun](https://bun.sh/)** as its package manager and script runner (instead of npm/yarn/pnpm). All install, add, remove, and run/test commands documented henceforth assume bun usage (see https://bun.sh/docs/cli).
+
+- Install dependency: `bun add <pkg>`
+- Run tests: `bun test`
+- Run scripts: `bun run <script>`
+
 ## Project Overview
 
 **Tijori** (Hindi for "vault/safe") is a secure environment variables manager designed to allow teams to store, manage, and share encrypted environment variables across projects avoiding insecure channels like Slack/Email.

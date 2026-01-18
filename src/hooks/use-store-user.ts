@@ -14,15 +14,15 @@ export function useStoreUserEffect() {
 
   useEffect(() => {
     // Only run once per session when user is signed in
-    if (!isLoaded || !isSignedIn || !user || hasStoredRef.current) {
-      return
+    if (!isLoaded || !isSignedIn || hasStoredRef.current) {
+      return;
     }
 
     // Get the primary email
-    const email = user.primaryEmailAddress?.emailAddress
+    const email = user?.primaryEmailAddress?.emailAddress;
     if (!email) {
-      console.warn('User has no email address')
-      return
+      console.warn("User has no email address");
+      return;
     }
 
     // Sync user to Convex
@@ -32,13 +32,13 @@ export function useStoreUserEffect() {
       image: user.imageUrl || undefined,
     })
       .then(() => {
-        hasStoredRef.current = true
-        console.log('User synced to Convex')
+        hasStoredRef.current = true;
+        console.log("User synced to Convex");
       })
       .catch((err) => {
-        console.error('Failed to sync user to Convex:', err)
-      })
-  }, [isLoaded, isSignedIn, user, storeUser])
+        console.error("Failed to sync user to Convex:", err);
+      });
+  }, [isLoaded, isSignedIn, user, storeUser]);
 
-  return { isLoaded, isSignedIn }
+  return { isLoaded, isSignedIn };
 }

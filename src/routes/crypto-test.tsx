@@ -1,5 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   AlertCircle,
   Check,
@@ -9,19 +9,13 @@ import {
   KeyRound,
   Lock,
   Unlock,
-} from 'lucide-react'
+} from "lucide-react";
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 import {
   decrypt as cryptoDecrypt,
@@ -29,104 +23,109 @@ import {
   encrypt as cryptoEncrypt,
   hash as cryptoHash,
   generateSalt,
-} from '@/lib/crypto'
+} from "@/lib/crypto";
 
 function CryptoTest() {
-  const [passcode, setPasscode] = useState('')
-  const [salt, setSalt] = useState('')
-  const [text, setText] = useState('')
-  const [derivedKeyDisplay, setDerivedKeyDisplay] = useState('')
-  const [derivedKey, setDerivedKey] = useState<CryptoKey | null>(null)
-  const [encrypted, setEncrypted] = useState('')
-  const [iv, setIv] = useState('')
-  const [authTag, setAuthTag] = useState('')
-  const [decrypted, setDecrypted] = useState('')
-  const [hashResult, setHashResult] = useState('')
-  const [operation, setOperation] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [copied, setCopied] = useState<string | null>(null)
+  const [passcode, setPasscode] = useState("");
+  const [salt, setSalt] = useState("");
+  const [text, setText] = useState("");
+  const [derivedKeyDisplay, setDerivedKeyDisplay] = useState("");
+  const [derivedKey, setDerivedKey] = useState<CryptoKey | null>(null);
+  const [encrypted, setEncrypted] = useState("");
+  const [iv, setIv] = useState("");
+  const [authTag, setAuthTag] = useState("");
+  const [decrypted, setDecrypted] = useState("");
+  const [hashResult, setHashResult] = useState("");
+  const [operation, setOperation] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   async function handleGenerateSalt() {
-    const newSalt = generateSalt()
-    setSalt(newSalt)
+    const newSalt = generateSalt();
+    setSalt(newSalt);
   }
 
   async function handleDeriveKey() {
-    setOperation('Deriving key...')
-    setError(null)
+    setOperation("Deriving key...");
+    setError(null);
     try {
       if (!passcode || !salt) {
-        throw new Error('Passcode and salt are required')
+        throw new Error("Passcode and salt are required");
       }
-      const key = await cryptoDeriveKey(passcode, salt)
-      setDerivedKey(key)
+      const key = await cryptoDeriveKey(passcode, salt);
+      setDerivedKey(key);
 
       // Export for display (hex format)
-      const exported = await crypto.subtle.exportKey('raw', key)
-      const hex = Array.from(new Uint8Array(exported))
-        .map((x) => x.toString(16).padStart(2, '0'))
-        .join('')
-      setDerivedKeyDisplay(hex)
-      setOperation('Key derived successfully!')
+      try {
+        const exported = await crypto.subtle.exportKey("raw", key);
+        const hex = Array.from(new Uint8Array(exported))
+          .map((x) => x.toString(16).padStart(2, "0"))
+          .join("");
+        setDerivedKeyDisplay(hex);
+        setOperation("Key derived successfully!");
+      } catch (err) {
+        setDerivedKeyDisplay("Key not extractable");
+        setOperation("Key derived (not extractable)");
+      }
     } catch (e: any) {
-      setError(e.message)
-      setOperation('')
+      setError(e.message);
+      setOperation("");
     }
   }
 
   async function handleEncrypt() {
-    setOperation('Encrypting...')
-    setError(null)
+    setOperation("Encrypting...");
+    setError(null);
     try {
-      if (!derivedKey) throw new Error('Derive a key first!')
-      if (!text) throw new Error('Enter text to encrypt')
+      if (!derivedKey) throw new Error("Derive a key first!");
+      if (!text) throw new Error("Enter text to encrypt");
 
-      const result = await cryptoEncrypt(text, derivedKey)
-      setEncrypted(result.encryptedValue)
-      setIv(result.iv)
-      setAuthTag(result.authTag)
-      setOperation('Encrypted successfully!')
+      const result = await cryptoEncrypt(text, derivedKey);
+      setEncrypted(result.encryptedValue);
+      setIv(result.iv);
+      setAuthTag(result.authTag);
+      setOperation("Encrypted successfully!");
     } catch (e: any) {
-      setError(e.message)
-      setOperation('')
+      setError(e.message);
+      setOperation("");
     }
   }
 
   async function handleDecrypt() {
-    setOperation('Decrypting...')
-    setError(null)
+    setOperation("Decrypting...");
+    setError(null);
     try {
-      if (!derivedKey) throw new Error('Derive a key first!')
+      if (!derivedKey) throw new Error("Derive a key first!");
       if (!encrypted || !iv || !authTag)
-        throw new Error('Encrypted data, IV, and AuthTag are required')
+        throw new Error("Encrypted data, IV, and AuthTag are required");
 
-      const result = await cryptoDecrypt(encrypted, iv, authTag, derivedKey)
-      setDecrypted(result)
-      setOperation('Decrypted successfully!')
+      const result = await cryptoDecrypt(encrypted, iv, authTag, derivedKey);
+      setDecrypted(result);
+      setOperation("Decrypted successfully!");
     } catch (e: any) {
-      setError(e.message || 'Decryption failed - check your inputs')
-      setOperation('')
+      setError(e.message || "Decryption failed - check your inputs");
+      setOperation("");
     }
   }
 
   async function handleHash() {
-    setOperation('Hashing...')
-    setError(null)
+    setOperation("Hashing...");
+    setError(null);
     try {
-      if (!passcode) throw new Error('Enter a passcode to hash')
-      const result = await cryptoHash(passcode)
-      setHashResult(result)
-      setOperation('Hashed successfully!')
+      if (!passcode) throw new Error("Enter a passcode to hash");
+      const result = await cryptoHash(passcode, salt);
+      setHashResult(result);
+      setOperation("Hashed successfully!");
     } catch (e: any) {
-      setError(e.message)
-      setOperation('')
+      setError(e.message);
+      setOperation("");
     }
   }
 
   async function copyToClipboard(text: string, label: string) {
-    await navigator.clipboard.writeText(text)
-    setCopied(label)
-    setTimeout(() => setCopied(null), 2000)
+    await navigator.clipboard.writeText(text);
+    setCopied(label);
+    setTimeout(() => setCopied(null), 2000);
   }
 
   return (
@@ -134,8 +133,8 @@ function CryptoTest() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Crypto Test UI</h1>
         <p className="text-muted-foreground mt-2">
-          Test the client-side encryption module using PBKDF2 key derivation and
-          AES-256-GCM encryption.
+          Test the client-side encryption module using PBKDF2 key derivation and AES-256-GCM
+          encryption.
         </p>
       </div>
 
@@ -150,8 +149,7 @@ function CryptoTest() {
         <CardContent>
           <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
             <li>
-              Enter a passcode and generate a salt, then click{' '}
-              <strong>Derive Key</strong>
+              Enter a passcode and generate a salt, then click <strong>Derive Key</strong>
             </li>
             <li>
               Enter text and click <strong>Encrypt</strong> to encrypt it
@@ -173,9 +171,7 @@ function CryptoTest() {
             <KeyRound className="h-5 w-5" />
             Derive Key (PBKDF2)
           </CardTitle>
-          <CardDescription>
-            100,000 iterations with SHA-256 to derive AES-256 key
-          </CardDescription>
+          <CardDescription>100,000 iterations with SHA-256 to derive AES-256 key</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -199,11 +195,7 @@ function CryptoTest() {
                   onChange={(e) => setSalt(e.target.value)}
                   className="flex-1"
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateSalt}
-                >
+                <Button variant="outline" size="sm" onClick={handleGenerateSalt}>
                   Generate
                 </Button>
               </div>
@@ -216,25 +208,17 @@ function CryptoTest() {
           {derivedKeyDisplay && (
             <div className="mt-4 p-3 rounded-lg bg-muted">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-muted-foreground">
-                  Derived Key (Hex)
-                </span>
+                <span className="text-xs font-medium text-muted-foreground">Derived Key (Hex)</span>
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-6 px-2"
-                  onClick={() => copyToClipboard(derivedKeyDisplay, 'key')}
+                  onClick={() => copyToClipboard(derivedKeyDisplay, "key")}
                 >
-                  {copied === 'key' ? (
-                    <Check className="h-3 w-3" />
-                  ) : (
-                    <Copy className="h-3 w-3" />
-                  )}
+                  {copied === "key" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                 </Button>
               </div>
-              <code className="text-xs font-mono text-cyan-400 break-all">
-                {derivedKeyDisplay}
-              </code>
+              <code className="text-xs font-mono text-cyan-400 break-all">{derivedKeyDisplay}</code>
             </div>
           )}
         </CardContent>
@@ -272,31 +256,25 @@ function CryptoTest() {
             <div className="space-y-3 mt-4">
               <div className="p-3 rounded-lg bg-muted">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Encrypted Value
-                  </span>
+                  <span className="text-xs font-medium text-muted-foreground">Encrypted Value</span>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-6 px-2"
-                    onClick={() => copyToClipboard(encrypted, 'encrypted')}
+                    onClick={() => copyToClipboard(encrypted, "encrypted")}
                   >
-                    {copied === 'encrypted' ? (
+                    {copied === "encrypted" ? (
                       <Check className="h-3 w-3" />
                     ) : (
                       <Copy className="h-3 w-3" />
                     )}
                   </Button>
                 </div>
-                <code className="text-xs font-mono text-green-400 break-all">
-                  {encrypted}
-                </code>
+                <code className="text-xs font-mono text-green-400 break-all">{encrypted}</code>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="p-3 rounded-lg bg-muted">
-                  <span className="text-xs font-medium text-muted-foreground block mb-1">
-                    IV
-                  </span>
+                  <span className="text-xs font-medium text-muted-foreground block mb-1">IV</span>
                   <code className="text-xs font-mono break-all">{iv}</code>
                 </div>
                 <div className="p-3 rounded-lg bg-muted">
@@ -318,9 +296,7 @@ function CryptoTest() {
             <Unlock className="h-5 w-5" />
             Decrypt (AES-256-GCM)
           </CardTitle>
-          <CardDescription>
-            Decrypt using the encrypted value, IV, and auth tag
-          </CardDescription>
+          <CardDescription>Decrypt using the encrypted value, IV, and auth tag</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -366,9 +342,7 @@ function CryptoTest() {
               <span className="text-xs font-medium text-muted-foreground block mb-1">
                 Decrypted Text
               </span>
-              <code className="text-sm font-mono text-yellow-400">
-                {decrypted}
-              </code>
+              <code className="text-sm font-mono text-yellow-400">{decrypted}</code>
             </div>
           )}
         </CardContent>
@@ -400,18 +374,12 @@ function CryptoTest() {
                   variant="ghost"
                   size="sm"
                   className="h-6 px-2"
-                  onClick={() => copyToClipboard(hashResult, 'hash')}
+                  onClick={() => copyToClipboard(hashResult, "hash")}
                 >
-                  {copied === 'hash' ? (
-                    <Check className="h-3 w-3" />
-                  ) : (
-                    <Copy className="h-3 w-3" />
-                  )}
+                  {copied === "hash" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                 </Button>
               </div>
-              <code className="text-xs font-mono text-fuchsia-400 break-all">
-                {hashResult}
-              </code>
+              <code className="text-xs font-mono text-fuchsia-400 break-all">{hashResult}</code>
             </div>
           )}
         </CardContent>
@@ -435,7 +403,7 @@ function CryptoTest() {
         )}
       </div>
     </div>
-  )
+  );
 }
 
-export const Route = createFileRoute('/crypto-test')({ component: CryptoTest })
+export const Route = createFileRoute("/crypto-test")({ component: CryptoTest });

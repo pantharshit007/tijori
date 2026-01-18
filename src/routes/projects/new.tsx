@@ -16,7 +16,12 @@ import {
 } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 
-import { hash as cryptoHash, deriveKey, encrypt, generateSalt } from '@/lib/crypto'
+import {
+  hash as cryptoHash,
+  deriveKey,
+  encrypt,
+  generateSalt,
+} from '@/lib/crypto'
 
 const VERIFICATION_STRING = 'TIJORI_VERIFY'
 
@@ -61,7 +66,14 @@ function NewProject() {
 
     try {
       // Verify master key matches stored hash
-      const enteredHash = await cryptoHash(masterKey)
+      if (!user?.masterKeySalt) {
+        setError(
+          'Unable to verify master key: salt missing. Try reconfiguring your master key in settings.',
+        )
+        setIsLoading(false)
+        return
+      }
+      const enteredHash = await cryptoHash(masterKey, user.masterKeySalt)
       if (enteredHash !== user?.masterKeyHash) {
         setError('Invalid master key. Please enter the correct master key.')
         setIsLoading(false)
@@ -75,7 +87,10 @@ function NewProject() {
       const recoveryKey = await deriveKey(masterKey, passcodeSalt)
 
       // 3. Encrypt the passcode with the recovery key
-      const { encryptedValue, iv, authTag } = await encrypt(passcode, recoveryKey)
+      const { encryptedValue, iv, authTag } = await encrypt(
+        passcode,
+        recoveryKey,
+      )
 
       // 4. Derive key from passcode and encrypt verification blob
       const passcodeKey = await deriveKey(passcode, passcodeSalt)
@@ -121,7 +136,9 @@ function NewProject() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Create New Project</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Create New Project
+            </h1>
             <p className="text-muted-foreground">
               Set up a new project with secure environment variables
             </p>
@@ -164,7 +181,9 @@ function NewProject() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Create New Project</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Create New Project
+          </h1>
           <p className="text-muted-foreground">
             Set up a new project with secure environment variables
           </p>
@@ -175,7 +194,9 @@ function NewProject() {
         <Card>
           <CardHeader>
             <CardTitle>Project Details</CardTitle>
-            <CardDescription>Basic information about your project</CardDescription>
+            <CardDescription>
+              Basic information about your project
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -216,15 +237,16 @@ function NewProject() {
               <p className="font-medium text-primary mb-2">How it works:</p>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                 <li>
-                  <strong>Passcode</strong>: Used to encrypt/decrypt your secrets.
-                  You'll need this to access variables.
+                  <strong>Passcode</strong>: Used to encrypt/decrypt your
+                  secrets. You'll need this to access variables.
                 </li>
                 <li>
-                  <strong>Master Key</strong>: Your global master key (set in Settings)
-                  is used to recover this passcode.
+                  <strong>Master Key</strong>: Your global master key (set in
+                  Settings) is used to recover this passcode.
                 </li>
                 <li>
-                  These are <strong>never</strong> stored on our servers in plain text.
+                  These are <strong>never</strong> stored on our servers in
+                  plain text.
                 </li>
               </ul>
             </div>

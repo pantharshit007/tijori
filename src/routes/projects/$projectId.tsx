@@ -1,6 +1,8 @@
-import { Link, createFileRoute, useParams } from '@tanstack/react-router'
-import { useMutation, useQuery } from 'convex/react'
-import { useEffect, useState } from 'react'
+import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { useMutation, useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import {
   ArrowLeft,
   Check,
@@ -12,17 +14,15 @@ import {
   Plus,
   Settings,
   Trash2,
-} from 'lucide-react'
-import { api } from '../../../convex/_generated/api'
-import type { Id } from '../../../convex/_generated/dataModel'
+} from "lucide-react";
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -31,49 +31,49 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
+} from "@/components/ui/dialog";
 
-import { decrypt, deriveKey, encrypt } from '@/lib/crypto'
+import { decrypt, deriveKey, encrypt } from "@/lib/crypto";
 
-import { VERIFICATION_STRING } from '@/utilities/constants'
+import { VERIFICATION_STRING } from "@/utilities/constants";
 
 function ProjectView() {
-  const { projectId } = useParams({ from: '/projects/$projectId' })
+  const { projectId } = useParams({ from: "/projects/$projectId" });
   const project = useQuery(api.projects.get, {
-    projectId: projectId as Id<'projects'>,
-  })
+    projectId: projectId as Id<"projects">,
+  });
   const environments = useQuery(api.environments.list, {
-    projectId: projectId as Id<'projects'>,
-  })
-  const createEnvironment = useMutation(api.environments.create)
+    projectId: projectId as Id<"projects">,
+  });
+  const createEnvironment = useMutation(api.environments.create);
 
-  const [activeEnv, setActiveEnv] = useState<string | null>(null)
-  const [passcode, setPasscode] = useState('')
-  const [derivedKey, setDerivedKey] = useState<CryptoKey | null>(null)
-  const [isUnlocking, setIsUnlocking] = useState(false)
-  const [unlockError, setUnlockError] = useState<string | null>(null)
-  const [showUnlockDialog, setShowUnlockDialog] = useState(false)
+  const [activeEnv, setActiveEnv] = useState<string | null>(null);
+  const [passcode, setPasscode] = useState("");
+  const [derivedKey, setDerivedKey] = useState<CryptoKey | null>(null);
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [showUnlockDialog, setShowUnlockDialog] = useState(false);
 
-  const [showNewEnvDialog, setShowNewEnvDialog] = useState(false)
-  const [newEnvName, setNewEnvName] = useState('')
-  const [isCreatingEnv, setIsCreatingEnv] = useState(false)
+  const [showNewEnvDialog, setShowNewEnvDialog] = useState(false);
+  const [newEnvName, setNewEnvName] = useState("");
+  const [isCreatingEnv, setIsCreatingEnv] = useState(false);
 
   // Set first environment as active when loaded
   useEffect(() => {
     if (environments && environments.length > 0 && !activeEnv) {
-      setActiveEnv(environments[0]._id)
+      setActiveEnv(environments[0]._id);
     }
-  }, [environments, activeEnv])
+  }, [environments, activeEnv]);
 
   async function handleUnlock() {
-    if (!project || !passcode) return
+    if (!project || !passcode) return;
 
-    setIsUnlocking(true)
-    setUnlockError(null)
+    setIsUnlocking(true);
+    setUnlockError(null);
 
     try {
       // Derive key from passcode
-      const key = await deriveKey(passcode, project.passcodeSalt)
+      const key = await deriveKey(passcode, project.passcodeSalt);
 
       // Verify passcode by decrypting verification blob
       try {
@@ -81,50 +81,50 @@ function ProjectView() {
           project.verificationBlob,
           project.verificationIv,
           project.verificationAuthTag,
-          key,
-        )
+          key
+        );
 
         if (decrypted !== VERIFICATION_STRING) {
-          setUnlockError('Invalid passcode. Please try again.')
-          setIsUnlocking(false)
-          return
+          setUnlockError("Invalid passcode. Please try again.");
+          setIsUnlocking(false);
+          return;
         }
       } catch {
-        setUnlockError('Invalid passcode. Please try again.')
-        setIsUnlocking(false)
-        return
+        setUnlockError("Invalid passcode. Please try again.");
+        setIsUnlocking(false);
+        return;
       }
 
       // Passcode verified, save the key
-      setDerivedKey(key)
-      setShowUnlockDialog(false)
-      setPasscode('')
+      setDerivedKey(key);
+      setShowUnlockDialog(false);
+      setPasscode("");
     } catch (err: any) {
-      setUnlockError('Failed to unlock. Please check your passcode.')
+      setUnlockError("Failed to unlock. Please check your passcode.");
     } finally {
-      setIsUnlocking(false)
+      setIsUnlocking(false);
     }
   }
 
   function handleLock() {
-    setDerivedKey(null)
+    setDerivedKey(null);
   }
 
   async function handleCreateEnvironment() {
-    if (!newEnvName.trim()) return
+    if (!newEnvName.trim()) return;
 
-    setIsCreatingEnv(true)
+    setIsCreatingEnv(true);
     try {
       await createEnvironment({
-        projectId: projectId as Id<'projects'>,
+        projectId: projectId as Id<"projects">,
         name: newEnvName.trim(),
-      })
-      setNewEnvName('')
-      setShowNewEnvDialog(false)
+      });
+      setNewEnvName("");
+      setShowNewEnvDialog(false);
     } catch (err) {
-      console.error('Failed to create environment:', err)
+      console.error("Failed to create environment:", err);
     } finally {
-      setIsCreatingEnv(false)
+      setIsCreatingEnv(false);
     }
   }
 
@@ -140,7 +140,7 @@ function ProjectView() {
         </div>
         <Skeleton className="h-64 w-full" />
       </div>
-    )
+    );
   }
 
   if (project === null) {
@@ -154,7 +154,7 @@ function ProjectView() {
           <Button className="mt-4">Go to Dashboard</Button>
         </Link>
       </div>
-    )
+    );
   }
 
   return (
@@ -169,14 +169,10 @@ function ProjectView() {
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">
-                {project.name}
-              </h1>
+              <h1 className="text-2xl font-bold tracking-tight">{project.name}</h1>
               <Badge variant="outline">{project.role}</Badge>
             </div>
-            <p className="text-muted-foreground">
-              {project.description || 'No description'}
-            </p>
+            <p className="text-muted-foreground">{project.description || "No description"}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -209,21 +205,14 @@ function ProjectView() {
                       placeholder="Enter your passcode"
                       value={passcode}
                       onChange={(e) => setPasscode(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleUnlock()}
+                      onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
                     />
                   </div>
-                  {unlockError && (
-                    <p className="text-sm text-destructive">{unlockError}</p>
-                  )}
+                  {unlockError && <p className="text-sm text-destructive">{unlockError}</p>}
                 </div>
                 <DialogFooter>
-                  <Button
-                    onClick={handleUnlock}
-                    disabled={isUnlocking || !passcode}
-                  >
-                    {isUnlocking && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
+                  <Button onClick={handleUnlock} disabled={isUnlocking || !passcode}>
+                    {isUnlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Unlock
                   </Button>
                 </DialogFooter>
@@ -238,11 +227,7 @@ function ProjectView() {
 
       {/* Environment Tabs */}
       {environments.length > 0 ? (
-        <Tabs
-          value={activeEnv || undefined}
-          onValueChange={setActiveEnv}
-          className="w-full"
-        >
+        <Tabs value={activeEnv || undefined} onValueChange={setActiveEnv} className="w-full">
           <div className="flex items-center gap-2">
             <TabsList>
               {environments.map((env) => (
@@ -261,9 +246,7 @@ function ProjectView() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Add Environment</DialogTitle>
-                  <DialogDescription>
-                    Create a new environment for this project.
-                  </DialogDescription>
+                  <DialogDescription>Create a new environment for this project.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
@@ -273,9 +256,7 @@ function ProjectView() {
                       placeholder="Production"
                       value={newEnvName}
                       onChange={(e) => setNewEnvName(e.target.value)}
-                      onKeyDown={(e) =>
-                        e.key === 'Enter' && handleCreateEnvironment()
-                      }
+                      onKeyDown={(e) => e.key === "Enter" && handleCreateEnvironment()}
                     />
                   </div>
                 </div>
@@ -284,9 +265,7 @@ function ProjectView() {
                     onClick={handleCreateEnvironment}
                     disabled={isCreatingEnv || !newEnvName.trim()}
                   >
-                    {isCreatingEnv && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
+                    {isCreatingEnv && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Create
                   </Button>
                 </DialogFooter>
@@ -297,7 +276,7 @@ function ProjectView() {
           {environments.map((env) => (
             <TabsContent key={env._id} value={env._id} className="mt-4">
               <EnvironmentVariables
-                environmentId={env._id as Id<'environments'>}
+                environmentId={env._id as Id<"environments">}
                 derivedKey={derivedKey}
               />
             </TabsContent>
@@ -311,109 +290,102 @@ function ProjectView() {
         </Card>
       )}
     </div>
-  )
+  );
 }
 
 function EnvironmentVariables({
   environmentId,
   derivedKey,
 }: {
-  environmentId: Id<'environments'>
-  derivedKey: CryptoKey | null
+  environmentId: Id<"environments">;
+  derivedKey: CryptoKey | null;
 }) {
-  const variables = useQuery(api.variables.list, { environmentId })
-  const saveVariable = useMutation(api.variables.save)
-  const removeVariable = useMutation(api.variables.remove)
+  const variables = useQuery(api.variables.list, { environmentId });
+  const saveVariable = useMutation(api.variables.save);
+  const removeVariable = useMutation(api.variables.remove);
 
-  const [revealedVars, setRevealedVars] = useState<Set<string>>(new Set())
-  const [decryptedValues, setDecryptedValues] = useState<
-    Record<string, string>
-  >({})
-  const [copied, setCopied] = useState<string | null>(null)
+  const [revealedVars, setRevealedVars] = useState<Set<string>>(new Set());
+  const [decryptedValues, setDecryptedValues] = useState<Record<string, string>>({});
+
+  // Reset sensitive state when derivedKey is locked (becomes null)
+  useEffect(() => {
+    if (!derivedKey) {
+      setRevealedVars(new Set());
+      setDecryptedValues({});
+    }
+  }, [derivedKey]);
+  const [copied, setCopied] = useState<string | null>(null);
 
   // New variable form
-  const [showNewVar, setShowNewVar] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newValue, setNewValue] = useState('')
-  const [isSaving, setIsSaving] = useState(false)
+  const [showNewVar, setShowNewVar] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newValue, setNewValue] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
-  async function handleReveal(
-    varId: string,
-    encryptedValue: string,
-    iv: string,
-    authTag: string,
-  ) {
-    if (!derivedKey) return
+  async function handleReveal(varId: string, encryptedValue: string, iv: string, authTag: string) {
+    if (!derivedKey) return;
 
     if (revealedVars.has(varId)) {
       // Hide
       setRevealedVars((prev) => {
-        const next = new Set(prev)
-        next.delete(varId)
-        return next
-      })
-      return
+        const next = new Set(prev);
+        next.delete(varId);
+        return next;
+      });
+      return;
     }
 
     try {
-      const decrypted = await decrypt(encryptedValue, iv, authTag, derivedKey)
-      setDecryptedValues((prev) => ({ ...prev, [varId]: decrypted }))
-      setRevealedVars((prev) => new Set(prev).add(varId))
+      const decrypted = await decrypt(encryptedValue, iv, authTag, derivedKey);
+      setDecryptedValues((prev) => ({ ...prev, [varId]: decrypted }));
+      setRevealedVars((prev) => new Set(prev).add(varId));
     } catch (err) {
-      console.error('Failed to decrypt:', err)
+      console.error("Failed to decrypt:", err);
     }
   }
 
-  async function handleCopy(
-    varId: string,
-    encryptedValue: string,
-    iv: string,
-    authTag: string,
-  ) {
-    if (!derivedKey) return
+  async function handleCopy(varId: string, encryptedValue: string, iv: string, authTag: string) {
+    if (!derivedKey) return;
 
     try {
-      let value = decryptedValues[varId]
+      let value = decryptedValues[varId];
       if (!value) {
-        value = await decrypt(encryptedValue, iv, authTag, derivedKey)
+        value = await decrypt(encryptedValue, iv, authTag, derivedKey);
       }
-      await navigator.clipboard.writeText(value)
-      setCopied(varId)
-      setTimeout(() => setCopied(null), 2000)
+      await navigator.clipboard.writeText(value);
+      setCopied(varId);
+      setTimeout(() => setCopied(null), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err)
+      console.error("Failed to copy:", err);
     }
   }
 
   async function handleAddVariable() {
-    if (!derivedKey || !newName.trim() || !newValue.trim()) return
+    if (!derivedKey || !newName.trim() || !newValue.trim()) return;
 
-    setIsSaving(true)
+    setIsSaving(true);
     try {
-      const { encryptedValue, iv, authTag } = await encrypt(
-        newValue,
-        derivedKey,
-      )
+      const { encryptedValue, iv, authTag } = await encrypt(newValue, derivedKey);
       await saveVariable({
         environmentId,
         name: newName.trim(),
         encryptedValue,
         iv,
         authTag,
-      })
-      setNewName('')
-      setNewValue('')
-      setShowNewVar(false)
+      });
+      setNewName("");
+      setNewValue("");
+      setShowNewVar(false);
     } catch (err) {
-      console.error('Failed to save variable:', err)
+      console.error("Failed to save variable:", err);
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
   }
 
-  async function handleDelete(varId: Id<'variables'>) {
-    if (!confirm('Are you sure you want to delete this variable?')) return
-    await removeVariable({ id: varId })
+  async function handleDelete(varId: Id<"variables">) {
+    if (!confirm("Are you sure you want to delete this variable?")) return;
+    await removeVariable({ id: varId });
   }
 
   if (variables === undefined) {
@@ -423,14 +395,14 @@ function EnvironmentVariables({
           <Skeleton key={i} className="h-12 w-full" />
         ))}
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {variables.length} variable{variables.length !== 1 ? 's' : ''}
+          {variables.length} variable{variables.length !== 1 ? "s" : ""}
         </p>
         {derivedKey && (
           <Button
@@ -488,9 +460,9 @@ function EnvironmentVariables({
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setShowNewVar(false)
-                  setNewName('')
-                  setNewValue('')
+                  setShowNewVar(false);
+                  setNewName("");
+                  setNewValue("");
                 }}
               >
                 Cancel
@@ -515,13 +487,11 @@ function EnvironmentVariables({
             className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/30 transition-colors"
           >
             <div className="flex-1 min-w-0">
-              <code className="text-sm font-semibold font-mono">
-                {variable.name}
-              </code>
+              <code className="text-sm font-semibold font-mono">{variable.name}</code>
               <div className="text-sm text-muted-foreground font-mono truncate mt-0.5">
                 {revealedVars.has(variable._id) && decryptedValues[variable._id]
                   ? decryptedValues[variable._id]
-                  : '••••••••••••••••'}
+                  : "••••••••••••••••"}
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -531,12 +501,7 @@ function EnvironmentVariables({
                 className="h-8 w-8"
                 disabled={!derivedKey}
                 onClick={() =>
-                  handleReveal(
-                    variable._id,
-                    variable.encryptedValue,
-                    variable.iv,
-                    variable.authTag,
-                  )
+                  handleReveal(variable._id, variable.encryptedValue, variable.iv, variable.authTag)
                 }
               >
                 {revealedVars.has(variable._id) ? (
@@ -551,12 +516,7 @@ function EnvironmentVariables({
                 className="h-8 w-8"
                 disabled={!derivedKey}
                 onClick={() =>
-                  handleCopy(
-                    variable._id,
-                    variable.encryptedValue,
-                    variable.iv,
-                    variable.authTag,
-                  )
+                  handleCopy(variable._id, variable.encryptedValue, variable.iv, variable.authTag)
                 }
               >
                 {copied === variable._id ? (
@@ -569,7 +529,7 @@ function EnvironmentVariables({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-destructive hover:text-destructive"
-                onClick={() => handleDelete(variable._id as Id<'variables'>)}
+                onClick={() => handleDelete(variable._id as Id<"variables">)}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -581,11 +541,7 @@ function EnvironmentVariables({
           <div className="text-center py-8 text-muted-foreground">
             <p>No variables in this environment</p>
             {derivedKey && (
-              <Button
-                variant="link"
-                onClick={() => setShowNewVar(true)}
-                className="mt-2"
-              >
+              <Button variant="link" onClick={() => setShowNewVar(true)} className="mt-2">
                 Add your first variable
               </Button>
             )}
@@ -593,9 +549,9 @@ function EnvironmentVariables({
         )}
       </div>
     </div>
-  )
+  );
 }
 
-export const Route = createFileRoute('/projects/$projectId')({
+export const Route = createFileRoute("/projects/$projectId")({
   component: ProjectView,
-})
+});

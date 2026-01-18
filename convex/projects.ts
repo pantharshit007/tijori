@@ -11,9 +11,7 @@ async function getUserId(ctx: any) {
   }
   const user = await ctx.db
     .query("users")
-    .withIndex("by_tokenIdentifier", (q: any) =>
-      q.eq("tokenIdentifier", identity.tokenIdentifier),
-    )
+    .withIndex("by_tokenIdentifier", (q: any) => q.eq("tokenIdentifier", identity.tokenIdentifier))
     .unique();
   if (!user) {
     throw new Error("User not found in database");
@@ -47,7 +45,7 @@ export const create = mutation({
     const user = await ctx.db
       .query("users")
       .withIndex("by_tokenIdentifier", (q: any) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier),
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
       )
       .unique();
 
@@ -55,8 +53,10 @@ export const create = mutation({
       throw new Error("User not found");
     }
 
-    if (!user.masterKeyHash) {
-      throw new Error("Master key not configured. Please set it in Settings.");
+    if (!user.masterKeyHash || !user.masterKeySalt) {
+      throw new Error(
+        "Master key and its salt are not fully configured. Please set up your master key in Settings."
+      );
     }
 
     const projectId = await ctx.db.insert("projects", {
@@ -71,7 +71,6 @@ export const create = mutation({
       verificationAuthTag: args.verificationAuthTag,
       ownerId: user._id,
     });
-
 
     // Add the creator as the owner in projectMembers
     await ctx.db.insert("projectMembers", {
@@ -91,7 +90,6 @@ export const create = mutation({
   },
 });
 
-
 /**
  * List all projects the current user is a member of.
  */
@@ -104,7 +102,7 @@ export const list = query({
     const user = await ctx.db
       .query("users")
       .withIndex("by_tokenIdentifier", (q: any) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier),
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
       )
       .unique();
     if (!user) return [];
@@ -140,9 +138,7 @@ export const get = query({
 
     const membership = await ctx.db
       .query("projectMembers")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", args.projectId).eq("userId", userId),
-      )
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
       .unique();
 
     if (!membership) {
