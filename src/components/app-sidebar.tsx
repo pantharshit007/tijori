@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useUser, useClerk } from "@clerk/tanstack-react-start";
+import { useClerk, useUser } from "@clerk/tanstack-react-start";
 import {
   FolderKey,
   Home,
