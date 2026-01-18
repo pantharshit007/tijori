@@ -9,6 +9,7 @@ import {
   Share2,
   User,
 } from "lucide-react";
+import { keyStore } from "@/lib/key-store";
 import {
   Sidebar,
   SidebarContent,
@@ -70,6 +71,7 @@ export function AppSidebar() {
     : null;
 
   const handleLogout = async () => {
+    keyStore.clear();
     await signOut();
   };
 

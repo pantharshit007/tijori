@@ -60,18 +60,27 @@ function ProjectView() {
   const [newEnvName, setNewEnvName] = useState("");
   const [isCreatingEnv, setIsCreatingEnv] = useState(false);
 
+  // 1. Sync local derivedKey to keyStore (Only if non-null)
   useEffect(() => {
     if (derivedKey) {
       keyStore.setKey(projectId, derivedKey);
     }
   }, [derivedKey, projectId]);
 
+  // 2. Rehydrate from keyStore on mount or project switch
   useEffect(() => {
-    const existing = keyStore.getKey(projectId);
-    if (existing && !derivedKey) {
-      setDerivedKey(existing);
+    if (!derivedKey) {
+      const existing = keyStore.getKey(projectId);
+      if (existing) {
+        setDerivedKey(existing);
+      }
     }
   }, [projectId, derivedKey]);
+
+  // 3. Clear local state when project ID changes to prevent cross-project key leakage
+  useEffect(() => {
+    setDerivedKey(null);
+  }, [projectId]);
 
   // Set first environment as active when loaded
   useEffect(() => {
@@ -110,6 +119,7 @@ function ProjectView() {
 
   function handleLock() {
     setDerivedKey(null);
+    keyStore.removeKey(projectId);
   }
 
   async function handleCreateEnvironment() {

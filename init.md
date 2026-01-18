@@ -3,6 +3,7 @@
 # ⚡ Package & Runtime Management
 
 +As of Jan 2026, **Tijori uses [bun](https://bun.sh/)** as its package manager and script runner (instead of npm/yarn/pnpm). All install, add, remove, and run/test commands documented henceforth assume bun usage (see [Bun CLI docs](https://bun.sh/docs/cli)).
+
 - Install dependency: `bun add <pkg>`
 - Run tests: `bun test`
 - Run scripts: `bun run <script>`
@@ -272,6 +273,7 @@ _Goal: Fix security bugs and improve verification flow._
 _Goal: Implement the Zero-Knowledge sharing flow with proper management and visibility for shared environments._
 
 #### Task 4.1: Share Creation Flow
+
 - [x] UI to select variables.
 - [x] UI to set expiry (duration or indefinite).
 - [x] Extend expiry options to include **10 minutes** and **30 minutes**.
@@ -280,6 +282,7 @@ _Goal: Implement the Zero-Knowledge sharing flow with proper management and visi
 - [x] Mutation to store `encryptedPayload` in `sharedSecrets`.
 
 #### Task 4.2: Public Access View
+
 - [x] Public route `tijori.app/share/[id]`.
 - [x] Fetch encrypted payload.
 - [x] UI prompts for passcode.
@@ -287,6 +290,7 @@ _Goal: Implement the Zero-Knowledge sharing flow with proper management and visi
 - [x] Add a button to copy the shared key to clipboard.
 
 #### Task 4.3: Shared Environments Dashboard (`/shared`)
+
 - [x] Add a `/shared` page UI accessible to logged-in users.
 - [x] Display all environments shared **by the current user**.
 - [x] Table-based layout showing: Environment, Project, Expiry, Views.
@@ -294,6 +298,7 @@ _Goal: Implement the Zero-Knowledge sharing flow with proper management and visi
 - [x] Ensure **view counts are visible only to the creator**.
 
 #### Task 4.4: Share Management Actions
+
 - [x] Add `isDisabled` flag to disable sharing without deleting.
 - [x] Add disable/enable toggle in `/shared` dashboard.
 - [x] Add delete button with confirmation.
@@ -301,13 +306,13 @@ _Goal: Implement the Zero-Knowledge sharing flow with proper management and visi
 - [x] **Encrypt share passcode** in database using project key (Zero-Knowledge for dashboard).
 
 #### Task 4.5: Refactor & Structure Improvements
+
 - [x] Move environment variable logic into `EnvironmentVariables` component.
 - [x] Move sharing-related UI into `ShareDialog` component.
 - [x] Move shared **types and interfaces** into `src/lib/types.ts`.
 - [x] Centralize shared constants in `src/lib/constants.ts`.
 
 ---
-
 
 ### Phase 5: Master Key Management (Future)
 
@@ -349,11 +354,14 @@ _Goal: Advanced project management features._
 - [ ] Grid/table view for project
 - [ ] Card or table to show number of environments and members
 - [ ] Add description option to the dialog, when creating a new environment
+- [ ] when user is creating a new project, give them optional passcode description field which can be used to remember the passcode, but wouldn't be imediately visible in the dashboard.
+- [ ] allow only owner to delete a project with confirmation and Master Key verification.
 
 #### Task 6.4: Bulk Add/Edit Variable Values
 
 - [ ] Allow user to paste multiple key/values from clipboard in textarea, parse and add
 - [ ] Add option to edit single variable; each shows a pencil icon
+- [ ] user with role:member can only view and copy variables they can't share, edit, or delete it.
 
 #### Task 6.5: Variable Copy Enhancements
 

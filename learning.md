@@ -190,3 +190,16 @@ We learned to distinguish between **Master Key Rotation** and **Project Passcode
 - **Master Key Rotation (Low Cost)**: Since the Master Key only encrypts the *Project Passcode*, rotating it only requires re-encrypting a few small strings in the `projects` table.
 - **Project Passcode Rotation (High Cost)**: Since the Project Passcode is used to derive the Project Key which encrypts ALL variables and shared passcodes, rotating it requires a massive batch re-encryption job.
 - **Decision**: Always warn users about the cost and consider making high-cost rotations a background or multi-step process.
+
+### ID Ownership Validation (Defense in Depth)
+
+When performing mutations that take multiple IDs (e.g. `projectId` and `environmentId`), always verify that the sub-resource actually belongs to the parent-resource:
+
+```typescript
+const environment = await ctx.db.get(args.environmentId);
+if (!environment || environment.projectId !== args.projectId) {
+  throw new Error("Mismatched resources");
+}
+```
+
+This prevents **data corruption** and **cross-linking vulnerabilities** where a user might try to associate an environment they don't own with a project they do.

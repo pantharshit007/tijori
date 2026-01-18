@@ -51,6 +51,12 @@ export const create = mutation({
       throw new Error("Access denied");
     }
 
+    // Verify environment belongs to the project
+    const environment = await ctx.db.get(args.environmentId);
+    if (!environment || environment.projectId !== args.projectId) {
+      throw new Error("Invalid environment for this project");
+    }
+
     // Create the shared secret
     const sharedSecretId = await ctx.db.insert("sharedSecrets", {
       projectId: args.projectId,

@@ -13,6 +13,10 @@ class ProjectKeyStore {
     return this.keys.get(projectId) || null;
   }
 
+  removeKey(projectId: string) {
+    this.keys.delete(projectId);
+  }
+
   clear() {
     this.keys.clear();
   }
