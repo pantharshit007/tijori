@@ -2,3 +2,4 @@
 - [ ] either remove the settings button or add something to it in /projects/$projectId
 - [ ] update the sidebar with the correct functionality, log out button, and settings button and profile, along with correct user info.
 - [ ] do we need a profile page? what is even the use case for it?
+- [ ] in `handleReveal` and `handleCopy` are we re-calculating the decrypted value every time? for each value? if yes, then we should cache it in state or fix it such that once we unlock the passcode, we don't need to decrypt the same value again.

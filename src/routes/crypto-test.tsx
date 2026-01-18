@@ -40,7 +40,7 @@ function CryptoTest() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
-  async function handleGenerateSalt() {
+  function handleGenerateSalt() {
     const newSalt = generateSalt();
     setSalt(newSalt);
   }
@@ -122,8 +122,8 @@ function CryptoTest() {
     }
   }
 
-  async function copyToClipboard(text: string, label: string) {
-    await navigator.clipboard.writeText(text);
+  async function copyToClipboard(val: string, label: string) {
+    await navigator.clipboard.writeText(val);
     setCopied(label);
     setTimeout(() => setCopied(null), 2000);
   }

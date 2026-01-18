@@ -2,8 +2,7 @@
 
 # ⚡ Package & Runtime Management
 
-As of Jan 2026, **Tijori uses [bun](https://bun.sh/)** as its package manager and script runner (instead of npm/yarn/pnpm). All install, add, remove, and run/test commands documented henceforth assume bun usage (see https://bun.sh/docs/cli).
-
++As of Jan 2026, **Tijori uses [bun](https://bun.sh/)** as its package manager and script runner (instead of npm/yarn/pnpm). All install, add, remove, and run/test commands documented henceforth assume bun usage (see [Bun CLI docs](https://bun.sh/docs/cli)).
 - Install dependency: `bun add <pkg>`
 - Run tests: `bun test`
 - Run scripts: `bun run <script>`

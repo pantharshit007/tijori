@@ -306,6 +306,9 @@ function EnvironmentVariables({
     if (!derivedKey) {
       setRevealedVars(new Set());
       setDecryptedValues({});
+      setNewName("");
+      setNewValue("");
+      setShowNewVar(false);
     }
   }, [derivedKey]);
   const [copied, setCopied] = useState<string | null>(null);
@@ -343,7 +346,7 @@ function EnvironmentVariables({
 
     try {
       let value = decryptedValues[varId];
-      if (!value) {
+      if (value === undefined) {
         value = await decrypt(encryptedValue, iv, authTag, derivedKey);
       }
       await navigator.clipboard.writeText(value);
@@ -495,7 +498,7 @@ function EnvironmentVariables({
             <div className="flex-1 min-w-0">
               <code className="text-sm font-semibold font-mono">{variable.name}</code>
               <div className="text-sm text-muted-foreground font-mono truncate mt-0.5">
-                {revealedVars.has(variable._id) && decryptedValues[variable._id]
+                {revealedVars.has(variable._id) && decryptedValues[variable._id] !== undefined
                   ? decryptedValues[variable._id]
                   : "••••••••••••••••"}
               </div>
