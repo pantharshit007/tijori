@@ -2,7 +2,7 @@
   "name": "tijori",
   "private": true,
   "type": "module",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "scripts": {
     "dev": "vite dev --port 3000",
     "dev:convex": "bunx convex dev",
@@ -20,7 +20,6 @@
     "cvx:env:list": "bunx convex env list",
     "cvx:logs": "bunx convex logs"
   },
-
   "dependencies": {
     "@clerk/tanstack-react-start": "^0.27.15",
     "@convex-dev/react-query": "^0.1.0",
