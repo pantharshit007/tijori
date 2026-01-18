@@ -1,7 +1,7 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery } from 'convex/react'
 import { useState } from 'react'
-import { AlertTriangle, ArrowLeft, KeyRound, Loader2 } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Eye, EyeOff, KeyRound, Loader2 } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 
 import { Button } from '@/components/ui/button'
@@ -23,7 +23,6 @@ import {
   generateSalt,
 } from '@/lib/crypto'
 
-const VERIFICATION_STRING = 'TIJORI_VERIFY'
 
 function NewProject() {
   const navigate = useNavigate()
@@ -37,6 +36,7 @@ function NewProject() {
   const [masterKey, setMasterKey] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showPasscode, setShowPasscode] = useState(false)
 
   const hasMasterKey = user?.masterKeyHash !== undefined
 
@@ -49,8 +49,9 @@ function NewProject() {
       setError('Project name is required')
       return
     }
-    if (passcode.length < 6) {
-      setError('Passcode must be at least 6 characters')
+    // Enforce 6-digit numeric passcode
+    if (!/^\d{6}$/.test(passcode)) {
+      setError('Passcode must be exactly 6 digits')
       return
     }
     if (passcode !== confirmPasscode) {
@@ -92,22 +93,20 @@ function NewProject() {
         recoveryKey,
       )
 
-      // 4. Derive key from passcode and encrypt verification blob
-      const passcodeKey = await deriveKey(passcode, passcodeSalt)
-      const verification = await encrypt(VERIFICATION_STRING, passcodeKey)
+      // 4. Hash the passcode for verification (like master key)
+      const passcodeHash = await cryptoHash(passcode, passcodeSalt)
 
       // 5. Create the project in Convex
       const projectId = await createProject({
         name: name.trim(),
         description: description.trim() || undefined,
+        passcodeHash,
         encryptedPasscode: encryptedValue,
         passcodeSalt,
         iv,
         authTag,
-        verificationBlob: verification.encryptedValue,
-        verificationIv: verification.iv,
-        verificationAuthTag: verification.authTag,
       })
+
 
       // Navigate to the new project
       navigate({ to: '/projects/$projectId', params: { projectId } })
@@ -254,13 +253,37 @@ function NewProject() {
             <Separator />
 
             <div className="space-y-2">
-              <Label htmlFor="passcode">Passcode *</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="passcode">6-Digit Passcode *</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 text-xs"
+                  onClick={() => setShowPasscode(!showPasscode)}
+                >
+                  {showPasscode ? (
+                    <>
+                      <EyeOff className="h-3 w-3 mr-1" />
+                      Hide
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="h-3 w-3 mr-1" />
+                      Show
+                    </>
+                  )}
+                </Button>
+              </div>
               <Input
                 id="passcode"
-                type="password"
-                placeholder="Enter a secure passcode (min 6 characters)"
+                type={showPasscode ? "text" : "password"}
+                inputMode="numeric"
+                pattern="\d{6}"
+                maxLength={6}
+                placeholder="Enter 6-digit passcode"
                 value={passcode}
-                onChange={(e) => setPasscode(e.target.value)}
+                onChange={(e) => setPasscode(e.target.value.replace(/\D/g, ''))}
                 disabled={isLoading}
               />
             </div>
@@ -268,10 +291,13 @@ function NewProject() {
               <Label htmlFor="confirmPasscode">Confirm Passcode *</Label>
               <Input
                 id="confirmPasscode"
-                type="password"
-                placeholder="Confirm your passcode"
+                type={showPasscode ? "text" : "password"}
+                inputMode="numeric"
+                pattern="\d{6}"
+                maxLength={6}
+                placeholder="Confirm 6-digit passcode"
                 value={confirmPasscode}
-                onChange={(e) => setConfirmPasscode(e.target.value)}
+                onChange={(e) => setConfirmPasscode(e.target.value.replace(/\D/g, ''))}
                 disabled={isLoading}
               />
             </div>

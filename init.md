@@ -308,11 +308,80 @@ _Goal: Advanced master key features._
 
 ---
 
-### Phase 6: Project Management (Future)
+### Phase 6: Security Audit & Hardening
+
+_Goal: Comprehensive security review and penetration testing._
+
+#### Task 6.1: Code Security Review
+
+- [ ] Review all crypto implementations for vulnerabilities
+- [ ] Verify salt usage in all hash operations
+- [ ] Check for timing attack vulnerabilities
+- [ ] Audit all client-side encryption/decryption flows
+- [ ] Review key derivation parameters (iterations, algorithms)
+
+#### Task 6.2: Input Validation & Sanitization
+
+- [ ] Verify 6-digit passcode enforcement everywhere
+- [ ] Check for XSS vulnerabilities in user inputs
+- [ ] Validate all Convex mutation arguments
+- [ ] Test SQL injection prevention (Convex handles this, but verify)
+- [ ] Review file upload security (if applicable)
+
+#### Task 6.3: Authentication & Authorization
+
+- [ ] Verify Clerk JWT validation
+- [ ] Test project access control (owner/admin/member roles)
+- [ ] Check for IDOR vulnerabilities (accessing other users' data)
+- [ ] Verify environment variable access restrictions
+- [ ] Test shared secret access controls
+
+#### Task 6.4: Data Protection
+
+- [ ] Verify all secrets are encrypted at rest
+- [ ] Check for accidental logging of sensitive data
+- [ ] Review error messages for information leakage
+- [ ] Verify master key is never stored in plaintext
+- [ ] Test passcode hash collision resistance
+
+#### Task 6.5: Frontend Security
+
+- [ ] Implement Content Security Policy (CSP)
+- [ ] Add security headers (HSTS, X-Frame-Options, etc.)
+- [ ] Review for DOM-based XSS
+- [ ] Check for sensitive data in browser storage
+- [ ] Verify keys are cleared from memory on logout
+
+#### Task 6.6: Penetration Testing
+
+- [ ] Attempt to bypass passcode verification
+- [ ] Try to access other users' projects
+- [ ] Test for replay attacks
+- [ ] Attempt CSRF attacks
+- [ ] Test rate limiting on authentication
+
+#### Task 6.7: Dependency Audit
+
+- [ ] Run `npm audit` and fix vulnerabilities
+- [ ] Review all third-party dependencies
+- [ ] Check for outdated packages with known CVEs
+- [ ] Verify Convex SDK is up to date
+
+#### Task 6.8: Documentation & Compliance
+
+- [ ] Document security architecture
+- [ ] Create incident response plan
+- [ ] Add security best practices to README
+- [ ] Consider GDPR/privacy compliance
+- [ ] Add security disclosure policy
+
+---
+
+### Phase 7: Project Management (Future)
 
 _Goal: Advanced project management features._
 
-#### Task 6.1: Recent Projects Dashboard
+#### Task 7.1: Recent Projects Dashboard
 
 - [ ] Display recent projects (5) on /dashboard
 

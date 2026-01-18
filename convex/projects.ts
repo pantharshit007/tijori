@@ -28,13 +28,11 @@ export const create = mutation({
   args: {
     name: v.string(),
     description: v.optional(v.string()),
+    passcodeHash: v.string(),
     encryptedPasscode: v.string(),
     passcodeSalt: v.string(),
     iv: v.string(),
     authTag: v.string(),
-    verificationBlob: v.string(),
-    verificationIv: v.string(),
-    verificationAuthTag: v.string(),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -53,23 +51,22 @@ export const create = mutation({
       throw new Error("User not found");
     }
 
-    if (!user.masterKeyHash || !user.masterKeySalt) {
-      throw new Error(
-        "Master key and its salt are not fully configured. Please set up your master key in Settings."
-      );
+    if (!user.masterKeyHash) {
+      throw new Error("Master key not configured. Please set it in Settings.");
     }
+
+    const now = Date.now();
 
     const projectId = await ctx.db.insert("projects", {
       name: args.name,
       description: args.description,
+      passcodeHash: args.passcodeHash,
       encryptedPasscode: args.encryptedPasscode,
       passcodeSalt: args.passcodeSalt,
       iv: args.iv,
       authTag: args.authTag,
-      verificationBlob: args.verificationBlob,
-      verificationIv: args.verificationIv,
-      verificationAuthTag: args.verificationAuthTag,
       ownerId: user._id,
+      updatedAt: now,
     });
 
     // Add the creator as the owner in projectMembers
@@ -84,10 +81,12 @@ export const create = mutation({
       projectId,
       name: "Development",
       description: "Default environment for development",
+      updatedAt: now,
     });
 
     return projectId;
   },
+
 });
 
 /**

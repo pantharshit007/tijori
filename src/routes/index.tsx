@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatRelativeTime } from '@/lib/time'
 
 function Dashboard() {
   const projects = useQuery(api.projects.list)
@@ -95,7 +96,9 @@ function Dashboard() {
                     <div className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       <span>
-                        {new Date(project._creationTime).toLocaleDateString()}
+                        {project.updatedAt === project._creationTime
+                          ? `Created ${formatRelativeTime(project._creationTime)}`
+                          : `Updated ${formatRelativeTime(project.updatedAt)}`}
                       </span>
                     </div>
                   </div>

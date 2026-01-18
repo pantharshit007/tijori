@@ -3,17 +3,9 @@
  *
  * Client-side encryption utilities using the Web Crypto API.
  * The server (Convex) never sees plaintext secrets.
- *
- * Algorithm: AES-256-GCM
- * KDF: PBKDF2 with SHA-256
- * Iterations: 100,000
  */
 
-const ALGORITHM = 'AES-GCM'
-const KEY_LENGTH = 256
-const IV_LENGTH = 12 // 96 bits for AES-GCM
-const SALT_LENGTH = 16 // 128 bits
-const PBKDF2_ITERATIONS = 100000
+import { CRYPTO } from './constants'
 
 /**
  * Convert ArrayBuffer to Base64 string.
@@ -43,7 +35,7 @@ export function base64ToArrayBuffer(base64: string): ArrayBuffer {
  * Generate a random salt for PBKDF2.
  */
 export function generateSalt(): string {
-  const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH))
+  const salt = crypto.getRandomValues(new Uint8Array(CRYPTO.SALT_LENGTH))
   return arrayBufferToBase64(salt.buffer)
 }
 
@@ -51,7 +43,7 @@ export function generateSalt(): string {
  * Generate a random IV for AES-GCM.
  */
 export function generateIV(): string {
-  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH))
+  const iv = crypto.getRandomValues(new Uint8Array(CRYPTO.IV_LENGTH))
   return arrayBufferToBase64(iv.buffer)
 }
 
@@ -77,11 +69,11 @@ export async function deriveKey(
     {
       name: 'PBKDF2',
       salt,
-      iterations: PBKDF2_ITERATIONS,
-      hash: 'SHA-256',
+      iterations: CRYPTO.PBKDF2_ITERATIONS,
+      hash: CRYPTO.HASH_ALGORITHM,
     },
     keyMaterial,
-    { name: ALGORITHM, length: KEY_LENGTH },
+    { name: CRYPTO.ALGORITHM, length: CRYPTO.KEY_LENGTH },
     false,
     ['encrypt', 'decrypt'],
   )
@@ -96,10 +88,10 @@ export async function encrypt(
   key: CryptoKey,
 ): Promise<{ encryptedValue: string; iv: string; authTag: string }> {
   const encoder = new TextEncoder()
-  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH))
+  const iv = crypto.getRandomValues(new Uint8Array(CRYPTO.IV_LENGTH))
 
   const ciphertext = await crypto.subtle.encrypt(
-    { name: ALGORITHM, iv },
+    { name: CRYPTO.ALGORITHM, iv },
     key,
     encoder.encode(plaintext),
   )
@@ -139,7 +131,7 @@ export async function decrypt(
   fullCiphertext.set(authTag, encryptedData.length)
 
   const decrypted = await crypto.subtle.decrypt(
-    { name: ALGORITHM, iv },
+    { name: CRYPTO.ALGORITHM, iv },
     key,
     fullCiphertext,
   )
@@ -148,15 +140,15 @@ export async function decrypt(
   return decoder.decode(decrypted)
 }
 
-/**s
- * Hash a string using SHA-256.
+/**
+ * Hash a string using SHA-256 with salt.
  * Returns Base64-encoded hash.
  */
 export async function hash(text: string, salt: string): Promise<string> {
   const encoder = new TextEncoder()
   const combined = salt + text
   const hashBuffer = await crypto.subtle.digest(
-    'SHA-256',
+    CRYPTO.HASH_ALGORITHM,
     encoder.encode(combined),
   )
   return arrayBufferToBase64(hashBuffer)
@@ -179,7 +171,7 @@ export async function importKey(keyBase64: string): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     'raw',
     keyData,
-    { name: ALGORITHM, length: KEY_LENGTH },
+    { name: CRYPTO.ALGORITHM, length: CRYPTO.KEY_LENGTH },
     false,
     ['encrypt', 'decrypt'],
   )

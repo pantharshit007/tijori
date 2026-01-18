@@ -9,21 +9,19 @@ export default defineSchema({
     image: v.optional(v.string()),
     // Master key for all projects (set in Settings)
     masterKeyHash: v.optional(v.string()), // SHA-256 hash of Master Key
-    masterKeySalt: v.optional(v.string()), // Salt for PBKDF2 derivation
+    masterKeySalt: v.optional(v.string()), // Salt for hash
   }).index('by_tokenIdentifier', ['tokenIdentifier']),
 
   projects: defineTable({
     name: v.string(),
     description: v.optional(v.string()),
+    passcodeHash: v.string(), // SHA-256 hash of passcode (with salt)
     encryptedPasscode: v.string(), // AES-256-GCM encrypted passcode
-    passcodeSalt: v.string(), // Salt for PBKDF2 (passcode → KEY_A)
+    passcodeSalt: v.string(), // Salt for both hash and PBKDF2
     iv: v.string(), // IV for encryptedPasscode
     authTag: v.string(), // AuthTag for encryptedPasscode
-    // Verification blob: encrypted "TIJORI_VERIFY" string for passcode verification
-    verificationBlob: v.string(),
-    verificationIv: v.string(),
-    verificationAuthTag: v.string(),
     ownerId: v.id('users'), // Link to the owner
+    updatedAt: v.number(), // Timestamp - set to creation time initially, updated on changes
   }).index('by_ownerId', ['ownerId']),
 
   projectMembers: defineTable({
@@ -39,6 +37,7 @@ export default defineSchema({
     projectId: v.id('projects'),
     name: v.string(),
     description: v.optional(v.string()),
+    updatedAt: v.number(), // Timestamp - set to creation time initially, updated on changes
   }).index('by_projectId', ['projectId']),
 
   variables: defineTable({

@@ -6,6 +6,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import {
   ArrowLeft,
   Check,
+  Clock,
   Copy,
   Eye,
   EyeOff,
@@ -33,9 +34,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import { decrypt, deriveKey, encrypt } from "@/lib/crypto";
-
-import { VERIFICATION_STRING } from "@/utilities/constants";
+import { decrypt, deriveKey, encrypt, hash as cryptoHash } from "@/lib/crypto";
+import { formatRelativeTime } from "@/lib/time";
 
 function ProjectView() {
   const { projectId } = useParams({ from: "/projects/$projectId" });
@@ -72,32 +72,19 @@ function ProjectView() {
     setUnlockError(null);
 
     try {
-      // Derive key from passcode
-      const key = await deriveKey(passcode, project.passcodeSalt);
-
-      // Verify passcode by decrypting verification blob
-      try {
-        const decrypted = await decrypt(
-          project.verificationBlob,
-          project.verificationIv,
-          project.verificationAuthTag,
-          key
-        );
-
-        if (decrypted !== VERIFICATION_STRING) {
-          setUnlockError("Invalid passcode. Please try again.");
-          setIsUnlocking(false);
-          return;
-        }
-      } catch {
+      // Verify passcode by comparing hash
+      const enteredHash = await cryptoHash(passcode, project.passcodeSalt);
+      if (enteredHash !== project.passcodeHash) {
         setUnlockError("Invalid passcode. Please try again.");
         setIsUnlocking(false);
         return;
       }
 
-      // Passcode verified, save the key
+      // Passcode verified, derive key for encryption/decryption
+      const key = await deriveKey(passcode, project.passcodeSalt);
       setDerivedKey(key);
       setShowUnlockDialog(false);
+
       setPasscode("");
     } catch (err: any) {
       setUnlockError("Failed to unlock. Please check your passcode.");
@@ -198,13 +185,16 @@ function ProjectView() {
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="passcode">Passcode</Label>
+                    <Label htmlFor="passcode">6-Digit Passcode</Label>
                     <Input
                       id="passcode"
                       type="password"
-                      placeholder="Enter your passcode"
+                      inputMode="numeric"
+                      pattern="\d{6}"
+                      maxLength={6}
+                      placeholder="Enter 6-digit passcode"
                       value={passcode}
-                      onChange={(e) => setPasscode(e.target.value)}
+                      onChange={(e) => setPasscode(e.target.value.replace(/\D/g, ''))}
                       onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
                     />
                   </div>
@@ -276,7 +266,7 @@ function ProjectView() {
           {environments.map((env) => (
             <TabsContent key={env._id} value={env._id} className="mt-4">
               <EnvironmentVariables
-                environmentId={env._id as Id<"environments">}
+                environment={env}
                 derivedKey={derivedKey}
               />
             </TabsContent>
@@ -294,13 +284,20 @@ function ProjectView() {
 }
 
 function EnvironmentVariables({
-  environmentId,
+  environment,
   derivedKey,
 }: {
-  environmentId: Id<"environments">;
+  environment: {
+    _id: Id<"environments">;
+    _creationTime: number;
+    name: string;
+    updatedAt: number;
+    projectId: Id<"projects">;
+    description?: string;
+  };
   derivedKey: CryptoKey | null;
 }) {
-  const variables = useQuery(api.variables.list, { environmentId });
+  const variables = useQuery(api.variables.list, { environmentId: environment._id });
   const saveVariable = useMutation(api.variables.save);
   const removeVariable = useMutation(api.variables.remove);
 
@@ -367,7 +364,7 @@ function EnvironmentVariables({
     try {
       const { encryptedValue, iv, authTag } = await encrypt(newValue, derivedKey);
       await saveVariable({
-        environmentId,
+        environmentId: environment._id,
         name: newName.trim(),
         encryptedValue,
         iv,
@@ -401,9 +398,19 @@ function EnvironmentVariables({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {variables.length} variable{variables.length !== 1 ? "s" : ""}
-        </p>
+        <div className="flex items-center gap-4">
+          <p className="text-sm text-muted-foreground">
+            {variables.length} variable{variables.length !== 1 ? "s" : ""}
+          </p>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            <span>
+              {environment.updatedAt === environment._creationTime
+                ? `Created ${formatRelativeTime(environment._creationTime)}`
+                : `Updated ${formatRelativeTime(environment.updatedAt)}`}
+            </span>
+          </div>
+        </div>
         {derivedKey && (
           <Button
             size="sm"
@@ -439,6 +446,7 @@ function EnvironmentVariables({
                   placeholder="VARIABLE_NAME"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddVariable()}
                   className="font-mono"
                 />
               </div>
@@ -451,6 +459,7 @@ function EnvironmentVariables({
                   placeholder="secret_value"
                   value={newValue}
                   onChange={(e) => setNewValue(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddVariable()}
                   type="password"
                 />
               </div>

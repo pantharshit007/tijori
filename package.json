@@ -12,8 +12,15 @@
     "lint": "eslint",
     "format": "prettier",
     "check": "prettier --write . && eslint",
-    "lint:fix": "eslint --fix"
+    "lint:fix": "eslint --fix",
+    "cvx:dev": "bunx convex dev",
+    "cvx:deploy": "bunx convex deploy",
+    "cvx:dashboard": "bunx convex dashboard",
+    "cvx:env:set": "bunx convex env set",
+    "cvx:env:list": "bunx convex env list",
+    "cvx:logs": "bunx convex logs"
   },
+
   "dependencies": {
     "@clerk/tanstack-react-start": "^0.27.15",
     "@convex-dev/react-query": "^0.1.0",
