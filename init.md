@@ -455,7 +455,7 @@ _Goal: Comprehensive security review and penetration testing._
 
 #### Task 7.7: Dependency Audit
 
-- [ ] Run `npm audit` and fix vulnerabilities
+- [ ] Run `bun audit` and fix vulnerabilities
 - [ ] Review all third-party dependencies
 - [ ] Check for outdated packages with known CVEs
 - [ ] Verify Convex SDK is up to date
