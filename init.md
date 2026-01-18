@@ -3,6 +3,7 @@
 # ⚡ Package & Runtime Management
 
 +As of Jan 2026, **Tijori uses [bun](https://bun.sh/)** as its package manager and script runner (instead of npm/yarn/pnpm). All install, add, remove, and run/test commands documented henceforth assume bun usage (see [Bun CLI docs](https://bun.sh/docs/cli)).
+
 - Install dependency: `bun add <pkg>`
 - Run tests: `bun test`
 - Run scripts: `bun run <script>`
@@ -269,23 +270,47 @@ _Goal: Fix security bugs and improve verification flow._
 
 ### Phase 4: Shared Secrets (Magic Links)
 
-_Goal: Implement the Zero-Knowledge sharing flow._
+_Goal: Implement the Zero-Knowledge sharing flow with proper management and visibility for shared environments._
 
 #### Task 4.1: Share Creation Flow
 
-- [ ] UI to select variables.
-- [ ] UI to set expiry (duration or indefinite).
-- [ ] Client-side encryption: Generate `ShareKey`, encrypt vars, encrypt `ShareKey` with `Passcode`.
-
-- [ ] Mutation to store `encryptedPayload` in `sharedSecrets`.
+- [x] UI to select variables.
+- [x] UI to set expiry (duration or indefinite).
+- [x] Extend expiry options to include **10 minutes** and **30 minutes**.
+- [x] Store expiry duration as a constant in `src/lib/constants.ts`.
+- [x] Require a **6-digit numeric passcode** defined by the user at the time of sharing.
+- [x] Mutation to store `encryptedPayload` in `sharedSecrets`.
 
 #### Task 4.2: Public Access View
 
-- [ ] Public route `tijori.app/share/[id]`.
-- [ ] Fetch encrypted payload.
-- [ ] UI prompts for Passcode.
-- [ ] Client-side decryption and display.
-- [ ] add a button to copy the shared key to clipboard.
+- [x] Public route `tijori.app/share/[id]`.
+- [x] Fetch encrypted payload.
+- [x] UI prompts for passcode.
+- [x] Client-side decryption and display.
+- [x] Add a button to copy the shared key to clipboard.
+
+#### Task 4.3: Shared Environments Dashboard (`/shared`)
+
+- [x] Add a `/shared` page UI accessible to logged-in users.
+- [x] Display all environments shared **by the current user**.
+- [x] Table-based layout showing: Environment, Project, Expiry, Views.
+- [x] Allow filtering or grouping of shared environments **by project**.
+- [x] Ensure **view counts are visible only to the creator**.
+
+#### Task 4.4: Share Management Actions
+
+- [x] Add `isDisabled` flag to disable sharing without deleting.
+- [x] Add disable/enable toggle in `/shared` dashboard.
+- [x] Add delete button with confirmation.
+- [x] Add extend expiry option for expired shares.
+- [x] **Encrypt share passcode** in database using project key (Zero-Knowledge for dashboard).
+
+#### Task 4.5: Refactor & Structure Improvements
+
+- [x] Move environment variable logic into `EnvironmentVariables` component.
+- [x] Move sharing-related UI into `ShareDialog` component.
+- [x] Move shared **types and interfaces** into `src/lib/types.ts`.
+- [x] Centralize shared constants in `src/lib/constants.ts`.
 
 ---
 
@@ -295,15 +320,17 @@ _Goal: Advanced master key features._
 
 #### Task 5.1: Master Key Rotation
 
-- [ ] When master key is updated, re-encrypt all project passcodes.
-- [ ] Prompt user to enter old master key for verification.
-- [ ] Batch re-encryption with progress indicator.
+- [ ] Add UI to update Master Key (requires verifying old Master Key).
+- [ ] Re-encrypt all `encryptedPasscode` fields in the `projects` table for the user.
+- [ ] **Note**: This is a low-cost operation because it only re-encrypts the project passcodes, not the underlying variables.
+- [ ] Batch update with progress indicator.
 
 #### Task 5.2: Passcode Recovery Flow
 
-- [ ] "Forgot Passcode?" button in unlock dialog.
-- [ ] Prompt for master key to decrypt passcode.
-- [ ] Show recovered passcode to user.
+- [ ] Add "Forgot Passcode?" button in project unlock dialog.
+- [ ] Prompt for Master Key to decrypt the `encryptedPasscode` from DB.
+- [ ] Show the recovered 6-digit project passcode to the user.
+- [ ] **Note**: Changing a project passcode is not supported in this phase due to re-encryption complexity (see TODO.md).
 
 ---
 
@@ -314,6 +341,7 @@ _Goal: Advanced project management features._
 #### Task 6.1: Recent Projects Dashboard
 
 - [ ] Display recent projects (5) on /dashboard
+- [ ] add light mode and dark mode, toggle button too.
 
 #### Task 6.2: Project Member Management
 
@@ -326,11 +354,14 @@ _Goal: Advanced project management features._
 - [ ] Grid/table view for project
 - [ ] Card or table to show number of environments and members
 - [ ] Add description option to the dialog, when creating a new environment
+- [ ] when user is creating a new project, give them optional passcode description field which can be used to remember the passcode, but wouldn't be imediately visible in the dashboard.
+- [ ] allow only owner to delete a project with confirmation and Master Key verification.
 
 #### Task 6.4: Bulk Add/Edit Variable Values
 
 - [ ] Allow user to paste multiple key/values from clipboard in textarea, parse and add
 - [ ] Add option to edit single variable; each shows a pencil icon
+- [ ] user with role:member can only view and copy variables they can't share, edit, or delete it.
 
 #### Task 6.5: Variable Copy Enhancements
 

@@ -1,0 +1,394 @@
+import { useState } from "react";
+import { 
+  Check, 
+  Clock, 
+  Copy, 
+  ExternalLink, 
+  Loader2, 
+  Share2
+} from "lucide-react";
+import type { Id } from "../../convex/_generated/dataModel";
+
+import type {ShareExpiryValue} from "@/lib/constants";
+import type {Environment, Variable} from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { decrypt, deriveKey, encrypt, generateSalt } from "@/lib/crypto";
+import { SHARE_EXPIRY_OPTIONS  } from "@/lib/constants";
+
+export interface ShareDialogProps {
+  variables: Array<Variable>;
+  environment: Environment;
+  derivedKey: CryptoKey;
+  createShare: (args: {
+    projectId: Id<"projects">;
+    environmentId: Id<"environments">;
+    encryptedPasscode: string;
+    passcodeIv: string;
+    passcodeAuthTag: string;
+    encryptedPayload: string;
+    encryptedShareKey: string;
+    passcodeSalt: string;
+    iv: string;
+    authTag: string;
+    payloadIv: string;
+    payloadAuthTag: string;
+    expiresAt?: number;
+    isIndefinite: boolean;
+  }) => Promise<Id<"sharedSecrets">>;
+}
+
+export function ShareDialog({
+  variables,
+  environment,
+  derivedKey,
+  createShare,
+}: ShareDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [selectedVars, setSelectedVars] = useState<Set<string>>(new Set());
+  const [expiry, setExpiry] = useState<ShareExpiryValue>("24h");
+  const [sharePasscode, setSharePasscode] = useState("");
+  const [passcodeError, setPasscodeError] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  function toggleVar(varId: string) {
+    setSelectedVars((prev: Set<string>) => {
+      const next = new Set(prev);
+      if (next.has(varId)) {
+        next.delete(varId);
+      } else {
+        next.add(varId);
+      }
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelectedVars(new Set(variables.map((v) => v._id)));
+  }
+
+  function deselectAll() {
+    setSelectedVars(new Set());
+  }
+
+  async function handleCreate() {
+    if (selectedVars.size === 0) return;
+
+    // Validate passcode
+    if (!/^\d{6}$/.test(sharePasscode)) {
+      setPasscodeError("Passcode must be exactly 6 digits");
+      return;
+    }
+    setPasscodeError(null);
+
+    setIsCreating(true);
+
+    try {
+      // 1. Decrypt selected variables using project's derivedKey
+      const selectedVariables = variables.filter((v) => selectedVars.has(v._id));
+      const decryptedVars: Array<{ name: string; value: string }> = [];
+
+      for (const v of selectedVariables) {
+        const value = await decrypt(v.encryptedValue, v.iv, v.authTag, derivedKey);
+        decryptedVars.push({ name: v.name, value });
+      }
+
+      // 2. Generate a random ShareKey
+      const shareKeyBytes = crypto.getRandomValues(new Uint8Array(32));
+      const shareKeyBase64 = btoa(String.fromCharCode(...shareKeyBytes));
+
+      // 3. Import ShareKey for encryption
+      const shareKey = await crypto.subtle.importKey(
+        "raw",
+        shareKeyBytes,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt"]
+      );
+
+      // 4. Encrypt the variables with ShareKey
+      const payloadJson = JSON.stringify(decryptedVars);
+      const payloadIv = crypto.getRandomValues(new Uint8Array(12));
+      const payloadEncoder = new TextEncoder();
+      const payloadCiphertext = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: payloadIv },
+        shareKey,
+        payloadEncoder.encode(payloadJson)
+      );
+
+      const payloadCiphertextArray = new Uint8Array(payloadCiphertext);
+      const payloadAuthTagStart = payloadCiphertextArray.length - 16;
+      const payloadEncrypted = payloadCiphertextArray.slice(0, payloadAuthTagStart);
+      const payloadAuthTag = payloadCiphertextArray.slice(payloadAuthTagStart);
+
+      // 5. Generate salt and derive key from USER-ENTERED share passcode
+      const shareSalt = generateSalt();
+      const sharePassKey = await deriveKey(sharePasscode, shareSalt);
+
+      // 6. Encrypt ShareKey with the user's share passcode key
+      const shareKeyIv = crypto.getRandomValues(new Uint8Array(12));
+      const shareKeyCiphertext = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: shareKeyIv },
+        sharePassKey,
+        payloadEncoder.encode(shareKeyBase64)
+      );
+
+      const shareKeyCiphertextArray = new Uint8Array(shareKeyCiphertext);
+      const shareKeyAuthTagStart = shareKeyCiphertextArray.length - 16;
+      const shareKeyEncrypted = shareKeyCiphertextArray.slice(0, shareKeyAuthTagStart);
+      const shareKeyAuthTag = shareKeyCiphertextArray.slice(shareKeyAuthTagStart);
+
+      // 7. Calculate expiry using constants
+      let expiresAt: number | undefined;
+      const isIndefinite = expiry === "never";
+      if (!isIndefinite) {
+        const option = SHARE_EXPIRY_OPTIONS.find((o) => o.value === expiry);
+        if (option?.ms) {
+          expiresAt = Date.now() + option.ms;
+        }
+      }
+
+      // 8. Encrypt the share passcode itself using Project Key (derivedKey)
+      // This is so the creator can see it in their dashboard but it's not plaintext in DB.
+      const { 
+        encryptedValue: encPass, 
+        iv: passIv, 
+        authTag: passTag 
+      } = await encrypt(sharePasscode, derivedKey);
+
+      // 9. Create the share
+      const shareId = await createShare({
+        projectId: environment.projectId,
+        environmentId: environment._id,
+        encryptedPasscode: encPass,
+        passcodeIv: passIv,
+        passcodeAuthTag: passTag,
+        encryptedPayload: btoa(String.fromCharCode(...payloadEncrypted)),
+        encryptedShareKey: btoa(String.fromCharCode(...shareKeyEncrypted)),
+        passcodeSalt: shareSalt,
+        iv: btoa(String.fromCharCode(...shareKeyIv)),
+        authTag: btoa(String.fromCharCode(...shareKeyAuthTag)),
+        payloadIv: btoa(String.fromCharCode(...payloadIv)),
+        payloadAuthTag: btoa(String.fromCharCode(...payloadAuthTag)),
+        expiresAt,
+        isIndefinite,
+      });
+
+      // 10. Generate share URL
+      const url = `${window.location.origin}/share/${shareId}`;
+      setShareUrl(url);
+    } catch (err) {
+      console.error("Failed to create share:", err);
+    } finally {
+      setIsCreating(false);
+    }
+  }
+
+  async function handleCopy() {
+    if (!shareUrl) return;
+    await navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleClose() {
+    setOpen(false);
+    // Reset state after dialog close animation
+    setTimeout(() => {
+      setSelectedVars(new Set());
+      setExpiry("24h");
+      setSharePasscode("");
+      setPasscodeError(null);
+      setShareUrl(null);
+      setCopied(false);
+    }, 200);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => (isOpen ? setOpen(true) : handleClose())}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1">
+          <Share2 className="h-3 w-3" />
+          Share
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        {!shareUrl ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Share Variables</DialogTitle>
+              <DialogDescription>
+                Create a secure link to share variables from {environment.name}.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              {/* Variable selection */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Select Variables</Label>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={selectAll} className="h-7 text-xs">
+                      All
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={deselectAll}
+                      className="h-7 text-xs"
+                    >
+                      None
+                    </Button>
+                  </div>
+                </div>
+                <div className="max-h-48 overflow-y-auto rounded-lg border p-2 space-y-1">
+                  {variables.map((v) => (
+                    <label
+                      key={v._id}
+                      className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={selectedVars.has(v._id)}
+                        onCheckedChange={() => toggleVar(v._id)}
+                      />
+                      <code className="text-sm font-mono">{v.name}</code>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {selectedVars.size} of {variables.length} selected
+                </p>
+              </div>
+
+              {/* Passcode input */}
+              <div className="space-y-2">
+                <Label htmlFor="share-passcode">Share Passcode</Label>
+                <Input
+                  id="share-passcode"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="\d{6}"
+                  maxLength={6}
+                  placeholder="Enter 6-digit passcode"
+                  value={sharePasscode}
+                  onChange={(e) => setSharePasscode(e.target.value.replace(/\D/g, ""))}
+                />
+                {passcodeError && (
+                  <p className="text-xs text-destructive">{passcodeError}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Recipients will need this passcode to view the secrets.
+                </p>
+              </div>
+
+              {/* Expiry selection */}
+              <div className="space-y-2">
+                <Label>Link Expiry</Label>
+                <Select value={expiry} onValueChange={(v) => setExpiry(v as ShareExpiryValue)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SHARE_EXPIRY_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreate}
+                disabled={isCreating || selectedVars.size === 0 || sharePasscode.length !== 6}
+                className="gap-2"
+              >
+                {isCreating && <Loader2 className="h-4 w-4 animate-spin" />}
+                Create Link
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>Share Link Created</DialogTitle>
+              <DialogDescription>
+                Your secure link is ready. Anyone with the link and passcode can view these secrets until it expires.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Share Link</Label>
+                <div className="flex gap-2">
+                  <Input readOnly value={shareUrl} className="font-mono text-xs" />
+                  <Button size="icon" variant="outline" onClick={handleCopy}>
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-muted p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Passcode</span>
+                  <code className="bg-background px-2 py-1 rounded border font-mono text-sm leading-none">
+                    {sharePasscode}
+                  </code>
+                </div>
+                <Separator className="opacity-50" />
+                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    <span>{expiry === "never" ? "No expiration" : `Expires ${SHARE_EXPIRY_OPTIONS.find(o => o.value === expiry)?.label}`}</span>
+                  </div>
+                  <span>{selectedVars.size} variables shared</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                 <Button className="w-full gap-2" variant="outline" asChild>
+                    <a href={shareUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4" />
+                      Test Link
+                    </a>
+                 </Button>
+                 <Button className="w-full" onClick={handleClose}>
+                    Done
+                 </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Separator({ className }: { className?: string }) {
+  return <div className={`h-px w-full bg-border ${className}`} />;
+}

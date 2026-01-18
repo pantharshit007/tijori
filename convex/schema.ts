@@ -52,17 +52,23 @@ export default defineSchema({
     projectId: v.id('projects'),
     environmentId: v.id('environments'),
     createdBy: v.id('users'),
+    encryptedPasscode: v.string(), // Passcode encrypted with Project Key
+    passcodeIv: v.string(), // IV for encryptedPasscode
+    passcodeAuthTag: v.string(), // AuthTag for encryptedPasscode
     encryptedPayload: v.string(), // Secrets encrypted with Share Key
     encryptedShareKey: v.string(), // Share Key encrypted with Passcode
-    passcodeSalt: v.string(),
-    iv: v.string(), // For Share Key
-    authTag: v.string(), // For Share Key
-    payloadIv: v.string(), // For Payload
-    payloadAuthTag: v.string(), // For Payload
+    passcodeSalt: v.string(), // Salt for share passcode derivation
+    iv: v.string(), // IV for Share Key
+    authTag: v.string(), // AuthTag for Share Key
+    payloadIv: v.string(), // IV for Payload
+    payloadAuthTag: v.string(), // AuthTag for Payload
     expiresAt: v.optional(v.number()),
     isIndefinite: v.boolean(),
+    isDisabled: v.boolean(), // Disable without deleting
     views: v.number(),
   })
     .index('by_projectId', ['projectId'])
+    .index('by_createdBy', ['createdBy'])
     .index('by_expiry', ['expiresAt']),
 })
+

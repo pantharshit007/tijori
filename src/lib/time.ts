@@ -4,7 +4,10 @@
 export function formatRelativeTime(timestamp: number): string {
   const now = Date.now()
   const diff = now - timestamp
-  const seconds = Math.floor(diff / 1000)
+  const isFuture = diff < 0
+  const absDiff = Math.abs(diff)
+  
+  const seconds = Math.floor(absDiff / 1000)
   const minutes = Math.floor(seconds / 60)
   const hours = Math.floor(minutes / 60)
   const days = Math.floor(hours / 24)
@@ -12,13 +15,18 @@ export function formatRelativeTime(timestamp: number): string {
   const months = Math.floor(days / 30)
   const years = Math.floor(days / 365)
 
-  if (seconds < 60) return 'just now'
-  if (minutes < 60) return `${minutes}m ago`
-  if (hours < 24) return `${hours}h ago`
-  if (days < 7) return `${days}d ago`
-  if (weeks < 4) return `${weeks}w ago`
-  if (months < 12) return `${months}mo ago`
-  return `${years}y ago`
+  const getFormat = (value: number, unit: string) => {
+    if (isFuture) return `in ${value}${unit}`
+    return `${value}${unit} ago`
+  }
+
+  if (seconds < 60) return isFuture ? 'just now' : 'just now'
+  if (minutes < 60) return getFormat(minutes, 'm')
+  if (hours < 24) return getFormat(hours, 'h')
+  if (days < 7) return getFormat(days, 'd')
+  if (weeks < 4) return getFormat(weeks, 'w')
+  if (months < 12) return getFormat(months, 'mo')
+  return getFormat(years, 'y')
 }
 
 /**

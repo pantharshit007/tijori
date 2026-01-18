@@ -9,9 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SharedRouteImport } from './routes/shared'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as CryptoTestRouteImport } from './routes/crypto-test'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ShareShareIdRouteImport } from './routes/share/$shareId'
 import { Route as ProjectsNewRouteImport } from './routes/projects/new'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
 import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
@@ -22,6 +24,11 @@ import { Route as DemoStartSsrSpaModeRouteImport } from './routes/demo/start.ssr
 import { Route as DemoStartSsrFullSsrRouteImport } from './routes/demo/start.ssr.full-ssr'
 import { Route as DemoStartSsrDataOnlyRouteImport } from './routes/demo/start.ssr.data-only'
 
+const SharedRoute = SharedRouteImport.update({
+  id: '/shared',
+  path: '/shared',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -35,6 +42,11 @@ const CryptoTestRoute = CryptoTestRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShareShareIdRoute = ShareShareIdRouteImport.update({
+  id: '/share/$shareId',
+  path: '/share/$shareId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsNewRoute = ProjectsNewRouteImport.update({
@@ -87,8 +99,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/crypto-test': typeof CryptoTestRoute
   '/settings': typeof SettingsRoute
+  '/shared': typeof SharedRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
+  '/share/$shareId': typeof ShareShareIdRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
@@ -101,8 +115,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/crypto-test': typeof CryptoTestRoute
   '/settings': typeof SettingsRoute
+  '/shared': typeof SharedRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
+  '/share/$shareId': typeof ShareShareIdRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
@@ -116,8 +132,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/crypto-test': typeof CryptoTestRoute
   '/settings': typeof SettingsRoute
+  '/shared': typeof SharedRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
+  '/share/$shareId': typeof ShareShareIdRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
@@ -132,8 +150,10 @@ export interface FileRouteTypes {
     | '/'
     | '/crypto-test'
     | '/settings'
+    | '/shared'
     | '/projects/$projectId'
     | '/projects/new'
+    | '/share/$shareId'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
@@ -146,8 +166,10 @@ export interface FileRouteTypes {
     | '/'
     | '/crypto-test'
     | '/settings'
+    | '/shared'
     | '/projects/$projectId'
     | '/projects/new'
+    | '/share/$shareId'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
@@ -160,8 +182,10 @@ export interface FileRouteTypes {
     | '/'
     | '/crypto-test'
     | '/settings'
+    | '/shared'
     | '/projects/$projectId'
     | '/projects/new'
+    | '/share/$shareId'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
@@ -175,8 +199,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CryptoTestRoute: typeof CryptoTestRoute
   SettingsRoute: typeof SettingsRoute
+  SharedRoute: typeof SharedRoute
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
   ProjectsNewRoute: typeof ProjectsNewRoute
+  ShareShareIdRoute: typeof ShareShareIdRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
   DemoStartApiRequestRoute: typeof DemoStartApiRequestRoute
   DemoStartServerFuncsRoute: typeof DemoStartServerFuncsRoute
@@ -188,6 +214,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/shared': {
+      id: '/shared'
+      path: '/shared'
+      fullPath: '/shared'
+      preLoaderRoute: typeof SharedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -207,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/share/$shareId': {
+      id: '/share/$shareId'
+      path: '/share/$shareId'
+      fullPath: '/share/$shareId'
+      preLoaderRoute: typeof ShareShareIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects/new': {
@@ -279,8 +319,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CryptoTestRoute: CryptoTestRoute,
   SettingsRoute: SettingsRoute,
+  SharedRoute: SharedRoute,
   ProjectsProjectIdRoute: ProjectsProjectIdRoute,
   ProjectsNewRoute: ProjectsNewRoute,
+  ShareShareIdRoute: ShareShareIdRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,
   DemoStartApiRequestRoute: DemoStartApiRequestRoute,
   DemoStartServerFuncsRoute: DemoStartServerFuncsRoute,
