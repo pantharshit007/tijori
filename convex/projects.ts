@@ -11,9 +11,7 @@ async function getUserId(ctx: any) {
   }
   const user = await ctx.db
     .query("users")
-    .withIndex("by_tokenIdentifier", (q: any) =>
-      q.eq("tokenIdentifier", identity.tokenIdentifier),
-    )
+    .withIndex("by_tokenIdentifier", (q: any) => q.eq("tokenIdentifier", identity.tokenIdentifier))
     .unique();
   if (!user) {
     throw new Error("User not found in database");
@@ -24,35 +22,57 @@ async function getUserId(ctx: any) {
 /**
  * Create a new project.
  * This also creates a default "Development" environment.
+ * Requires user to have master key set (checked on frontend).
  */
 export const create = mutation({
   args: {
     name: v.string(),
     description: v.optional(v.string()),
+    passcodeHash: v.string(),
     encryptedPasscode: v.string(),
-    masterKeyHash: v.string(),
     passcodeSalt: v.string(),
     iv: v.string(),
     authTag: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getUserId(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthenticated");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tokenIdentifier", (q: any) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (!user.masterKeyHash) {
+      throw new Error("Master key not configured. Please set it in Settings.");
+    }
+
+    const now = Date.now();
 
     const projectId = await ctx.db.insert("projects", {
       name: args.name,
       description: args.description,
+      passcodeHash: args.passcodeHash,
       encryptedPasscode: args.encryptedPasscode,
-      masterKeyHash: args.masterKeyHash,
       passcodeSalt: args.passcodeSalt,
       iv: args.iv,
       authTag: args.authTag,
-      ownerId: userId,
+      ownerId: user._id,
+      updatedAt: now,
     });
 
     // Add the creator as the owner in projectMembers
     await ctx.db.insert("projectMembers", {
       projectId,
-      userId,
+      userId: user._id,
       role: "owner",
     });
 
@@ -61,10 +81,12 @@ export const create = mutation({
       projectId,
       name: "Development",
       description: "Default environment for development",
+      updatedAt: now,
     });
 
     return projectId;
   },
+
 });
 
 /**
@@ -79,7 +101,7 @@ export const list = query({
     const user = await ctx.db
       .query("users")
       .withIndex("by_tokenIdentifier", (q: any) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier),
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
       )
       .unique();
     if (!user) return [];
@@ -115,9 +137,7 @@ export const get = query({
 
     const membership = await ctx.db
       .query("projectMembers")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", args.projectId).eq("userId", userId),
-      )
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
       .unique();
 
     if (!membership) {

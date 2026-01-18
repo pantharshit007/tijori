@@ -1,14 +1,16 @@
-name: Lint
+name: Lint and Test
 on:
   pull_request:
-    branches: [main, master, '**']
+    branches: [main, master, "**"]
 jobs:
-  lint:
+  lint-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v1
+      - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
         run: bun install
       - name: Run ESLint
         run: bun run lint
+      - name: Run Bun Tests
+        run: bun test

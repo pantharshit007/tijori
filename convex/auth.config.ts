@@ -1,10 +1,13 @@
-import { env } from '../src/env.server'
+const domain = process.env.CLERK_JWT_ISSUER_DOMAIN;
+if (!domain) {
+  throw new Error("Missing CLERK_JWT_ISSUER_DOMAIN");
+}
 
 export default {
   providers: [
     {
-      domain: env.CLERK_JWT_ISSUER_DOMAIN,
-      applicationID: 'convex',
+      domain,
+      applicationID: "convex",
     },
   ],
-}
+};

@@ -1,5 +1,12 @@
 # Tijori - Agentic Workflow & Implementation Plan
 
+# ⚡ Package & Runtime Management
+
++As of Jan 2026, **Tijori uses [bun](https://bun.sh/)** as its package manager and script runner (instead of npm/yarn/pnpm). All install, add, remove, and run/test commands documented henceforth assume bun usage (see [Bun CLI docs](https://bun.sh/docs/cli)).
+- Install dependency: `bun add <pkg>`
+- Run tests: `bun test`
+- Run scripts: `bun run <script>`
+
 ## Project Overview
 
 **Tijori** (Hindi for "vault/safe") is a secure environment variables manager designed to allow teams to store, manage, and share encrypted environment variables across projects avoiding insecure channels like Slack/Email.
@@ -135,7 +142,8 @@ _One-time share links._
 
 ### Phase 0: Workflow & Documentation (Continuous)
 
-_Applies to every phase below._ 0. **Default Branch**: Use `master` branch.
+_Applies to every phase below._
+**Default Branch**: Use `master` branch.
 
 1. **Branch Often**: Create a new branch for each phase.
 2. **Commit Often**: Create a git commit after completing each sub-task.
@@ -207,31 +215,55 @@ _Goal: Build the UI shell and client-side encryption layer._
 
 #### Task 3.1: Crypto Module (Client-Side)
 
-- [ ] Implement `deriveKey(passcode, salt)` using PBKDF2.
-- [ ] Implement `encrypt(text, key)` using AES-GCM.
-- [ ] Implement `decrypt(encryptedData, key)` using AES-GCM.
-- [ ] Implement `hash(text)` using SHA-256.
-- [ ] _Test_: Verify these work reliably in the browser environment.
+- [x] Implement `deriveKey(passcode, salt)` using PBKDF2.
+- [x] Implement `encrypt(text, key)` using AES-GCM.
+- [x] Implement `decrypt(encryptedData, key)` using AES-GCM.
+- [x] Implement `hash(text)` using SHA-256.
+- [x] _Test_: Verify these work reliably in the browser environment.
 
 #### Task 3.2: Layout & Navigation
 
-- [ ] Create `App` layout with Sidebar/Navigation.
-- [ ] Implement Authentication UI (Login/Logout protection).
-- [ ] Design "Premium" global theme (Dark mode, fonts, colors).
+- [x] Integrate shadcn/ui component library for universal UI primitives.
+- [x] Create `App` layout with Sidebar/Navigation.
+- [x] Implement Authentication UI (Login/Logout protection).
+- [x] Design "Premium" global theme (Dark mode, fonts, colors).
 
 #### Task 3.3: Project & Environment UI
 
-- [ ] **Dashboard**: List all projects.
-- [ ] **Project View**: Tabs for different environments (Dev, Prod).
-- [ ] **Variables Grid**:
-  - [ ] Display variables.
-  - [ ] "Reveal" button triggers decryption (prompts for Passcode if key not in memory).
-  - [ ] "Edit" button triggers encryption.
+- [x] check convex working: it works for our dev mode via `npx convex dev` or locally.
+- [x] **Dashboard**: List all projects.
+- [x] **Project View**: Tabs for different environments (Dev, Prod).
+- [x] **Variables Grid**:
+  - [x] Display variables.
+  - [x] "Reveal" button triggers decryption (prompts for Passcode if key not in memory).
+  - [x] "Edit" button triggers encryption.
 
 #### Task 3.4: State Management
 
-- [ ] Use React State / Context to hold the _decrypted_ passcode-derived key temporarily.
-- [ ] Ensure key is wiped on page reload or logout.
+- [x] Use React State / Context to hold the _decrypted_ passcode-derived key temporarily.
+- [x] Ensure key is wiped on page reload or logout.
+
+---
+
+### Phase 3.5: Security Fixes & Improvements
+
+_Goal: Fix security bugs and improve verification flow._
+
+#### Task 3.5.1: Master Key Verification in Project Creation ✅
+
+- [x] Verify entered master key matches stored hash before encrypting passcode.
+- [x] Show clear error if master key is incorrect.
+
+#### Task 3.5.2: Passcode Verification on Unlock ✅
+
+- [x] Add `verificationBlob` to projects table (encrypted "TIJORI_VERIFY" string).
+- [x] On unlock, decrypt verification blob to verify passcode is correct.
+- [x] Show error immediately if passcode is wrong.
+
+#### Task 3.5.3: Add Environment Functionality ✅
+
+- [x] Implement "Add" button in environment tabs.
+- [x] Dialog to create new environment.
 
 ---
 
@@ -253,6 +285,188 @@ _Goal: Implement the Zero-Knowledge sharing flow._
 - [ ] Fetch encrypted payload.
 - [ ] UI prompts for Passcode.
 - [ ] Client-side decryption and display.
+- [ ] add a button to copy the shared key to clipboard.
+
+---
+
+### Phase 5: Master Key Management (Future)
+
+_Goal: Advanced master key features._
+
+#### Task 5.1: Master Key Rotation
+
+- [ ] When master key is updated, re-encrypt all project passcodes.
+- [ ] Prompt user to enter old master key for verification.
+- [ ] Batch re-encryption with progress indicator.
+
+#### Task 5.2: Passcode Recovery Flow
+
+- [ ] "Forgot Passcode?" button in unlock dialog.
+- [ ] Prompt for master key to decrypt passcode.
+- [ ] Show recovered passcode to user.
+
+---
+
+### Phase 6: Project Management (Future)
+
+_Goal: Advanced project management features._
+
+#### Task 6.1: Recent Projects Dashboard
+
+- [ ] Display recent projects (5) on /dashboard
+
+#### Task 6.2: Project Member Management
+
+- [ ] Add members to project
+- [ ] Remove members from project
+- [ ] Update the member role
+
+#### Task 6.3: Project Details View Improvements
+
+- [ ] Grid/table view for project
+- [ ] Card or table to show number of environments and members
+- [ ] Add description option to the dialog, when creating a new environment
+
+#### Task 6.4: Bulk Add/Edit Variable Values
+
+- [ ] Allow user to paste multiple key/values from clipboard in textarea, parse and add
+- [ ] Add option to edit single variable; each shows a pencil icon
+
+#### Task 6.5: Variable Copy Enhancements
+
+- [ ] Add option to copy all values from selected environment, `"VAR_NAME"= VAR_VALUE`
+
+---
+
+#### Task 6.6: OVERHAUL
+
+- [ ] Vercel-inspired Environment Variable Management UI
+
+> Design a web UI for managing environment variables, inspired by Vercel’s environment variable management screen.
+>
+> The interface must support both dark mode and light mode, with identical layout and behavior across themes.
+>
+> The interface should include:
+> **Top Controls**
+>
+> - A search input for filtering variables
+> - A dropdown to filter by environment (e.g. “All Environments”, “Production”, “Preview”, “Development”)
+> - A sort dropdown (e.g. “Last Updated”)
+>
+> **Environment Variable List**
+>
+> - Display variables in a vertical list or table
+> - Each row represents one environment variable and contains:
+>   - Variable name (monospace or code-style text)
+>   - Environment scope label (e.g. “All Environments”)
+>   - A masked value shown as dots (••••••••)
+>   - A reveal icon (eye icon) next to the value
+>
+> **Reveal & Copy Behavior**
+>
+> - By default, values are hidden
+> - Hovering the eye icon shows a tooltip: “Click to reveal”
+> - Clicking the eye icon:
+>   - Reveals the actual value inline, value.slice(0, 10) + “…”
+>   - On clicking the revealed val, it copies the value to the clipboard
+>   - Provides subtle feedback (tooltip or toast like “Copied”)
+>
+> **Row Metadata & Actions**
+>
+> - On the right side of each row:
+>   - “Added <date>”
+>   - Avatar of the user who added it
+>   - A kebab menu (⋯) with options:
+>     - Edit
+>     - Copy to Clipboard
+>     - Remove (destructive, styled in red)
+>
+> **Design Style**
+>
+> - Dark theme
+> - Clean, minimal, developer-focused
+> - Clear spacing and alignment
+> - Destructive actions visually distinct
+>
+> Focus on UX clarity, security-aware defaults, and polished micro-interactions.
+>
+> Optional Implementation Notes:
+>
+> - Masked values should never be selectable unless revealed
+> - Clipboard copy should use the Web Clipboard API
+> - Revealed secrets should auto-re-mask after a short delay or on blur
+> - Use subtle animations for reveal and menu actions
+> - Ensure accessibility (keyboard navigation, aria-labels)
+> - Include a search bar to search vars
+
+---
+
+### Phase 7: Security Audit & Hardening
+
+_Goal: Comprehensive security review and penetration testing._
+
+#### Task 7.1: Code Security Review
+
+- [ ] Review all crypto implementations for vulnerabilities
+- [ ] Verify salt usage in all hash operations
+- [ ] Check for timing attack vulnerabilities
+- [ ] Audit all client-side encryption/decryption flows
+- [ ] Review key derivation parameters (iterations, algorithms)
+
+#### Task 7.2: Input Validation & Sanitization
+
+- [ ] Verify 6-digit passcode enforcement everywhere
+- [ ] Check for XSS vulnerabilities in user inputs
+- [ ] Validate all Convex mutation arguments
+- [ ] Test SQL injection prevention (Convex handles this, but verify)
+- [ ] Review file upload security (if applicable)
+
+#### Task 7.3: Authentication & Authorization
+
+- [ ] Verify Clerk JWT validation
+- [ ] Test project access control (owner/admin/member roles)
+- [ ] Check for IDOR vulnerabilities (accessing other users' data)
+- [ ] Verify environment variable access restrictions
+- [ ] Test shared secret access controls
+
+#### Task 7.4: Data Protection
+
+- [ ] Verify all secrets are encrypted at rest
+- [ ] Check for accidental logging of sensitive data
+- [ ] Review error messages for information leakage
+- [ ] Verify master key is never stored in plaintext
+- [ ] Test passcode hash collision resistance
+
+#### Task 7.5: Frontend Security
+
+- [ ] Implement Content Security Policy (CSP)
+- [ ] Add security headers (HSTS, X-Frame-Options, etc.)
+- [ ] Review for DOM-based XSS
+- [ ] Check for sensitive data in browser storage
+- [ ] Verify keys are cleared from memory on logout
+
+#### Task 7.6: Penetration Testing
+
+- [ ] Attempt to bypass passcode verification
+- [ ] Try to access other users' projects
+- [ ] Test for replay attacks
+- [ ] Attempt CSRF attacks
+- [ ] Test rate limiting on authentication
+
+#### Task 7.7: Dependency Audit
+
+- [ ] Run `bun audit` and fix vulnerabilities
+- [ ] Review all third-party dependencies
+- [ ] Check for outdated packages with known CVEs
+- [ ] Verify Convex SDK is up to date
+
+#### Task 7.8: Documentation & Compliance
+
+- [ ] Document security architecture
+- [ ] Create incident response plan
+- [ ] Add security best practices to README
+- [ ] Consider GDPR/privacy compliance
+- [ ] Add security disclosure policy
 
 ---
 

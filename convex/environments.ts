@@ -61,6 +61,8 @@ export const create = mutation({
       projectId: args.projectId,
       name: args.name,
       description: args.description,
+      updatedAt: Date.now(),
     });
   },
 });
+
