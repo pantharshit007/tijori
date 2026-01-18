@@ -1,17 +1,11 @@
 import { Link, createFileRoute, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { 
-  ArrowLeft, 
-  KeyRound,
-  Loader2,
-  Plus,
-  Settings,
-} from "lucide-react";
+import { ArrowLeft, KeyRound, Loader2, Plus, Settings, ShieldQuestion } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 
-import type {Environment} from "@/lib/types";
+import type { Environment } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,19 +19,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { EnvironmentVariables } from "@/components/environment-variables";
+import { PasscodeRecovery } from "@/components/passcode-recovery";
 import { hash as cryptoHash, deriveKey } from "@/lib/crypto";
 import { keyStore } from "@/lib/key-store";
-
 
 function ProjectView() {
   const { projectId } = useParams({ from: "/projects/$projectId" });
@@ -47,14 +36,15 @@ function ProjectView() {
   const environments = useQuery(api.environments.list, {
     projectId: projectId as Id<"projects">,
   });
+  const user = useQuery(api.users.me);
   const createEnvironment = useMutation(api.environments.create);
 
   const [activeEnv, setActiveEnv] = useState<string | null>(null);
-  const [passcode, setPasscode] = useState("");
   const [derivedKey, setDerivedKey] = useState<CryptoKey | null>(null);
-  const [isUnlocking, setIsUnlocking] = useState(false);
-  const [unlockError, setUnlockError] = useState<string | null>(null);
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
+
+  // Passcode recovery state
+  const [recoveryMode, setRecoveryMode] = useState(false);
 
   const [showNewEnvDialog, setShowNewEnvDialog] = useState(false);
   const [newEnvName, setNewEnvName] = useState("");
@@ -88,34 +78,6 @@ function ProjectView() {
       setActiveEnv(environments[0]._id);
     }
   }, [environments, activeEnv]);
-
-  async function handleUnlock() {
-    if (!project || !passcode) return;
-
-    setIsUnlocking(true);
-    setUnlockError(null);
-
-    try {
-      // Verify passcode by comparing hash
-      const enteredHash = await cryptoHash(passcode, project.passcodeSalt);
-      if (enteredHash !== project.passcodeHash) {
-        setUnlockError("Invalid passcode. Please try again.");
-        setIsUnlocking(false);
-        return;
-      }
-
-      // Passcode verified, derive key for encryption/decryption
-      const key = await deriveKey(passcode, project.passcodeSalt);
-      setDerivedKey(key);
-      setShowUnlockDialog(false);
-
-      setPasscode("");
-    } catch (err: any) {
-      setUnlockError("Failed to unlock. Please check your passcode.");
-    } finally {
-      setIsUnlocking(false);
-    }
-  }
 
   function handleLock() {
     setDerivedKey(null);
@@ -194,7 +156,15 @@ function ProjectView() {
               Lock
             </Button>
           ) : (
-            <Dialog open={showUnlockDialog} onOpenChange={setShowUnlockDialog}>
+            <Dialog
+              open={showUnlockDialog}
+              onOpenChange={(open) => {
+                setShowUnlockDialog(open);
+                if (!open) {
+                  setRecoveryMode(false);
+                }
+              }}
+            >
               <DialogTrigger asChild>
                 <Button variant="outline" className="gap-2">
                   <KeyRound className="h-4 w-4" />
@@ -202,35 +172,22 @@ function ProjectView() {
                 </Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Enter Passcode</DialogTitle>
-                  <DialogDescription>
-                    Enter your project passcode to view and edit secrets.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="passcode">6-Digit Passcode</Label>
-                    <Input
-                      id="passcode"
-                      type="password"
-                      inputMode="numeric"
-                      pattern="\d{6}"
-                      maxLength={6}
-                      placeholder="Enter 6-digit passcode"
-                      value={passcode}
-                      onChange={(e) => setPasscode(e.target.value.replace(/\D/g, ""))}
-                      onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
-                    />
-                  </div>
-                  {unlockError && <p className="text-sm text-destructive">{unlockError}</p>}
-                </div>
-                <DialogFooter>
-                  <Button onClick={handleUnlock} disabled={isUnlocking || !passcode}>
-                    {isUnlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Unlock
-                  </Button>
-                </DialogFooter>
+                {recoveryMode ? (
+                  <PasscodeRecovery
+                    project={project}
+                    user={user}
+                    onBack={() => setRecoveryMode(false)}
+                  />
+                ) : (
+                  <PasscodeUnlock
+                    project={project}
+                    onUnlockSuccess={(key) => {
+                      setDerivedKey(key);
+                      setShowUnlockDialog(false);
+                    }}
+                    onForgotPasscode={() => setRecoveryMode(true)}
+                  />
+                )}
               </DialogContent>
             </Dialog>
           )}
@@ -290,10 +247,7 @@ function ProjectView() {
 
           {environments.map((env) => (
             <TabsContent key={env._id} value={env._id} className="mt-4">
-              <EnvironmentVariables
-                environment={env as Environment}
-                derivedKey={derivedKey}
-              />
+              <EnvironmentVariables environment={env as Environment} derivedKey={derivedKey} />
             </TabsContent>
           ))}
         </Tabs>
@@ -305,6 +259,84 @@ function ProjectView() {
         </Card>
       )}
     </div>
+  );
+}
+
+function PasscodeUnlock({
+  project,
+  onUnlockSuccess,
+  onForgotPasscode,
+}: {
+  project: any;
+  onUnlockSuccess: (key: CryptoKey) => void;
+  onForgotPasscode: () => void;
+}) {
+  const [passcode, setPasscode] = useState("");
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [unlockError, setUnlockError] = useState<string | null>(null);
+
+  async function handleUnlock() {
+    if (!project || !passcode) return;
+
+    setIsUnlocking(true);
+    setUnlockError(null);
+
+    try {
+      // Verify passcode by comparing hash
+      const enteredHash = await cryptoHash(passcode, project.passcodeSalt);
+      if (enteredHash !== project.passcodeHash) {
+        setUnlockError("Invalid passcode. Please try again.");
+        setIsUnlocking(false);
+        return;
+      }
+
+      // Passcode verified, derive key for encryption/decryption
+      const key = await deriveKey(passcode, project.passcodeSalt);
+      onUnlockSuccess(key);
+      setPasscode("");
+    } catch (err: any) {
+      console.error("Unlock failed:", err);
+      setUnlockError("Failed to unlock. Please check your passcode.");
+    } finally {
+      setIsUnlocking(false);
+    }
+  }
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Enter Passcode</DialogTitle>
+        <DialogDescription>Enter your project passcode to view and edit secrets.</DialogDescription>
+      </DialogHeader>
+      <div className="space-y-4 py-4">
+        <div className="space-y-2">
+          <Label htmlFor="passcode">6-Digit Passcode</Label>
+          <Input
+            id="passcode"
+            type="password"
+            inputMode="numeric"
+            pattern="\d{6}"
+            maxLength={6}
+            placeholder="Enter 6-digit passcode"
+            value={passcode}
+            onChange={(e) => setPasscode(e.target.value.replace(/\D/g, ""))}
+            onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
+            autoFocus
+          />
+        </div>
+        {unlockError && <p className="text-sm text-destructive">{unlockError}</p>}
+      </div>
+      <DialogFooter className="flex-col gap-2 sm:flex-row">
+        <Button variant="ghost" onClick={onForgotPasscode} className="text-muted-foreground">
+          <ShieldQuestion className="mr-2 h-4 w-4" />
+          Forgot Passcode?
+        </Button>
+        <Button onClick={handleUnlock} disabled={isUnlocking || !passcode}>
+          {isUnlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Unlock
+        </Button>
+      </DialogFooter>
+    </>
   );
 }
 

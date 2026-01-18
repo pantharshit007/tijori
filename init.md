@@ -327,10 +327,10 @@ _Goal: Advanced master key features._
 
 #### Task 5.2: Passcode Recovery Flow
 
-- [ ] Add "Forgot Passcode?" button in project unlock dialog.
-- [ ] Prompt for Master Key to decrypt the `encryptedPasscode` from DB.
-- [ ] Show the recovered 6-digit project passcode to the user.
-- [ ] **Note**: Changing a project passcode is not supported in this phase due to re-encryption complexity (see TODO.md).
+- [x] Add "Forgot Passcode?" button in project unlock dialog.
+- [x] Prompt for Master Key to decrypt the `encryptedPasscode` from DB.
+- [x] Show the recovered 6-digit project passcode to the user.
+- [x] **Note**: Changing a project passcode is not supported in this phase due to re-encryption complexity (see TODO.md).
 
 ---
 

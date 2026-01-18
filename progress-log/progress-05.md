@@ -80,7 +80,57 @@ And include it in the batch update mutation.
 ## Phase 5 Progress
 
 - ✅ Task 5.1: Master Key Rotation
-- ⏳ Task 5.2: Passcode Recovery Flow (next)
+- ✅ Task 5.2: Passcode Recovery Flow
+
+---
+
+# Task 5.2: Passcode Recovery Flow ✅
+
+## Summary
+
+Implemented the ability for users to recover their 6-digit project passcode using their Master Key if they forget it.
+
+## Implementation Details
+
+### UI Changes
+
+- Added **"Forgot Passcode?"** button to the project unlock dialog
+- Three-state dialog flow:
+  1. **Normal Mode**: Enter 6-digit passcode (default)
+  2. **Recovery Mode**: Enter Master Key to decrypt passcode
+  3. **Success Mode**: Display recovered passcode with copy button
+
+### Security Flow
+
+1. User clicks "Forgot Passcode?" in the unlock dialog
+2. User enters their Master Key
+3. System verifies Master Key by hashing and comparing with stored hash
+4. If valid, system decrypts `encryptedPasscode` using:
+   - Key derived from Master Key + project.passcodeSalt
+5. Recovered 6-digit passcode is displayed prominently
+6. User can copy the passcode to clipboard
+
+### Files Modified
+
+- `src/routes/projects/$projectId.tsx`:
+  - Added recovery state variables
+  - Added `handleRecoverPasscode()` function
+  - Added `handleCopyRecoveredPasscode()` function
+  - Updated Dialog to handle recovery mode with three UI states
+
+## Notes
+
+- The passcode is recovered, not reset. Users cannot change their passcode in this phase.
+- This relies on the Master Key being properly configured in Settings.
+- If no Master Key is set, the user is informed to configure one.
+
+---
+
+## Phase 5 Complete! 🎉
+
+All tasks for Master Key Management have been implemented:
+- Master Key Rotation with secure verification and project re-encryption
+- Passcode Recovery using Master Key
 
 ---
 
