@@ -97,9 +97,7 @@ When integrating Convex with Clerk in React:
 ```tsx
 <ClerkProvider>
   <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   </ConvexProviderWithClerk>
 </ClerkProvider>
 ```
@@ -135,17 +133,20 @@ Note: The dashboard URL for anonymous deployments may 404 - use the CLI instead.
 Originally, each project had its own master key. This was changed to a **single master key per user**:
 
 **Old Design (per-project):**
+
 - `projects.masterKeyHash` - Each project stores its own master key hash
 - User must remember a different master key per project
 - Poor UX for users with many projects
 
 **New Design (per-user):**
+
 - `users.masterKeyHash` + `users.masterKeySalt` - Single master key stored at user level
 - Master key is set once in Settings
 - All project passcodes are encrypted using the same master key
 - Much better UX
 
 ### Flow:
+
 1. User sets master key in **Settings** (one-time setup)
 2. When creating a project, user enters:
    - **Passcode**: For daily use to encrypt/decrypt secrets
@@ -154,6 +155,7 @@ Originally, each project had its own master key. This was changed to a **single 
 4. If user forgets passcode, they can recover it using the master key
 
 ### Important:
+
 - Master key hash is stored, never the plaintext
 - Changing the master key requires re-encrypting all project passcodes
 - This is enforced: users cannot create projects without setting a master key first
@@ -171,6 +173,7 @@ We implemented a way for users to see the passcodes of the links they've shared 
 3. **The 6-Digit Passcode**: Encrypted with the **Project Key** (which is derived from the project's own passcode).
 
 **Result**:
+
 - **Recipients** can decrypt the data using only the 6-digit passcode.
 - **Creators** can see the 6-digit passcode in their dashboard, but ONLY if they have unlocked the project (derived the Project Key).
 - **The DB/Server** never sees either the variables or the 6-digit passcode in plaintext.
@@ -179,15 +182,17 @@ We implemented a way for users to see the passcodes of the links they've shared 
 
 In a Single Page Application (SPA), we can use an in-memory singleton (like `keyStore.ts`) to persist sensitive `CryptoKey` objects across route navigations.
 
+While using an in-memory singleton (e.g., `keyStore.ts`) ensures the key is not persisted to disk or browser storage, it does **not** protect against XSS: any JavaScript running in the page (malicious or otherwise) can read in‑memory keys. The security advantage is solely that the key's lifetime is limited to the page session and it is lost on reload, not that it prevents access by injected scripts.
+
 - **Pros**: Key survives navigation between Dashboard, Projects, and Shared pages. No need to re-type the passcode every time you click a different environment.
 - **Cons**: Key is lost on hard reload (F5).
-- **Security**: Much safer than `localStorage` or `sessionStorage` because the key only lives in the JS heap and is never written to disk or accessible via XSS as easily as local storage strings.
+- **Security**: Much safer than `localStorage` or `sessionStorage` because the key only lives in the JS heap and is never written to disk. However, in-memory keys are still readable by any script running in the app, so this only mitigates persistence risk—not script-level access.
 
 ### Key Rotation Cost Analysis
 
 We learned to distinguish between **Master Key Rotation** and **Project Passcode Rotation**:
 
-- **Master Key Rotation (Low Cost)**: Since the Master Key only encrypts the *Project Passcode*, rotating it only requires re-encrypting a few small strings in the `projects` table.
+- **Master Key Rotation (Low Cost)**: Since the Master Key only encrypts the _Project Passcode_, rotating it only requires re-encrypting a few small strings in the `projects` table.
 - **Project Passcode Rotation (High Cost)**: Since the Project Passcode is used to derive the Project Key which encrypts ALL variables and shared passcodes, rotating it requires a massive batch re-encryption job.
 - **Decision**: Always warn users about the cost and consider making high-cost rotations a background or multi-step process.
 

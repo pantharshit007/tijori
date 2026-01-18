@@ -23,6 +23,11 @@ export const create = mutation({
     isIndefinite: v.boolean(),
   },
   handler: async (ctx, args) => {
+    if (!args.isIndefinite && !args.expiresAt) {
+      throw new Error("expiresAt is required for non-indefinite shares");
+    }
+    const normalizedExpiresAt = args.isIndefinite ? undefined : args.expiresAt;
+
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated");
@@ -30,9 +35,7 @@ export const create = mutation({
 
     const user = await ctx.db
       .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
+      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
 
     if (!user) {
@@ -42,9 +45,7 @@ export const create = mutation({
     // Verify user has access to the project
     const membership = await ctx.db
       .query("projectMembers")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", args.projectId).eq("userId", user._id)
-      )
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", user._id))
       .unique();
 
     if (!membership) {
@@ -72,7 +73,7 @@ export const create = mutation({
       authTag: args.authTag,
       payloadIv: args.payloadIv,
       payloadAuthTag: args.payloadAuthTag,
-      expiresAt: args.expiresAt,
+      expiresAt: normalizedExpiresAt,
       isIndefinite: args.isIndefinite,
       isDisabled: false,
       views: 0,
@@ -158,9 +159,7 @@ export const listByUser = query({
 
     const user = await ctx.db
       .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
+      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
 
     if (!user) {
@@ -180,12 +179,8 @@ export const listByUser = query({
     const projects = await Promise.all(projectIds.map((id) => ctx.db.get(id)));
     const environments = await Promise.all(environmentIds.map((id) => ctx.db.get(id)));
 
-    const projectMap = Object.fromEntries(
-      projects.filter(Boolean).map((p) => [p!._id, p!.name])
-    );
-    const envMap = Object.fromEntries(
-      environments.filter(Boolean).map((e) => [e!._id, e!.name])
-    );
+    const projectMap = Object.fromEntries(projects.filter(Boolean).map((p) => [p!._id, p!.name]));
+    const envMap = Object.fromEntries(environments.filter(Boolean).map((e) => [e!._id, e!.name]));
 
     return sharedSecrets.map((s) => ({
       _id: s._id,
@@ -220,9 +215,7 @@ export const listByProject = query({
 
     const user = await ctx.db
       .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
+      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
 
     if (!user) {
@@ -231,9 +224,7 @@ export const listByProject = query({
 
     const membership = await ctx.db
       .query("projectMembers")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", args.projectId).eq("userId", user._id)
-      )
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", user._id))
       .unique();
 
     if (!membership) {
@@ -246,12 +237,8 @@ export const listByProject = query({
       .collect();
 
     const environmentIds = [...new Set(sharedSecrets.map((s) => s.environmentId))];
-    const environments = await Promise.all(
-      environmentIds.map((id) => ctx.db.get(id))
-    );
-    const envMap = Object.fromEntries(
-      environments.filter(Boolean).map((e) => [e!._id, e!.name])
-    );
+    const environments = await Promise.all(environmentIds.map((id) => ctx.db.get(id)));
+    const envMap = Object.fromEntries(environments.filter(Boolean).map((e) => [e!._id, e!.name]));
 
     return sharedSecrets.map((s) => ({
       _id: s._id,
@@ -281,9 +268,7 @@ export const toggleDisabled = mutation({
 
     const user = await ctx.db
       .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
+      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
 
     if (!user) {
@@ -316,6 +301,11 @@ export const updateExpiry = mutation({
     isIndefinite: v.boolean(),
   },
   handler: async (ctx, args) => {
+    if (!args.isIndefinite && !args.expiresAt) {
+      throw new Error("expiresAt is required for non-indefinite shares");
+    }
+    const normalizedExpiresAt = args.isIndefinite ? undefined : args.expiresAt;
+
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Not authenticated");
@@ -323,9 +313,7 @@ export const updateExpiry = mutation({
 
     const user = await ctx.db
       .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
+      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
 
     if (!user) {
@@ -342,7 +330,7 @@ export const updateExpiry = mutation({
     }
 
     await ctx.db.patch(args.id, {
-      expiresAt: args.expiresAt,
+      expiresAt: normalizedExpiresAt,
       isIndefinite: args.isIndefinite,
     });
   },
@@ -363,9 +351,7 @@ export const remove = mutation({
 
     const user = await ctx.db
       .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
+      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
 
     if (!user) {
