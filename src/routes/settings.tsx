@@ -4,6 +4,8 @@ import { useState } from "react";
 import { AlertTriangle, Check, KeyRound, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 
+import type { MasterKeyRotationStep } from "@/lib/constants";
+import type { ProjectPasscodeUpdate } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 
-import { generateSalt, hash, deriveKey, decrypt, encrypt } from "@/lib/crypto";
+import { decrypt, deriveKey, encrypt, generateSalt, hash } from "@/lib/crypto";
 
 /**
  * Master Key Rotation Steps:
@@ -30,8 +32,6 @@ import { generateSalt, hash, deriveKey, decrypt, encrypt } from "@/lib/crypto";
  * 5. Batch update projects and update user's master key hash
  */
 
-import { MasterKeyRotationStep } from "@/lib/constants";
-import { ProjectPasscodeUpdate } from "@/lib/types";
 
 function Settings() {
   const user = useQuery(api.users.me);
@@ -186,7 +186,7 @@ function Settings() {
       }
 
       // Re-encrypt each project's passcode
-      const updates: ProjectPasscodeUpdate[] = [];
+      const updates: Array<ProjectPasscodeUpdate> = [];
 
       for (let i = 0; i < projects.length; i++) {
         const project = projects[i];

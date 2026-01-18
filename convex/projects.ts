@@ -223,13 +223,16 @@ export const batchUpdatePasscodes = mutation({
     const now = Date.now();
     let updatedCount = 0;
 
+    // Phase 1: Validate ownership for ALL projects first
     for (const update of args.updates) {
-      // Verify the user owns this project
       const project = await ctx.db.get(update.projectId);
       if (!project || project.ownerId !== user._id) {
         throw new Error(`Access denied: Not the owner of project ${update.projectId}`);
       }
+    }
 
+    // Phase 2: Perform updates once all ownerships are confirmed
+    for (const update of args.updates) {
       // Update the project with new encrypted passcode AND new passcodeHash
       await ctx.db.patch(update.projectId, {
         passcodeHash: update.passcodeHash,

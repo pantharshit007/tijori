@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { hash as cryptoHash, deriveKey, decrypt } from "@/lib/crypto";
+import { hash as cryptoHash, decrypt, deriveKey } from "@/lib/crypto";
 
 interface PasscodeRecoveryProps {
   project: {

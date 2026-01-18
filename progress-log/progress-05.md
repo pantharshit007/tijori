@@ -31,7 +31,7 @@ Implemented complete Master Key Rotation functionality with secure verification,
 - Created `projects.batchUpdatePasscodes` mutation to update multiple projects atomically
 - For each project:
   1. Decrypt the passcode using the OLD master key
-  2. Re-encrypt the passcode using the NEW master key (with fresh salt)
+  2. Re-encrypt the passcode using the NEW master key (preserving existing salt and hash)
   3. Batch update all projects in a single mutation
 
 ### Subtask 5.1.3: Progress Indicator ✅
@@ -65,15 +65,21 @@ Implemented complete Master Key Rotation functionality with secure verification,
 **Root Cause**: The `passcodeSalt` is used for two purposes:
 1. Deriving the recovery key from the master key (for `encryptedPasscode`)
 2. Hashing the 6-digit passcode for verification (`passcodeHash`)
+3. (Implicitly) It's also the salt used when the project is unlocked to derive the key for environment variables.
 
-When we generated a new salt during rotation, the old `passcodeHash` became invalid because it was computed with the old salt.
+**Fix**: To keep Master Key rotation a "low-cost" operation (as per Phase 5 goals), we **preserve** the existing `passcodeSalt` and `passcodeHash`. 
 
-**Fix**: Re-compute `passcodeHash` with the new salt:
+By keeping the same salt:
+- The 6-digit passcode remains valid (no hash mismatch).
+- Existing environment variables remain decryptable (no need for a mass re-encryption of variables).
+- Security is still enhanced because the `encryptedPasscode` is now encrypted with the **new** Master Key.
+
 ```typescript
-const newPasscodeHash = await hash(plainPasscode, newPasscodeSalt);
+// Correct pattern for low-cost Master Key rotation:
+const newKey = await deriveKey(newMasterKey, project.passcodeSalt); // Reuse salt
+const { encryptedValue, iv, authTag } = await encrypt(plainPasscode, newKey);
+// passcodeHash and passcodeSalt are kept as-is in the update.
 ```
-
-And include it in the batch update mutation.
 
 ---
 
