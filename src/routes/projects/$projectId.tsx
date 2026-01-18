@@ -1,8 +1,6 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { Link, createFileRoute, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
-import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
 import {
   ArrowLeft,
   Check,
@@ -16,6 +14,8 @@ import {
   Settings,
   Trash2,
 } from "lucide-react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import { decrypt, deriveKey, encrypt, hash as cryptoHash } from "@/lib/crypto";
+import { hash as cryptoHash, decrypt, deriveKey, encrypt } from "@/lib/crypto";
 import { formatRelativeTime } from "@/lib/time";
 
 function ProjectView() {
@@ -194,7 +194,7 @@ function ProjectView() {
                       maxLength={6}
                       placeholder="Enter 6-digit passcode"
                       value={passcode}
-                      onChange={(e) => setPasscode(e.target.value.replace(/\D/g, ''))}
+                      onChange={(e) => setPasscode(e.target.value.replace(/\D/g, ""))}
                       onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
                     />
                   </div>
@@ -265,10 +265,7 @@ function ProjectView() {
 
           {environments.map((env) => (
             <TabsContent key={env._id} value={env._id} className="mt-4">
-              <EnvironmentVariables
-                environment={env}
-                derivedKey={derivedKey}
-              />
+              <EnvironmentVariables environment={env} derivedKey={derivedKey} />
             </TabsContent>
           ))}
         </Tabs>

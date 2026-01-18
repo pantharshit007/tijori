@@ -1,5 +1,5 @@
-import { describe, it, expect } from "bun:test";
-import { hash, generateSalt } from "../src/lib/crypto";
+import { describe, expect, it } from "bun:test";
+import { generateSalt, hash } from "../src/lib/crypto";
 
 describe("crypto.hash", () => {
   it("produces different hashes for different salts", async () => {
