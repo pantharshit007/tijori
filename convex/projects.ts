@@ -86,7 +86,6 @@ export const create = mutation({
 
     return projectId;
   },
-
 });
 
 /**
@@ -153,5 +152,97 @@ export const get = query({
       ...project,
       role: membership.role,
     };
+  },
+});
+
+/**
+ * Get all projects owned by the current user.
+ * Used for Master Key rotation to fetch projects that need passcode re-encryption.
+ */
+export const listOwned = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tokenIdentifier", (q: any) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+    if (!user) return [];
+
+    // Get only projects where user is the owner
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_ownerId", (q) => q.eq("ownerId", user._id))
+      .collect();
+
+    return projects;
+  },
+});
+
+/**
+ * Batch update project passcodes during Master Key rotation.
+ * All encryption is done client-side; this just stores the new encrypted values.
+ *
+ * IMPORTANT: When passcodeSalt changes, passcodeHash must also be re-computed
+ * because the hash uses the salt for verification.
+ */
+export const batchUpdatePasscodes = mutation({
+  args: {
+    updates: v.array(
+      v.object({
+        projectId: v.id("projects"),
+        passcodeHash: v.string(),
+        encryptedPasscode: v.string(),
+        passcodeSalt: v.string(),
+        iv: v.string(),
+        authTag: v.string(),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthenticated");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tokenIdentifier", (q: any) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const now = Date.now();
+    let updatedCount = 0;
+
+    for (const update of args.updates) {
+      // Verify the user owns this project
+      const project = await ctx.db.get(update.projectId);
+      if (!project || project.ownerId !== user._id) {
+        throw new Error(`Access denied: Not the owner of project ${update.projectId}`);
+      }
+
+      // Update the project with new encrypted passcode AND new passcodeHash
+      await ctx.db.patch(update.projectId, {
+        passcodeHash: update.passcodeHash,
+        encryptedPasscode: update.encryptedPasscode,
+        passcodeSalt: update.passcodeSalt,
+        iv: update.iv,
+        authTag: update.authTag,
+        updatedAt: now,
+      });
+
+      updatedCount++;
+    }
+
+    return { success: true, updatedCount };
   },
 });

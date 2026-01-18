@@ -41,6 +41,7 @@ export function EnvironmentVariables({
   const [revealedVars, setRevealedVars] = useState<Set<string>>(new Set());
   const [decryptedValues, setDecryptedValues] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState<string | null>(null);
+  const [decryptErrors, setDecryptErrors] = useState<Record<string, string>>({});
 
   // New variable form
   const [showNewVar, setShowNewVar] = useState(false);
@@ -73,11 +74,17 @@ export function EnvironmentVariables({
     }
 
     try {
+      setDecryptErrors((prev) => ({ ...prev, [varId]: "" }));
       const decrypted = await decrypt(encryptedValue, iv, authTag, derivedKey);
       setDecryptedValues((prev) => ({ ...prev, [varId]: decrypted }));
       setRevealedVars((prev) => new Set(prev).add(varId));
     } catch (err) {
       console.error("Failed to decrypt:", err);
+      // If decryption fails, it's likely due to a salt mismatch (e.g. after a bad Master Key rotation)
+      setDecryptErrors((prev) => ({ 
+        ...prev, 
+        [varId]: "Decryption failed. This can happen if the master key was rotated incorrectly." 
+      }));
     }
   }
 
@@ -94,6 +101,10 @@ export function EnvironmentVariables({
       setTimeout(() => setCopied(null), 2000);
     } catch (err) {
       console.error("Failed to copy:", err);
+      setDecryptErrors((prev) => ({ 
+        ...prev, 
+        [varId]: "Failed to copy value. Decryption error." 
+      }));
     }
   }
 
@@ -249,6 +260,8 @@ export function EnvironmentVariables({
               <div className="text-sm text-muted-foreground font-mono truncate mt-0.5">
                 {revealedVars.has(variable._id) && decryptedValues[variable._id] !== undefined
                   ? decryptedValues[variable._id]
+                  : decryptErrors[variable._id]
+                  ? <span className="text-destructive text-xs">{decryptErrors[variable._id]}</span>
                   : "••••••••••••••••"}
               </div>
             </div>

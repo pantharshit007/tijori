@@ -320,10 +320,10 @@ _Goal: Advanced master key features._
 
 #### Task 5.1: Master Key Rotation
 
-- [ ] Add UI to update Master Key (requires verifying old Master Key).
-- [ ] Re-encrypt all `encryptedPasscode` fields in the `projects` table for the user.
-- [ ] **Note**: This is a low-cost operation because it only re-encrypts the project passcodes, not the underlying variables.
-- [ ] Batch update with progress indicator.
+- [x] Add UI to update Master Key (requires verifying old Master Key).
+- [x] Re-encrypt all `encryptedPasscode` fields in the `projects` table for the user.
+- [x] **Note**: This is a low-cost operation because it only re-encrypts the project passcodes, not the underlying variables.
+- [x] Batch update with progress indicator.
 
 #### Task 5.2: Passcode Recovery Flow
 

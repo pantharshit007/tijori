@@ -208,3 +208,140 @@ if (!environment || environment.projectId !== args.projectId) {
 ```
 
 This prevents **data corruption** and **cross-linking vulnerabilities** where a user might try to associate an environment they don't own with a project they do.
+
+---
+
+## 2026-01-19 - Phase 5
+
+### Master Key Rotation UI Patterns
+
+When implementing key rotation features, there are important UX and security considerations:
+
+#### Two-Step Dialog Pattern
+
+For sensitive operations like key rotation, a multi-step dialog provides:
+
+1. **Verification Gate**: Require old key before allowing new key entry
+2. **Protection Against Accidental Changes**: Users can't accidentally rotate their key
+3. **Clear Mental Model**: Users understand they're changing something important
+
+```tsx
+// Example pattern: step-based dialog state
+const [rotationStep, setRotationStep] = useState<'verify' | 'update'>('verify')
+
+// Step 1: Verify, Step 2: Update
+{rotationStep === 'verify' ? <VerifyForm /> : <UpdateForm />}
+```
+
+#### Client-Side Hash Verification
+
+Since we store only the **hash** of the master key (not the plaintext), verification happens entirely client-side:
+
+```typescript
+// Hash entered key with stored salt
+const enteredHash = await hash(currentMasterKey, user.masterKeySalt)
+
+// Compare with stored hash
+if (enteredHash !== user.masterKeyHash) {
+  throw new Error('Incorrect master key')
+}
+```
+
+**Security Note**: This pattern is safe because:
+- The salt and hash are already in the client (loaded via `useQuery`)
+- No secret data is exposed - the hash is designed to be public
+- The actual plaintext master key never leaves the browser
+
+#### Separate Flows for Setup vs. Rotation
+
+The Settings page now shows different UIs based on whether a master key exists:
+
+- **No Master Key**: Shows simple setup form (two inputs: key + confirm)
+- **Has Master Key**: Shows a card with "Rotate Key" button that opens the two-step dialog
+
+This prevents the old issue where users could bypass verification by just setting a "new" key.
+
+### Batch Re-Encryption Pattern
+
+When rotating a key that encrypts other secrets (like the Master Key encrypting project passcodes), the pattern is:
+
+```typescript
+// 1. Fetch all affected records
+const projects = await listOwned()
+
+// 2. For each record:
+for (const project of projects) {
+  // Decrypt with OLD key
+  const oldKey = await deriveKey(oldMasterKey, project.passcodeSalt)
+  const plainPasscode = await decrypt(
+    project.encryptedPasscode,
+    project.iv,
+    project.authTag,
+    oldKey
+  )
+
+  // Re-encrypt with NEW key (and fresh salt!)
+  const newSalt = generateSalt()
+  const newKey = await deriveKey(newMasterKey, newSalt)
+  const { encryptedValue, iv, authTag } = await encrypt(plainPasscode, newKey)
+
+  // Collect updates
+  updates.push({ projectId, encryptedPasscode: encryptedValue, passcodeSalt: newSalt, iv, authTag })
+}
+
+// 3. Batch update atomically
+await batchUpdatePasscodes({ updates })
+```
+
+**Key Points**:
+- Generate a **fresh salt** for each re-encrypted item (better security)
+- Batch the database updates for atomicity
+- Client-side re-encryption means server never sees plaintext
+
+### Progress Indicators for Long Operations
+
+For multi-step operations, use a step-based state machine:
+
+```typescript
+const [step, setStep] = useState<'verify' | 'update' | 'processing'>('verify')
+const [progress, setProgress] = useState(0)
+const [status, setStatus] = useState('')
+
+// In processing step:
+for (let i = 0; i < items.length; i++) {
+  setStatus(`Processing: ${items[i].name}...`)
+  setProgress(Math.round(((i + 0.5) / total) * 100))
+  // ... do work
+}
+setProgress(100)
+setStatus('Complete!')
+```
+
+This provides:
+- Real-time feedback during potentially slow operations
+- User confidence that the app isn't frozen
+- Clear indication of what's happening
+
+### Critical: Shared Salt Architecture Warning ⚠️
+
+In Tijori, `passcodeSalt` is used for **two purposes**:
+1. Deriving the recovery key (from Master Key) for `encryptedPasscode`
+2. Hashing the 6-digit passcode for verification (`passcodeHash`)
+
+**Problem**: If you change the salt during any operation, you MUST update BOTH:
+- `encryptedPasscode` (re-encrypt)
+- `passcodeHash` (re-compute)
+
+**Failure mode**: If only one is updated, the other becomes invalid:
+- If only `encryptedPasscode` is updated → Passcode verification fails on unlock
+- If only `passcodeHash` is updated → Passcode recovery fails
+
+**Takeaway**: When a salt is shared between encryption and hashing, any change to the salt cascades to ALL dependent fields. Document these dependencies clearly:
+
+```typescript
+// passcodeSalt dependencies:
+// 1. encryptedPasscode = encrypt(passcode, deriveKey(masterKey, passcodeSalt))
+// 2. passcodeHash = hash(passcode, passcodeSalt)
+// BOTH must be updated when passcodeSalt changes!
+```
+
