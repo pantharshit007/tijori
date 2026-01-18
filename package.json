@@ -13,6 +13,7 @@
     "format": "prettier",
     "check": "prettier --write . && eslint",
     "lint:fix": "eslint --fix",
+    "tsc": "bunx tsc",
     "cvx:dev": "bunx convex dev",
     "cvx:deploy": "bunx convex deploy",
     "cvx:dashboard": "bunx convex dashboard",

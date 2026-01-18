@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { decrypt, deriveKey } from "@/lib/crypto";
-import { formatDateTime } from "@/lib/time";
+import { formatDateTime, formatRelativeTime } from "@/lib/time";
 
 interface SharedVariable {
   name: string;
@@ -39,7 +39,7 @@ function ShareView() {
   const [passcode, setPasscode] = useState("");
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
-  const [decryptedVariables, setDecryptedVariables] = useState<SharedVariable[] | null>(null);
+  const [decryptedVariables, setDecryptedVariables] = useState<Array<SharedVariable> | null>(null);
   const [revealedVars, setRevealedVars] = useState<Set<number>>(new Set());
   const [copied, setCopied] = useState<number | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
@@ -56,13 +56,13 @@ function ShareView() {
 
     try {
       // 1. Derive key from passcode
-      const key = await deriveKey(passcode, sharedSecret.passcodeSalt);
+      const key = await deriveKey(passcode, data.passcodeSalt);
 
       // 2. Decrypt the ShareKey
       const shareKeyBase64 = await decrypt(
-        sharedSecret.encryptedShareKey,
-        sharedSecret.iv,
-        sharedSecret.authTag,
+        data.encryptedShareKey,
+        data.iv,
+        data.authTag,
         key
       );
 
@@ -78,13 +78,13 @@ function ShareView() {
 
       // 4. Decrypt the payload
       const payloadJson = await decrypt(
-        sharedSecret.encryptedPayload,
-        sharedSecret.payloadIv,
-        sharedSecret.payloadAuthTag,
+        data.encryptedPayload,
+        data.payloadIv,
+        data.payloadAuthTag,
         shareKey
       );
 
-      const variables: SharedVariable[] = JSON.parse(payloadJson);
+      const variables: Array<SharedVariable> = JSON.parse(payloadJson);
       setDecryptedVariables(variables);
 
       // Record the view
@@ -151,6 +151,23 @@ function ShareView() {
     );
   }
 
+  // Disabled
+  if ("disabled" in sharedSecret) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="max-w-md w-full border-destructive/50">
+          <CardContent className="pt-6 text-center">
+            <ShieldAlert className="h-12 w-12 mx-auto text-destructive mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Access Disabled</h2>
+            <p className="text-muted-foreground">
+              This shared secret link has been disabled by the owner.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Expired
   if ("expired" in sharedSecret) {
     return (
@@ -167,6 +184,10 @@ function ShareView() {
       </div>
     );
   }
+
+  // At this point sharedSecret is the success object
+  const data = sharedSecret;
+
 
   // Decrypted view
   if (decryptedVariables) {
@@ -253,15 +274,13 @@ function ShareView() {
             </CardContent>
           </Card>
 
-          <div className="text-center text-sm text-muted-foreground">
-            {sharedSecret.isIndefinite ? (
-              <p>This link does not expire.</p>
-            ) : (
-              <p>
-                Expires: {formatDateTime(sharedSecret.expiresAt!)}
-              </p>
-            )}
-            <p className="mt-1">Views: {sharedSecret.views + 1}</p>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            <span>
+              {data.isIndefinite
+                ? "Never expires"
+                : `Expires ${formatRelativeTime(data.expiresAt!)}`}
+            </span>
           </div>
         </div>
       </div>

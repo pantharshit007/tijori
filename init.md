@@ -267,24 +267,54 @@ _Goal: Fix security bugs and improve verification flow._
 
 ---
 
-### Phase 4: Shared Secrets (Magic Links) ✅
+### Phase 4: Shared Secrets (Magic Links)
 
-_Goal: Implement the Zero-Knowledge sharing flow._
+_Goal: Implement the Zero-Knowledge sharing flow with proper management and visibility for shared environments._
 
-#### Task 4.1: Share Creation Flow ✅
+#### Task 4.1: Share Creation Flow
 
 - [x] UI to select variables.
 - [x] UI to set expiry (duration or indefinite).
-- [x] Client-side encryption: Generate `ShareKey`, encrypt vars, encrypt `ShareKey` with `Passcode`.
+- [ ] Extend expiry options to include **10 minutes** and **30 minutes**.
+- [ ] Store expiry duration as a constant in `src/lib/constants.ts` and enforce the same values at schema/validation level for consistency.
+- [ ] Require a **6-digit numeric passcode** defined by the user at the time of sharing, instead of using project passcode to encode the payload.
 - [x] Mutation to store `encryptedPayload` in `sharedSecrets`.
 
-#### Task 4.2: Public Access View ✅
+#### Task 4.2: Public Access View
 
 - [x] Public route `tijori.app/share/[id]`.
 - [x] Fetch encrypted payload.
-- [x] UI prompts for Passcode.
+- [x] UI prompts for passcode.
 - [x] Client-side decryption and display.
 - [x] Add a button to copy the shared key to clipboard.
+
+#### Task 4.3: Shared Environments Dashboard (`/shared`)
+
+- [ ] Add a `/shared` page UI accessible to logged-in users.
+- [ ] Display all environments shared **by the current user**.
+- [ ] Use a table or card-based layout to show:
+  - Environment name
+  - Project name
+  - Expiry time
+  - View count
+- [ ] Allow filtering or grouping of shared environments **by project**.
+- [ ] Ensure **view counts are visible only to the user who created the share** and only within the `/shared` dashboard.
+
+#### Task 4.4: Share Management Actions
+
+- [ ] Store share passcode in plaintext (for dashboard display).
+- [ ] Add `isDisabled` flag to disable sharing without deleting.
+- [ ] Add disable/enable toggle in `/shared` dashboard.
+- [ ] Add delete button to remove shares permanently.
+- [ ] Add extend expiry option for expired shares.
+
+#### Task 4.5: Refactor & Structure Improvements
+
+- [ ] Refactor components so that each has a single responsibility:
+  - Move environment variable logic into a dedicated `EnvironmentVariables` component.
+  - Move sharing-related UI and logic into a dedicated `ShareDialog` component.
+- [ ] Move all shared **types and interfaces** into a separate file (e.g. `utilities/types`) and import them where needed.
+- [ ] Centralize shared constants (such as expiry durations) and reuse them across UI and schema layers.
 
 ---
 
@@ -314,6 +344,7 @@ _Goal: Advanced project management features._
 #### Task 6.1: Recent Projects Dashboard
 
 - [ ] Display recent projects (5) on /dashboard
+- [ ] add light mode and dark mode, toggle button too.
 
 #### Task 6.2: Project Member Management
 

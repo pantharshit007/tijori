@@ -52,6 +52,7 @@ export default defineSchema({
     projectId: v.id('projects'),
     environmentId: v.id('environments'),
     createdBy: v.id('users'),
+    passcode: v.string(), // User-defined 6-digit passcode (stored plaintext for dashboard display)
     encryptedPayload: v.string(), // Secrets encrypted with Share Key
     encryptedShareKey: v.string(), // Share Key encrypted with Passcode
     passcodeSalt: v.string(),
@@ -61,8 +62,11 @@ export default defineSchema({
     payloadAuthTag: v.string(), // For Payload
     expiresAt: v.optional(v.number()),
     isIndefinite: v.boolean(),
+    isDisabled: v.boolean(), // Disable without deleting
     views: v.number(),
   })
     .index('by_projectId', ['projectId'])
+    .index('by_createdBy', ['createdBy'])
     .index('by_expiry', ['expiresAt']),
 })
+
