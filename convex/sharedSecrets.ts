@@ -9,15 +9,17 @@ export const create = mutation({
   args: {
     projectId: v.id("projects"),
     environmentId: v.id("environments"),
-    passcode: v.string(), // User-defined 6-digit passcode
-    encryptedPayload: v.string(), // Variables encrypted with ShareKey
-    encryptedShareKey: v.string(), // ShareKey encrypted with Passcode
-    passcodeSalt: v.string(), // Salt for passcode-based key derivation
-    iv: v.string(), // IV for ShareKey encryption
-    authTag: v.string(), // AuthTag for ShareKey encryption
-    payloadIv: v.string(), // IV for payload encryption
-    payloadAuthTag: v.string(), // AuthTag for payload encryption
-    expiresAt: v.optional(v.number()), // Unix timestamp
+    encryptedPasscode: v.string(),
+    passcodeIv: v.string(),
+    passcodeAuthTag: v.string(),
+    encryptedPayload: v.string(),
+    encryptedShareKey: v.string(),
+    passcodeSalt: v.string(),
+    iv: v.string(),
+    authTag: v.string(),
+    payloadIv: v.string(),
+    payloadAuthTag: v.string(),
+    expiresAt: v.optional(v.number()),
     isIndefinite: v.boolean(),
   },
   handler: async (ctx, args) => {
@@ -54,7 +56,9 @@ export const create = mutation({
       projectId: args.projectId,
       environmentId: args.environmentId,
       createdBy: user._id,
-      passcode: args.passcode,
+      encryptedPasscode: args.encryptedPasscode,
+      passcodeIv: args.passcodeIv,
+      passcodeAuthTag: args.passcodeAuthTag,
       encryptedPayload: args.encryptedPayload,
       encryptedShareKey: args.encryptedShareKey,
       passcodeSalt: args.passcodeSalt,
@@ -183,7 +187,9 @@ export const listByUser = query({
       projectId: s.projectId,
       projectName: projectMap[s.projectId] || "Unknown",
       environmentName: envMap[s.environmentId] || "Unknown",
-      passcode: s.passcode,
+      encryptedPasscode: s.encryptedPasscode,
+      passcodeIv: s.passcodeIv,
+      passcodeAuthTag: s.passcodeAuthTag,
       isIndefinite: s.isIndefinite,
       isDisabled: s.isDisabled,
       expiresAt: s.expiresAt,

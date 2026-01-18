@@ -36,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { EnvironmentVariables } from "@/components/environment-variables";
 import { hash as cryptoHash, deriveKey } from "@/lib/crypto";
+import { keyStore } from "@/lib/key-store";
 
 
 function ProjectView() {
@@ -58,6 +59,19 @@ function ProjectView() {
   const [showNewEnvDialog, setShowNewEnvDialog] = useState(false);
   const [newEnvName, setNewEnvName] = useState("");
   const [isCreatingEnv, setIsCreatingEnv] = useState(false);
+
+  useEffect(() => {
+    if (derivedKey) {
+      keyStore.setKey(projectId, derivedKey);
+    }
+  }, [derivedKey, projectId]);
+
+  useEffect(() => {
+    const existing = keyStore.getKey(projectId);
+    if (existing && !derivedKey) {
+      setDerivedKey(existing);
+    }
+  }, [projectId, derivedKey]);
 
   // Set first environment as active when loaded
   useEffect(() => {

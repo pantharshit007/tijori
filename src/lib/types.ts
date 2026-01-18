@@ -31,7 +31,9 @@ export interface SharedSecret {
   environmentId: Id<"environments">;
   projectName: string;
   environmentName: string;
-  passcode: string;
+  encryptedPasscode: string;
+  passcodeIv: string;
+  passcodeAuthTag: string;
   encryptedPayload: string;
   encryptedShareKey: string;
   passcodeSalt: string;

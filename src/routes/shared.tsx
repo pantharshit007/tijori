@@ -18,6 +18,7 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 
 import type {ShareExpiryValue} from "@/lib/constants";
+import type { SharedSecret } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,8 +46,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatDateTime, formatRelativeTime } from "@/lib/time";
 import { SHARE_EXPIRY_OPTIONS  } from "@/lib/constants";
+import { keyStore } from "@/lib/key-store";
+import { decrypt } from "@/lib/crypto";
 
 export const Route = createFileRoute("/shared")({
   component: SharedDashboard,
@@ -61,6 +70,7 @@ function SharedDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [projectFilter, setProjectFilter] = useState("all");
   const [revealedPasscodes, setRevealedPasscodes] = useState<Set<string>>(new Set());
+  const [decryptedPasscodes, setDecryptedPasscodes] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   if (sharedSecrets === undefined) {
@@ -89,13 +99,39 @@ function SharedDashboard() {
     return matchesSearch && matchesProject;
   });
 
-  function togglePasscode(id: string) {
-    setRevealedPasscodes((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  async function togglePasscode(share: SharedSecret) {
+    const id = share._id;
+    if (revealedPasscodes.has(id)) {
+      setRevealedPasscodes((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      return;
+    }
+
+    // Attempt to reveal
+    if (share.encryptedPasscode && share.passcodeIv && share.passcodeAuthTag) {
+      const projectKey = keyStore.getKey(share.projectId);
+      if (!projectKey) {
+        alert(`Please unlock project "${share.projectName}" first to view its shared passcodes.`);
+        return;
+      }
+
+      try {
+        const decrypted = await decrypt(
+          share.encryptedPasscode,
+          share.passcodeIv,
+          share.passcodeAuthTag,
+          projectKey
+        );
+        setDecryptedPasscodes((prev) => ({ ...prev, [id]: decrypted }));
+        setRevealedPasscodes((prev) => new Set(prev).add(id));
+      } catch (err) {
+        console.error("Failed to decrypt passcode:", err);
+        alert("Failed to decrypt passcode. Is the project key correct?");
+      }
+    }
   }
 
   async function handleCopyLink(id: string) {
@@ -123,7 +159,8 @@ function SharedDashboard() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <TooltipProvider>
+      <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Shared Secrets</h1>
         <p className="text-muted-foreground">
@@ -190,20 +227,33 @@ function SharedDashboard() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">
-                        {revealedPasscodes.has(share._id) ? share.passcode : "••••••"}
+                        {revealedPasscodes.has(share._id) 
+                          ? (decryptedPasscodes[share._id] || "••••••") 
+                          : "••••••"}
                       </code>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => togglePasscode(share._id)}
-                      >
-                        {revealedPasscodes.has(share._id) ? (
-                          <EyeOff className="h-3 w-3" />
-                        ) : (
-                          <Eye className="h-3 w-3" />
-                        )}
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => togglePasscode(share as any)}
+                          >
+                            {!keyStore.getKey(share.projectId) ? (
+                              <Lock className="h-3 w-3 text-muted-foreground" />
+                            ) : revealedPasscodes.has(share._id) ? (
+                              <EyeOff className="h-3 w-3" />
+                            ) : (
+                              <Eye className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {!keyStore.getKey(share.projectId) 
+                            ? `Unlock project "${share.projectName}" to view passcode` 
+                            : revealedPasscodes.has(share._id) ? "Hide passcode" : "Reveal passcode"}
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -254,46 +304,64 @@ function SharedDashboard() {
                           View public page
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => toggleDisabled({ id: share._id })}>
-                          {share.isDisabled ? (
-                            <>
-                              <Unlock className="h-4 w-4 mr-2" />
-                              Enable link
-                            </>
-                          ) : (
-                            <>
-                              <Lock className="h-4 w-4 mr-2" />
-                              Disable link
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        
-                        <DropdownMenuSeparator />
-                        <DropdownMenuLabel className="text-[10px] font-normal text-muted-foreground">
-                          Extend Expiry
-                        </DropdownMenuLabel>
-                        {SHARE_EXPIRY_OPTIONS.filter(o => o.value !== "never" || !share.isIndefinite).map(opt => (
-                          <DropdownMenuItem 
-                            key={opt.value} 
-                            onClick={() => handleExtendExpiry(share._id, opt.value)}
-                          >
-                            <Clock className="h-3 w-3 mr-2" />
-                            {opt.label}
-                          </DropdownMenuItem>
-                        ))}
+                        {!keyStore.getKey(share.projectId) ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div>
+                                <DropdownMenuItem disabled>
+                                  <Lock className="h-4 w-4 mr-2" />
+                                  Management Locked
+                                </DropdownMenuItem>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Unlock project "{share.projectName}" to manage this share
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <>
+                            <DropdownMenuItem onClick={() => toggleDisabled({ id: share._id })}>
+                              {share.isDisabled ? (
+                                <>
+                                  <Unlock className="h-4 w-4 mr-2" />
+                                  Enable link
+                                </>
+                              ) : (
+                                <>
+                                  <Lock className="h-4 w-4 mr-2" />
+                                  Disable link
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            
+                            <DropdownMenuSeparator />
+                            <DropdownMenuLabel className="text-[10px] font-normal text-muted-foreground">
+                              Extend Expiry
+                            </DropdownMenuLabel>
+                            {SHARE_EXPIRY_OPTIONS.filter(o => o.value !== "never" || !share.isIndefinite).map(opt => (
+                              <DropdownMenuItem 
+                                key={opt.value} 
+                                onClick={() => handleExtendExpiry(share._id, opt.value)}
+                              >
+                                <Clock className="h-3 w-3 mr-2" />
+                                {opt.label}
+                              </DropdownMenuItem>
+                            ))}
 
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                          onClick={() => {
-                            if (confirm("Are you sure you want to delete this shared link? This action cannot be undone.")) {
-                              removeShare({ id: share._id });
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete link
-                        </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                              onClick={() => {
+                                if (confirm("Are you sure you want to delete this shared link? This action cannot be undone.")) {
+                                  removeShare({ id: share._id });
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete link
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -303,6 +371,7 @@ function SharedDashboard() {
           </TableBody>
         </Table>
       </Card>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }

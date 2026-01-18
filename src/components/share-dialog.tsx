@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { decrypt, deriveKey, generateSalt } from "@/lib/crypto";
+import { decrypt, deriveKey, encrypt, generateSalt } from "@/lib/crypto";
 import { SHARE_EXPIRY_OPTIONS  } from "@/lib/constants";
 
 export interface ShareDialogProps {
@@ -41,7 +41,9 @@ export interface ShareDialogProps {
   createShare: (args: {
     projectId: Id<"projects">;
     environmentId: Id<"environments">;
-    passcode: string;
+    encryptedPasscode: string;
+    passcodeIv: string;
+    passcodeAuthTag: string;
     encryptedPayload: string;
     encryptedShareKey: string;
     passcodeSalt: string;
@@ -166,11 +168,21 @@ export function ShareDialog({
         }
       }
 
-      // 8. Create the share
+      // 8. Encrypt the share passcode itself using Project Key (derivedKey)
+      // This is so the creator can see it in their dashboard but it's not plaintext in DB.
+      const { 
+        encryptedValue: encPass, 
+        iv: passIv, 
+        authTag: passTag 
+      } = await encrypt(sharePasscode, derivedKey);
+
+      // 9. Create the share
       const shareId = await createShare({
         projectId: environment.projectId,
         environmentId: environment._id,
-        passcode: sharePasscode,
+        encryptedPasscode: encPass,
+        passcodeIv: passIv,
+        passcodeAuthTag: passTag,
         encryptedPayload: btoa(String.fromCharCode(...payloadEncrypted)),
         encryptedShareKey: btoa(String.fromCharCode(...shareKeyEncrypted)),
         passcodeSalt: shareSalt,
@@ -182,7 +194,7 @@ export function ShareDialog({
         isIndefinite,
       });
 
-      // 9. Generate share URL
+      // 10. Generate share URL
       const url = `${window.location.origin}/share/${shareId}`;
       setShareUrl(url);
     } catch (err) {
@@ -378,5 +390,5 @@ export function ShareDialog({
 }
 
 function Separator({ className }: { className?: string }) {
-  return <div className={`h-[1px] w-full bg-border ${className}`} />;
+  return <div className={`h-px w-full bg-border ${className}`} />;
 }

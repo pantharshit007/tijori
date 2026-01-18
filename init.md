@@ -272,16 +272,14 @@ _Goal: Fix security bugs and improve verification flow._
 _Goal: Implement the Zero-Knowledge sharing flow with proper management and visibility for shared environments._
 
 #### Task 4.1: Share Creation Flow
-
 - [x] UI to select variables.
 - [x] UI to set expiry (duration or indefinite).
-- [ ] Extend expiry options to include **10 minutes** and **30 minutes**.
-- [ ] Store expiry duration as a constant in `src/lib/constants.ts` and enforce the same values at schema/validation level for consistency.
-- [ ] Require a **6-digit numeric passcode** defined by the user at the time of sharing, instead of using project passcode to encode the payload.
+- [x] Extend expiry options to include **10 minutes** and **30 minutes**.
+- [x] Store expiry duration as a constant in `src/lib/constants.ts`.
+- [x] Require a **6-digit numeric passcode** defined by the user at the time of sharing.
 - [x] Mutation to store `encryptedPayload` in `sharedSecrets`.
 
 #### Task 4.2: Public Access View
-
 - [x] Public route `tijori.app/share/[id]`.
 - [x] Fetch encrypted payload.
 - [x] UI prompts for passcode.
@@ -289,32 +287,24 @@ _Goal: Implement the Zero-Knowledge sharing flow with proper management and visi
 - [x] Add a button to copy the shared key to clipboard.
 
 #### Task 4.3: Shared Environments Dashboard (`/shared`)
-
-- [ ] Add a `/shared` page UI accessible to logged-in users.
-- [ ] Display all environments shared **by the current user**.
-- [ ] Use a table or card-based layout to show:
-  - Environment name
-  - Project name
-  - Expiry time
-  - View count
-- [ ] Allow filtering or grouping of shared environments **by project**.
-- [ ] Ensure **view counts are visible only to the user who created the share** and only within the `/shared` dashboard.
+- [x] Add a `/shared` page UI accessible to logged-in users.
+- [x] Display all environments shared **by the current user**.
+- [x] Table-based layout showing: Environment, Project, Expiry, Views.
+- [x] Allow filtering or grouping of shared environments **by project**.
+- [x] Ensure **view counts are visible only to the creator**.
 
 #### Task 4.4: Share Management Actions
-
-- [ ] Store share passcode in plaintext (for dashboard display).
-- [ ] Add `isDisabled` flag to disable sharing without deleting.
-- [ ] Add disable/enable toggle in `/shared` dashboard.
-- [ ] Add delete button to remove shares permanently.
-- [ ] Add extend expiry option for expired shares.
+- [x] Add `isDisabled` flag to disable sharing without deleting.
+- [x] Add disable/enable toggle in `/shared` dashboard.
+- [x] Add delete button with confirmation.
+- [x] Add extend expiry option for expired shares.
+- [ ] **Encrypt share passcode** in database using project key (Zero-Knowledge for dashboard).
 
 #### Task 4.5: Refactor & Structure Improvements
-
-- [ ] Refactor components so that each has a single responsibility:
-  - Move environment variable logic into a dedicated `EnvironmentVariables` component.
-  - Move sharing-related UI and logic into a dedicated `ShareDialog` component.
-- [ ] Move all shared **types and interfaces** into a separate file (e.g. `utilities/types`) and import them where needed.
-- [ ] Centralize shared constants (such as expiry durations) and reuse them across UI and schema layers.
+- [x] Move environment variable logic into `EnvironmentVariables` component.
+- [x] Move sharing-related UI into `ShareDialog` component.
+- [x] Move shared **types and interfaces** into `src/lib/types.ts`.
+- [x] Centralize shared constants in `src/lib/constants.ts`.
 
 ---
 
@@ -325,15 +315,17 @@ _Goal: Advanced master key features._
 
 #### Task 5.1: Master Key Rotation
 
-- [ ] When master key is updated, re-encrypt all project passcodes.
-- [ ] Prompt user to enter old master key for verification.
-- [ ] Batch re-encryption with progress indicator.
+- [ ] Add UI to update Master Key (requires verifying old Master Key).
+- [ ] Re-encrypt all `encryptedPasscode` fields in the `projects` table for the user.
+- [ ] **Note**: This is a low-cost operation because it only re-encrypts the project passcodes, not the underlying variables.
+- [ ] Batch update with progress indicator.
 
 #### Task 5.2: Passcode Recovery Flow
 
-- [ ] "Forgot Passcode?" button in unlock dialog.
-- [ ] Prompt for master key to decrypt passcode.
-- [ ] Show recovered passcode to user.
+- [ ] Add "Forgot Passcode?" button in project unlock dialog.
+- [ ] Prompt for Master Key to decrypt the `encryptedPasscode` from DB.
+- [ ] Show the recovered 6-digit project passcode to the user.
+- [ ] **Note**: Changing a project passcode is not supported in this phase due to re-encryption complexity (see TODO.md).
 
 ---
 
