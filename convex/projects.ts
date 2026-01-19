@@ -184,8 +184,11 @@ export const listOwned = query({
 });
 
 /**
- * Batch update project passcodes during Master Key rotation.
+ * Batch update project passcodes AND master key during Master Key rotation.
  * All encryption is done client-side; this just stores the new encrypted values.
+ *
+ * This mutation is ATOMIC: both the project passcodes and the master key hash/salt
+ * are updated in a single transaction. If any part fails, everything rolls back.
  *
  * IMPORTANT: When passcodeSalt changes, passcodeHash must also be re-computed
  * because the hash uses the salt for verification.
@@ -202,6 +205,8 @@ export const batchUpdatePasscodes = mutation({
         authTag: v.string(),
       })
     ),
+    newMasterKeyHash: v.string(),
+    newMasterKeySalt: v.string(),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -231,9 +236,8 @@ export const batchUpdatePasscodes = mutation({
       }
     }
 
-    // Phase 2: Perform updates once all ownerships are confirmed
+    // Phase 2: Perform project updates once all ownerships are confirmed
     for (const update of args.updates) {
-      // Update the project with new encrypted passcode AND new passcodeHash
       await ctx.db.patch(update.projectId, {
         passcodeHash: update.passcodeHash,
         encryptedPasscode: update.encryptedPasscode,
@@ -245,6 +249,12 @@ export const batchUpdatePasscodes = mutation({
 
       updatedCount++;
     }
+
+    // Phase 3: Update the master key hash/salt
+    await ctx.db.patch(user._id, {
+      masterKeyHash: args.newMasterKeyHash,
+      masterKeySalt: args.newMasterKeySalt,
+    });
 
     return { success: true, updatedCount };
   },

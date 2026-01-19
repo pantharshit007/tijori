@@ -217,20 +217,18 @@ function Settings() {
         });
       }
 
-      // Batch update all projects
-      setRotationStatus("Saving encrypted data...");
-      setRotationProgress(Math.round((totalProjects / (totalProjects + 1)) * 100));
-
-      await batchUpdatePasscodes({ updates });
-
-      // Update the master key hash
-      setRotationStatus("Updating master key...");
+      // Compute new master key hash/salt upfront
       const newSalt = generateSalt();
       const newHash = await hash(newMasterKey, newSalt);
 
-      await setMasterKeyMutation({
-        masterKeyHash: newHash,
-        masterKeySalt: newSalt,
+      // Batch update all projects AND master key atomically
+      setRotationStatus("Saving encrypted data...");
+      setRotationProgress(Math.round((totalProjects / (totalProjects + 1)) * 100));
+
+      await batchUpdatePasscodes({
+        updates,
+        newMasterKeyHash: newHash,
+        newMasterKeySalt: newSalt,
       });
 
       setRotationProgress(100);
