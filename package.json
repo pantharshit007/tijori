@@ -8,7 +8,7 @@
     "dev:convex": "bunx convex dev",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "bun test",
     "lint": "eslint",
     "format": "prettier",
     "check": "prettier --write . && eslint",

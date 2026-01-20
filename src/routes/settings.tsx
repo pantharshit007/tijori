@@ -32,11 +32,16 @@ import { decrypt, deriveKey, encrypt, generateSalt, hash } from "@/lib/crypto";
  * 5. Batch update projects and update user's master key hash
  */
 
+import { useRef, useEffect } from "react";
+
 function Settings() {
   const user = useQuery(api.users.me);
   const ownedProjects = useQuery(api.projects.listOwned);
   const setMasterKeyMutation = useMutation(api.users.setMasterKey);
   const batchUpdatePasscodes = useMutation(api.projects.batchUpdatePasscodes);
+
+  // Ref to track rotation dialog close timeout
+  const rotationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // First-time setup state
   const [masterKey, setMasterKeyInput] = useState("");
@@ -59,6 +64,16 @@ function Settings() {
   const [rotationStatus, setRotationStatus] = useState("");
 
   const hasMasterKey = user?.masterKeyHash !== undefined;
+
+  useEffect(() => {
+    // Cleanup rotation dialog timeout on unmount
+    return () => {
+      if (rotationTimeoutRef.current) {
+        clearTimeout(rotationTimeoutRef.current);
+        rotationTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // === First-time Master Key Setup ===
   async function handleSetMasterKey(e: React.FormEvent) {
@@ -240,7 +255,9 @@ function Settings() {
       setRotationStatus(`Complete! Re-encrypted ${totalProjects} project(s).`);
 
       // Wait a moment then close
-      setTimeout(() => {
+      rotationTimeoutRef.current = setTimeout(() => {
+        // Guard: do not update state if dialog already closed
+        if (!rotationDialogOpen) return;
         setRotationDialogOpen(false);
         resetRotationState();
         setSuccess(true);
@@ -265,6 +282,11 @@ function Settings() {
   function handleDialogOpenChange(open: boolean) {
     setRotationDialogOpen(open);
     if (!open) {
+      // Clear rotation finish timeout if dialog is closed early
+      if (rotationTimeoutRef.current) {
+        clearTimeout(rotationTimeoutRef.current);
+        rotationTimeoutRef.current = null;
+      }
       resetRotationState();
     }
   }
