@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { useState } from "react";
+import { useEffect, useRef, useState  } from "react";
 import { AlertTriangle, Check, KeyRound, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 
@@ -32,7 +32,6 @@ import { decrypt, deriveKey, encrypt, generateSalt, hash } from "@/lib/crypto";
  * 5. Batch update projects and update user's master key hash
  */
 
-import { useRef, useEffect } from "react";
 
 function Settings() {
   const user = useQuery(api.users.me);
