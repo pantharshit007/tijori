@@ -15,6 +15,8 @@ import appCss from '../styles.css?url'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/app-sidebar'
 import { AuthenticatedLayout } from '@/components/authenticated-layout'
+import { ThemeProvider } from '@/components/theme-provider'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { convex, queryClient } from '@/lib/convex'
@@ -74,11 +76,26 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     <ClerkProvider>
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         <QueryClientProvider client={queryClient}>
-          <html lang="en" className="dark">
-            <head>
-              <HeadContent />
-            </head>
-            <body className="min-h-screen bg-background font-sans antialiased">
+          <ThemeProvider>
+            <html lang="en" suppressHydrationWarning>
+              <head>
+                <HeadContent />
+                <script
+                  dangerouslySetInnerHTML={{
+                    __html: `
+                      (function() {
+                        const stored = localStorage.getItem('tijori-theme');
+                        const theme = stored || 'dark';
+                        const resolved = theme === 'system' 
+                          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                          : theme;
+                        document.documentElement.classList.add(resolved);
+                      })();
+                    `,
+                  }}
+                />
+              </head>
+              <body className="min-h-screen bg-background font-sans antialiased">
               {isPublicRoute ? (
                 // Public routes - no auth required
                 <main className="flex flex-1 flex-col">{children}</main>
@@ -90,10 +107,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                       <SidebarProvider>
                         <AppSidebar />
                         <SidebarInset>
-                          <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+                        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
                             <SidebarTrigger className="-ml-1" />
                             <Separator orientation="vertical" className="mr-2 h-4" />
                             <div className="flex-1" />
+                            <ThemeToggle />
                             <UserButton
                               appearance={{
                                 elements: {
@@ -139,8 +157,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               <Scripts />
             </body>
           </html>
-        </QueryClientProvider>
-      </ConvexProviderWithClerk>
-    </ClerkProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ConvexProviderWithClerk>
+  </ClerkProvider>
   )
 }
