@@ -32,7 +32,6 @@ import { decrypt, deriveKey, encrypt, generateSalt, hash } from "@/lib/crypto";
  * 5. Batch update projects and update user's master key hash
  */
 
-
 function Settings() {
   const user = useQuery(api.users.me);
   const ownedProjects = useQuery(api.projects.listOwned);
@@ -158,8 +157,14 @@ function Settings() {
     setRotationProgress(0);
     setRotationStatus("Starting re-encryption...");
 
+    if (ownedProjects === undefined) {
+      setRotationError("Project list is still loading. Please wait...");
+      setRotationStep("update");
+      return;
+    }
+
     try {
-      const projects = ownedProjects || [];
+      const projects = ownedProjects;
       const totalProjects = projects.length;
 
       if (totalProjects === 0) {
@@ -408,6 +413,13 @@ function Settings() {
                               </div>
                             )}
 
+                            {ownedProjects === undefined && (
+                              <div className="p-3 rounded-lg bg-muted border border-border text-muted-foreground text-sm">
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin inline-block" />{" "}
+                                Loading project list...
+                              </div>
+                            )}
+
                             <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 text-sm">
                               <div className="flex items-start gap-2">
                                 <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
@@ -429,7 +441,12 @@ function Settings() {
                             </Button>
                             <Button
                               type="submit"
-                              disabled={rotationLoading || !newMasterKey || !confirmNewMasterKey}
+                              disabled={
+                                rotationLoading ||
+                                !newMasterKey ||
+                                !confirmNewMasterKey ||
+                                ownedProjects === undefined
+                              }
                             >
                               {rotationLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                               Update Master Key
