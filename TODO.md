@@ -6,3 +6,4 @@
 - [ ] **Project Passcode Rotation**: Currently, changing a project's 6-digit passcode is not allowed. 
     - **Reasoning**: It is a high-cost operation. Changing the passcode changes the PBKDF2 derived key, which would require re-encrypting EVERY variable in EVERY environment for that project, as well as re-encrypting all shared passcodes in the `sharedSecrets` table.
     - **Implementation Note**: If implemented, it must be performed as a client-side batch job (decrypt with old key, re-encrypt with new key) with a progress indicator and warning to the user.
+- [ ] option to remove environments, only allowed to Owners, but Admin can create new Environment, but can't delete them. (also need to check if those vars are shared or not)

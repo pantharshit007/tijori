@@ -336,18 +336,37 @@ _Goal: Advanced master key features._
 
 ### Phase 6: Project Management (Future)
 
-_Goal: Advanced project management features._
+_Goal: Advanced project management features with role-based access control._
 
-#### Task 6.1: Recent Projects Dashboard
+#### Role-Based Access Control (RBAC) Matrix
 
-- [ ] Display recent projects (5) on /dashboard
-- [ ] add light mode and dark mode, toggle button too.
+| Feature | Owner | Admin | Member |
+|---------|-------|-------|--------|
+| View variables | ✅ | ✅ | ✅ |
+| Copy variables | ✅ | ✅ | ✅ |
+| Share variables | ✅ | ✅ | ❌ |
+| Add/Edit variables | ✅ | ✅ | ❌ |
+| Delete variables | ✅ | ✅ | ❌ |
+| Add environments | ✅ | ✅ | ❌ |
+| Add/remove members | ✅ | ✅ | ❌ |
+| Update member roles | ✅ | ❌ | ❌ |
+| Passcode recovery | ✅ | ❌ | ❌ |
+| Leave project | ❌ | ✅ | ✅ |
+| Delete project | ✅ | ❌ | ❌ |
 
-#### Task 6.2: Project Member Management
+**Note**: Passcode recovery is only available to owners because the project passcode is encrypted with the owner's master key.
 
-- [ ] Add members to project
-- [ ] Remove members from project
-- [ ] Update the member role
+#### Task 6.1: Recent Projects Dashboard ✅
+
+- [x] Display recent projects (5) on /dashboard
+- [x] Add light mode and dark mode with toggle button in sidebar
+
+#### Task 6.2: Project Member Management ✅
+
+- [x] Add members to project by email
+- [x] Remove members from project
+- [x] Update the member role (owners only)
+- [x] Leave project option for non-owners (in Project Settings dialog)
 
 #### Task 6.3: Project Details View Improvements
 
@@ -356,12 +375,15 @@ _Goal: Advanced project management features._
 - [ ] Add description option to the dialog, when creating a new environment
 - [ ] when user is creating a new project, give them optional passcode description field which can be used to remember the passcode, but wouldn't be imediately visible in the dashboard.
 - [ ] allow only owner to delete a project with confirmation and Master Key verification.
+- [ ] give option to edit details, such as project details from the project settings next to the unlock button
+- [ ] Project environment info can be seen or edited from proj setting too including deletion, which you can pick from the TODO added a task around that.
+- [ ] all members info which is currently shown below the vars should be moved to in the proj setting, make the dialog a little bigger to accomodate all. 
 
 #### Task 6.4: Bulk Add/Edit Variable Values
 
 - [ ] Allow user to paste multiple key/values from clipboard in textarea, parse and add
 - [ ] Add option to edit single variable; each shows a pencil icon
-- [ ] user with role:member can only view and copy variables they can't share, edit, or delete it.
+- [x] Member role: can only view and copy variables (cannot share, edit, or delete)
 
 #### Task 6.5: Variable Copy Enhancements
 

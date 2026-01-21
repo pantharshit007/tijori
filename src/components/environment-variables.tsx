@@ -27,11 +27,13 @@ import { formatRelativeTime } from "@/lib/time";
 export interface EnvironmentVariablesProps {
   environment: Environment;
   derivedKey: CryptoKey | null;
+  userRole: "owner" | "admin" | "member";
 }
 
 export function EnvironmentVariables({
   environment,
   derivedKey,
+  userRole,
 }: EnvironmentVariablesProps) {
   const variables = useQuery(api.variables.list, { environmentId: environment._id });
   const saveVariable = useMutation(api.variables.save);
@@ -164,22 +166,28 @@ export function EnvironmentVariables({
         </div>
         {derivedKey && (
           <div className="flex items-center gap-2">
-            <ShareDialog
-              variables={variables}
-              environment={environment}
-              derivedKey={derivedKey}
-              createShare={createShare}
-            />
+            {/* Only owners and admins can share */}
+            {(userRole === "owner" || userRole === "admin") && (
+              <ShareDialog
+                variables={variables}
+                environment={environment}
+                derivedKey={derivedKey}
+                createShare={createShare}
+              />
+            )}
 
-            <Button
-              size="sm"
-              onClick={() => setShowNewVar(true)}
-              disabled={showNewVar}
-              className="gap-1"
-            >
-              <Plus className="h-3 w-3" />
-              Add Variable
-            </Button>
+            {/* Only owners and admins can add variables */}
+            {(userRole === "owner" || userRole === "admin") && (
+              <Button
+                size="sm"
+                onClick={() => setShowNewVar(true)}
+                disabled={showNewVar}
+                className="gap-1"
+              >
+                <Plus className="h-3 w-3" />
+                Add Variable
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -296,23 +304,26 @@ export function EnvironmentVariables({
                   <Copy className="h-4 w-4" />
                 )}
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-destructive hover:text-destructive"
-                disabled={!derivedKey}
-                onClick={() => handleDelete(variable._id as Id<"variables">)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {/* Only owners and admins can delete */}
+              {(userRole === "owner" || userRole === "admin") && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  disabled={!derivedKey}
+                  onClick={() => handleDelete(variable._id as Id<"variables">)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         ))}
 
-        {variables.length === 0 && !showNewVar && (
+          {variables.length === 0 && !showNewVar && (
           <div className="text-center py-8 text-muted-foreground">
             <p>No variables in this environment</p>
-            {derivedKey && (
+            {derivedKey && (userRole === "owner" || userRole === "admin") && (
               <Button variant="link" onClick={() => setShowNewVar(true)} className="mt-2">
                 Add your first variable
               </Button>

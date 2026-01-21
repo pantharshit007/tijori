@@ -1,6 +1,6 @@
-import { Link, createFileRoute, useParams } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, KeyRound, Loader2, Plus, Settings, ShieldQuestion } from "lucide-react";
+import { ArrowLeft, KeyRound, Loader2, LogOut, Plus, Settings, ShieldQuestion } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { EnvironmentVariables } from "@/components/environment-variables";
 import { PasscodeRecovery } from "@/components/passcode-recovery";
+import { ProjectMembers } from "@/components/project-members";
 import { hash as cryptoHash, deriveKey } from "@/lib/crypto";
 import { keyStore } from "@/lib/key-store";
 
@@ -38,6 +39,8 @@ function ProjectView() {
   });
   const user = useQuery(api.users.me);
   const createEnvironment = useMutation(api.environments.create);
+  const leaveProject = useMutation(api.projects.leaveProject);
+  const navigate = useNavigate();
 
   const [activeEnv, setActiveEnv] = useState<string | null>(null);
   const [derivedKey, setDerivedKey] = useState<CryptoKey | null>(null);
@@ -49,6 +52,10 @@ function ProjectView() {
   const [showNewEnvDialog, setShowNewEnvDialog] = useState(false);
   const [newEnvName, setNewEnvName] = useState("");
   const [isCreatingEnv, setIsCreatingEnv] = useState(false);
+
+  // Settings dialog state
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
 
   // 1. Sync local derivedKey to keyStore (Only if non-null)
   useEffect(() => {
@@ -181,6 +188,7 @@ function ProjectView() {
                 ) : (
                   <PasscodeUnlock
                     project={project}
+                    userRole={project.role}
                     onUnlockSuccess={(key) => {
                       setDerivedKey(key);
                       setShowUnlockDialog(false);
@@ -191,9 +199,63 @@ function ProjectView() {
               </DialogContent>
             </Dialog>
           )}
-          <Button variant="ghost" size="icon">
-            <Settings className="h-4 w-4" />
-          </Button>
+          {/* Project Settings */}
+          <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Project Settings</DialogTitle>
+                <DialogDescription>
+                  Manage your project membership and settings.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                {/* Only show leave option for non-owners */}
+                {project.role !== "owner" && (
+                  <div className="rounded-lg border p-4">
+                    <h4 className="font-medium text-sm">Leave Project</h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      You will lose access to this project and all its variables.
+                    </p>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="mt-3 gap-2"
+                      onClick={async () => {
+                        if (!confirm("Are you sure you want to leave this project?")) return;
+                        setIsLeaving(true);
+                        try {
+                          await leaveProject({ projectId: projectId as Id<"projects"> });
+                          navigate({ to: "/" });
+                        } catch (err) {
+                          console.error("Failed to leave project:", err);
+                        } finally {
+                          setIsLeaving(false);
+                        }
+                      }}
+                      disabled={isLeaving}
+                    >
+                      {isLeaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                      <LogOut className="h-4 w-4" />
+                      Leave Project
+                    </Button>
+                  </div>
+                )}
+                {project.role === "owner" && (
+                  <p className="text-xs text-muted-foreground">
+                    As the owner, you cannot leave this project. Transfer ownership or delete the project instead.
+                  </p>
+                )}
+              </div>
+              <DialogFooter>
+                <Button onClick={() => setShowSettingsDialog(false)}>Close</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -208,46 +270,53 @@ function ProjectView() {
                 </TabsTrigger>
               ))}
             </TabsList>
-            <Dialog open={showNewEnvDialog} onOpenChange={setShowNewEnvDialog}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-1">
-                  <Plus className="h-3 w-3" />
-                  Add
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Environment</DialogTitle>
-                  <DialogDescription>Create a new environment for this project.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="envName">Environment Name</Label>
-                    <Input
-                      id="envName"
-                      placeholder="Production"
-                      value={newEnvName}
-                      onChange={(e) => setNewEnvName(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleCreateEnvironment()}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    onClick={handleCreateEnvironment}
-                    disabled={isCreatingEnv || !newEnvName.trim()}
-                  >
-                    {isCreatingEnv && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Create
+            {/* Only owners and admins can add environments */}
+            {(project.role === "owner" || project.role === "admin") && (
+              <Dialog open={showNewEnvDialog} onOpenChange={setShowNewEnvDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-1">
+                    <Plus className="h-3 w-3" />
+                    Add
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Environment</DialogTitle>
+                    <DialogDescription>Create a new environment for this project.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="envName">Environment Name</Label>
+                      <Input
+                        id="envName"
+                        placeholder="Production"
+                        value={newEnvName}
+                        onChange={(e) => setNewEnvName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleCreateEnvironment()}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      onClick={handleCreateEnvironment}
+                      disabled={isCreatingEnv || !newEnvName.trim()}
+                    >
+                      {isCreatingEnv && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Create
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
 
           {environments.map((env) => (
             <TabsContent key={env._id} value={env._id} className="mt-4">
-              <EnvironmentVariables environment={env as Environment} derivedKey={derivedKey} />
+              <EnvironmentVariables 
+                environment={env as Environment} 
+                derivedKey={derivedKey} 
+                userRole={project.role}
+              />
             </TabsContent>
           ))}
         </Tabs>
@@ -258,16 +327,21 @@ function ProjectView() {
           </CardContent>
         </Card>
       )}
+
+      {/* Team Members Section */}
+      <ProjectMembers projectId={projectId as Id<"projects">} userRole={project.role} />
     </div>
   );
 }
 
 function PasscodeUnlock({
   project,
+  userRole,
   onUnlockSuccess,
   onForgotPasscode,
 }: {
   project: any;
+  userRole: "owner" | "admin" | "member";
   onUnlockSuccess: (key: CryptoKey) => void;
   onForgotPasscode: () => void;
 }) {
@@ -327,10 +401,13 @@ function PasscodeUnlock({
         {unlockError && <p className="text-sm text-destructive">{unlockError}</p>}
       </div>
       <DialogFooter className="flex-col gap-2 sm:flex-row">
-        <Button variant="ghost" onClick={onForgotPasscode} className="text-muted-foreground">
-          <ShieldQuestion className="mr-2 h-4 w-4" />
-          Forgot Passcode?
-        </Button>
+        {/* Only owners can recover passcode - it's bound to their master key */}
+        {userRole === "owner" && (
+          <Button variant="ghost" onClick={onForgotPasscode} className="text-muted-foreground">
+            <ShieldQuestion className="mr-2 h-4 w-4" />
+            Forgot Passcode?
+          </Button>
+        )}
         <Button onClick={handleUnlock} disabled={isUnlocking || !passcode}>
           {isUnlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Unlock
