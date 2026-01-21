@@ -382,10 +382,10 @@ _Goal: Advanced project management features with role-based access control._
 - [x] Dashboard (`/`) currently displays all projects (until `/projects` is finalized)
 - [ ] Grid/table view for project (future enhancement)
 
-#### Task 6.4: Bulk Add/Edit Variable Values
+#### Task 6.4: Bulk Add/Edit Variable Values ✅
 
-- [ ] Allow user to paste multiple key/values from clipboard in textarea, parse and add
-- [ ] Add option to edit single variable; each shows a pencil icon
+- [x] Allow user to paste multiple key/values from clipboard in textarea, parse and add (Bulk Add dialog)
+- [x] Add option to edit single variable; each shows a pencil icon
 - [x] Member role: can only view and copy variables (cannot share, edit, or delete)
 - [ ] Add option to copy all values (bulk copy) from selected environment, `"VAR_NAME"= VAR_VALUE`
 
