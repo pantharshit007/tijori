@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { FolderKanban, ArrowLeft, Construction } from "lucide-react";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { ArrowLeft, Construction, FolderKanban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 

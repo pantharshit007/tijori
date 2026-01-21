@@ -1,8 +1,8 @@
 import { Monitor, Moon, Sun } from "lucide-react";
-import { useTheme } from "@/components/theme-provider";
-import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { useSidebar } from "./ui/sidebar";
+import { useTheme } from "@/components/theme-provider";
+import { cn } from "@/lib/utils";
 
 export function SidebarThemeToggle() {
   const { theme, setTheme } = useTheme();

@@ -11,9 +11,9 @@ import {
   Trash2,
   Users 
 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { useNavigate } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,7 +63,7 @@ interface ProjectSettingsProps {
     passcodeHint?: string;
     role: "owner" | "admin" | "member";
   };
-  environments: Environment[];
+  environments: Array<Environment>;
   membersCount: number;
   trigger: React.ReactNode;
 }

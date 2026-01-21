@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { Clock, FolderKey, Plus, ArrowRight } from 'lucide-react'
+import { ArrowRight, Clock, FolderKey, Plus } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 
 

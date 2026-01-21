@@ -1,12 +1,12 @@
+import { MoreVertical, Shield, Trash2, UserMinus } from "lucide-react";
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreVertical, UserMinus, Shield, Trash2 } from "lucide-react";
 
 interface MemberActionsProps {
   canUpdateRoles: boolean;

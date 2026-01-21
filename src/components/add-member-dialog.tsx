@@ -1,3 +1,4 @@
+import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
 
 interface AddMemberDialogProps {
   open: boolean;
