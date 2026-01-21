@@ -340,19 +340,19 @@ _Goal: Advanced project management features with role-based access control._
 
 #### Role-Based Access Control (RBAC) Matrix
 
-| Feature | Owner | Admin | Member |
-|---------|-------|-------|--------|
-| View variables | ✅ | ✅ | ✅ |
-| Copy variables | ✅ | ✅ | ✅ |
-| Share variables | ✅ | ✅ | ❌ |
-| Add/Edit variables | ✅ | ✅ | ❌ |
-| Delete variables | ✅ | ✅ | ❌ |
-| Add environments | ✅ | ✅ | ❌ |
-| Add/remove members | ✅ | ✅ | ❌ |
-| Update member roles | ✅ | ❌ | ❌ |
-| Passcode recovery | ✅ | ❌ | ❌ |
-| Leave project | ❌ | ✅ | ✅ |
-| Delete project | ✅ | ❌ | ❌ |
+| Feature             | Owner | Admin | Member |
+| ------------------- | ----- | ----- | ------ |
+| View variables      | ✅    | ✅    | ✅     |
+| Copy variables      | ✅    | ✅    | ✅     |
+| Share variables     | ✅    | ✅    | ❌     |
+| Add/Edit variables  | ✅    | ✅    | ❌     |
+| Delete variables    | ✅    | ✅    | ❌     |
+| Add environments    | ✅    | ✅    | ❌     |
+| Add/remove members  | ✅    | ✅    | ❌     |
+| Update member roles | ✅    | ❌    | ❌     |
+| Passcode recovery   | ✅    | ❌    | ❌     |
+| Leave project       | ❌    | ✅    | ✅     |
+| Delete project      | ✅    | ❌    | ❌     |
 
 **Note**: Passcode recovery is only available to owners because the project passcode is encrypted with the owner's master key.
 
@@ -368,16 +368,19 @@ _Goal: Advanced project management features with role-based access control._
 - [x] Update the member role (owners only)
 - [x] Leave project option for non-owners (in Project Settings dialog)
 
-#### Task 6.3: Project Details View Improvements
+#### Task 6.3: Project Details View Improvements ✅
 
-- [ ] Grid/table view for project
-- [ ] Card or table to show number of environments and members
-- [ ] Add description option to the dialog, when creating a new environment
-- [ ] when user is creating a new project, give them optional passcode description field which can be used to remember the passcode, but wouldn't be imediately visible in the dashboard.
-- [ ] allow only owner to delete a project with confirmation and Master Key verification.
-- [ ] give option to edit details, such as project details from the project settings next to the unlock button
-- [ ] Project environment info can be seen or edited from proj setting including deletion, which you can pick from the TODO added a task around that.
-- [ ] all members info (name, img, role, etc) which is currently shown below the vars should be moved to in the project members icon next to unlock and setting, which will open like a drawer from the side showing all info, and all the member related action , including search update etc can be done from here. 
+- [x] Card showing number of environments and members (in Project Settings tabs)
+- [x] Add description option to the dialog, when creating a new environment
+- [x] Optional passcode hint field when creating a project
+- [x] Allow only owner to delete a project with confirmation and Master Key verification
+- [x] Edit project details (name, description, passcode hint) from Project Settings
+- [x] Project environment management with edit/delete in Settings → Environments tab
+- [x] Members moved to slide-out drawer with padding/spacing improvements
+- [x] Members drawer with search, add, role update, and remove functionality
+- [x] `/projects` route implements an "All Projects" placeholder (Coming Soon)
+- [x] Dashboard (`/`) currently displays all projects (until `/projects` is finalized)
+- [ ] Grid/table view for project (future enhancement)
 
 #### Task 6.4: Bulk Add/Edit Variable Values
 

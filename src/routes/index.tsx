@@ -18,10 +18,9 @@ import { formatRelativeTime } from '@/lib/time'
 function Dashboard() {
   const projects = useQuery(api.projects.list)
 
-  // Get the 5 most recent projects sorted by updatedAt
-  const recentProjects = projects
+  // Sort projects by updatedAt
+  const sortedProjects = projects
     ?.sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, 5)
 
   return (
     <div className="space-y-8">
@@ -30,7 +29,7 @@ function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome back! Here are your recent projects.
+            Manage your secure project environment variables.
           </p>
         </div>
         <Link to="/projects/new">
@@ -41,13 +40,13 @@ function Dashboard() {
         </Link>
       </div>
 
-      {/* Recent Projects Section */}
+      {/* Projects Section */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold tracking-tight">Recent Projects</h2>
+          <h2 className="text-xl font-semibold tracking-tight">Your Projects</h2>
           {projects && projects.length > 5 && (
-            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-              View all {projects.length} projects
+            <Link to="/projects" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+              View all {projects.length}
               <ArrowRight className="h-3 w-3" />
             </Link>
           )}
@@ -86,7 +85,7 @@ function Dashboard() {
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {recentProjects?.map((project) => (
+            {sortedProjects?.map((project) => (
               <Link
                 key={project._id}
                 to="/projects/$projectId"
@@ -108,17 +107,11 @@ function Dashboard() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground line-clamp-2">
-                      {project.description || 'No description'}
+                      {project.description || 'No description provided.'}
                     </p>
-                    <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        <span>
-                          {project.updatedAt === project._creationTime
-                            ? `Created ${formatRelativeTime(project._creationTime)}`
-                            : `Updated ${formatRelativeTime(project.updatedAt)}`}
-                        </span>
-                      </div>
+                    <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      <span>Updated {formatRelativeTime(project.updatedAt)}</span>
                     </div>
                   </CardContent>
                 </Card>

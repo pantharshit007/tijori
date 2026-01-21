@@ -71,7 +71,6 @@ export const create = mutation({
       updatedAt: now,
     });
 
-    // Add the creator as the owner in projectMembers
     await ctx.db.insert("projectMembers", {
       projectId,
       userId: user._id,
@@ -262,10 +261,6 @@ export const batchUpdatePasscodes = mutation({
   },
 });
 
-// ============================================================================
-// PROJECT MEMBER MANAGEMENT
-// ============================================================================
-
 /**
  * List all members of a project.
  * Only project members can view the member list.
@@ -278,9 +273,7 @@ export const listMembers = query({
     // Check if user is a member of this project
     const membership = await ctx.db
       .query("projectMembers")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", args.projectId).eq("userId", userId)
-      )
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
       .unique();
 
     if (!membership) {
@@ -328,9 +321,7 @@ export const addMember = mutation({
     // Check if user has permission (owner or admin)
     const membership = await ctx.db
       .query("projectMembers")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", args.projectId).eq("userId", userId)
-      )
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
       .unique();
 
     if (!membership || (membership.role !== "owner" && membership.role !== "admin")) {
@@ -339,9 +330,7 @@ export const addMember = mutation({
 
     // Find the user by email
     const users = await ctx.db.query("users").collect();
-    const targetUser = users.find(
-      (u) => u.email.toLowerCase() === args.email.toLowerCase()
-    );
+    const targetUser = users.find((u) => u.email.toLowerCase() === args.email.toLowerCase());
 
     if (!targetUser) {
       throw new Error("User not found with that email address");
@@ -386,9 +375,7 @@ export const removeMember = mutation({
     // Get the current user's membership
     const myMembership = await ctx.db
       .query("projectMembers")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", args.projectId).eq("userId", userId)
-      )
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
       .unique();
 
     if (!myMembership || (myMembership.role !== "owner" && myMembership.role !== "admin")) {
@@ -435,9 +422,7 @@ export const updateMemberRole = mutation({
     // Check if user is the owner
     const myMembership = await ctx.db
       .query("projectMembers")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", args.projectId).eq("userId", userId)
-      )
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
       .unique();
 
     if (!myMembership || myMembership.role !== "owner") {
@@ -477,9 +462,7 @@ export const leaveProject = mutation({
     // Get the user's membership
     const membership = await ctx.db
       .query("projectMembers")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", args.projectId).eq("userId", userId)
-      )
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
       .unique();
 
     if (!membership) {
@@ -488,7 +471,9 @@ export const leaveProject = mutation({
 
     // Owners cannot leave
     if (membership.role === "owner") {
-      throw new Error("Owners cannot leave their own project. Transfer ownership or delete the project instead.");
+      throw new Error(
+        "Owners cannot leave their own project. Transfer ownership or delete the project instead."
+      );
     }
 
     // Remove the membership
@@ -515,9 +500,7 @@ export const updateProject = mutation({
     // Check if user is the owner
     const membership = await ctx.db
       .query("projectMembers")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", args.projectId).eq("userId", userId)
-      )
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
       .unique();
 
     if (!membership || membership.role !== "owner") {
@@ -550,9 +533,7 @@ export const deleteProject = mutation({
     // Check if user is the owner
     const membership = await ctx.db
       .query("projectMembers")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", args.projectId).eq("userId", userId)
-      )
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
       .unique();
 
     if (!membership || membership.role !== "owner") {

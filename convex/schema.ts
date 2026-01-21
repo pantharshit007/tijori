@@ -1,5 +1,5 @@
-import { defineSchema, defineTable } from 'convex/server'
-import { v } from 'convex/values'
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
 
 export default defineSchema({
   users: defineTable({
@@ -10,7 +10,7 @@ export default defineSchema({
     // Master key for all projects (set in Settings)
     masterKeyHash: v.optional(v.string()), // SHA-256 hash of Master Key
     masterKeySalt: v.optional(v.string()), // Salt for hash
-  }).index('by_tokenIdentifier', ['tokenIdentifier']),
+  }).index("by_tokenIdentifier", ["tokenIdentifier"]),
 
   projects: defineTable({
     name: v.string(),
@@ -21,38 +21,38 @@ export default defineSchema({
     passcodeSalt: v.string(), // Salt for both hash and PBKDF2
     iv: v.string(), // IV for encryptedPasscode
     authTag: v.string(), // AuthTag for encryptedPasscode
-    ownerId: v.id('users'), // Link to the owner
+    ownerId: v.id("users"), // Link to the owner
     updatedAt: v.number(), // Timestamp - set to creation time initially, updated on changes
-  }).index('by_ownerId', ['ownerId']),
+  }).index("by_ownerId", ["ownerId"]),
 
   projectMembers: defineTable({
-    projectId: v.id('projects'),
-    userId: v.id('users'),
-    role: v.union(v.literal('owner'), v.literal('admin'), v.literal('member')),
+    projectId: v.id("projects"),
+    userId: v.id("users"),
+    role: v.union(v.literal("owner"), v.literal("admin"), v.literal("member")),
   })
-    .index('by_projectId', ['projectId'])
-    .index('by_userId', ['userId'])
-    .index('by_project_user', ['projectId', 'userId']),
+    .index("by_projectId", ["projectId"])
+    .index("by_userId", ["userId"])
+    .index("by_project_user", ["projectId", "userId"]),
 
   environments: defineTable({
-    projectId: v.id('projects'),
+    projectId: v.id("projects"),
     name: v.string(),
     description: v.optional(v.string()),
     updatedAt: v.number(), // Timestamp - set to creation time initially, updated on changes
-  }).index('by_projectId', ['projectId']),
+  }).index("by_projectId", ["projectId"]),
 
   variables: defineTable({
-    environmentId: v.id('environments'),
+    environmentId: v.id("environments"),
     name: v.string(), // Plain text name for search
     encryptedValue: v.string(), // AES-256-GCM encrypted value
     iv: v.string(), // IV for this specific value
     authTag: v.string(), // AuthTag for this specific value
-  }).index('by_environmentId', ['environmentId']),
+  }).index("by_environmentId", ["environmentId"]),
 
   sharedSecrets: defineTable({
-    projectId: v.id('projects'),
-    environmentId: v.id('environments'),
-    createdBy: v.id('users'),
+    projectId: v.id("projects"),
+    environmentId: v.id("environments"),
+    createdBy: v.id("users"),
     encryptedPasscode: v.string(), // Passcode encrypted with Project Key
     passcodeIv: v.string(), // IV for encryptedPasscode
     passcodeAuthTag: v.string(), // AuthTag for encryptedPasscode
@@ -68,8 +68,7 @@ export default defineSchema({
     isDisabled: v.boolean(), // Disable without deleting
     views: v.number(),
   })
-    .index('by_projectId', ['projectId'])
-    .index('by_createdBy', ['createdBy'])
-    .index('by_expiry', ['expiresAt']),
-})
-
+    .index("by_projectId", ["projectId"])
+    .index("by_createdBy", ["createdBy"])
+    .index("by_expiry", ["expiresAt"]),
+});

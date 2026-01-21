@@ -3,7 +3,10 @@
 - [ ] update the sidebar with the correct functionality, log out button, and settings button and profile, along with correct user info.
 - [ ] do we need a profile page? what is even the use case for it?
 - [ ] in `handleReveal` and `handleCopy` are we re-calculating the decrypted value every time? for each value? if yes, then we should cache it in state or fix it such that once we unlock the passcode, we don't need to decrypt the same value again.
-- [ ] **Project Passcode Rotation**: Currently, changing a project's 6-digit passcode is not allowed. 
-    - **Reasoning**: It is a high-cost operation. Changing the passcode changes the PBKDF2 derived key, which would require re-encrypting EVERY variable in EVERY environment for that project, as well as re-encrypting all shared passcodes in the `sharedSecrets` table.
-    - **Implementation Note**: If implemented, it must be performed as a client-side batch job (decrypt with old key, re-encrypt with new key) with a progress indicator and warning to the user.
+- [ ] **Project Passcode Rotation**: Currently, changing a project's 6-digit passcode is not allowed.
+  - **Reasoning**: It is a high-cost operation. Changing the passcode changes the PBKDF2 derived key, which would require re-encrypting EVERY variable in EVERY environment for that project, as well as re-encrypting all shared passcodes in the `sharedSecrets` table.
+  - **Implementation Note**: If implemented, it must be performed as a client-side batch job (decrypt with old key, re-encrypt with new key) with a progress indicator and warning to the user.
 - [ ] option to remove environments, only allowed to Owners, but Admin can create new Environment, but can't delete them. (also need to check if those vars are shared or not)
+- [ ] fix the member-drawer in mobile view
+- [ ] add length limit to description field and other such fields in schema.
+- [ ] update the enums such as "admin" and "member" to be "owner" and "member" in react files to types directly from convex.

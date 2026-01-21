@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, KeyRound, Loader2, Plus, Settings, ShieldQuestion } from "lucide-react";
+import { ArrowLeft, KeyRound, Loader2, Plus, Settings, ShieldQuestion, Users } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -25,7 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { EnvironmentVariables } from "@/components/environment-variables";
 import { PasscodeRecovery } from "@/components/passcode-recovery";
-import { ProjectMembers } from "@/components/project-members";
+import { MembersDrawer } from "@/components/members-drawer";
 import { ProjectSettings } from "@/components/project-settings";
 import { hash as cryptoHash, deriveKey } from "@/lib/crypto";
 import { keyStore } from "@/lib/key-store";
@@ -151,10 +151,16 @@ function ProjectView() {
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">{project.name}</h1>
+              <h1 className="text-2xl max-md:text-xl font-bold tracking-tight">{project.name}</h1>
               <Badge variant="outline">{project.role}</Badge>
             </div>
-            <p className="text-muted-foreground">{project.description || "No description"}</p>
+            <p className="text-muted-foreground max-md:text-sm">
+              {project.description
+                ? project.description.length > 30
+                  ? project.description.slice(0, 30) + "..."
+                  : project.description
+                : "No description"}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -200,10 +206,20 @@ function ProjectView() {
               </DialogContent>
             </Dialog>
           )}
+          {/* Members Drawer */}
+          <MembersDrawer
+            projectId={projectId as Id<"projects">}
+            userRole={project.role}
+            trigger={
+              <Button variant="ghost" size="icon">
+                <Users className="h-4 w-4" />
+              </Button>
+            }
+          />
           {/* Project Settings */}
           <ProjectSettings
             project={project}
-            environmentsCount={environments?.length || 0}
+            environments={environments || []}
             membersCount={members?.length || 0}
             trigger={
               <Button variant="ghost" size="icon">
@@ -237,7 +253,9 @@ function ProjectView() {
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Add Environment</DialogTitle>
-                    <DialogDescription>Create a new environment for this project.</DialogDescription>
+                    <DialogDescription>
+                      Create a new environment for this project.
+                    </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
@@ -276,9 +294,9 @@ function ProjectView() {
 
           {environments.map((env) => (
             <TabsContent key={env._id} value={env._id} className="mt-4">
-              <EnvironmentVariables 
-                environment={env as Environment} 
-                derivedKey={derivedKey} 
+              <EnvironmentVariables
+                environment={env as Environment}
+                derivedKey={derivedKey}
                 userRole={project.role}
               />
             </TabsContent>
@@ -291,9 +309,6 @@ function ProjectView() {
           </CardContent>
         </Card>
       )}
-
-      {/* Team Members Section */}
-      <ProjectMembers projectId={projectId as Id<"projects">} userRole={project.role} />
     </div>
   );
 }
