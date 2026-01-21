@@ -16,7 +16,6 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/s
 import { AppSidebar } from '@/components/app-sidebar'
 import { AuthenticatedLayout } from '@/components/authenticated-layout'
 import { ThemeProvider } from '@/components/theme-provider'
-import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { convex, queryClient } from '@/lib/convex'
@@ -111,7 +110,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                             <SidebarTrigger className="-ml-1" />
                             <Separator orientation="vertical" className="mr-2 h-4" />
                             <div className="flex-1" />
-                            <ThemeToggle />
                             <UserButton
                               appearance={{
                                 elements: {
