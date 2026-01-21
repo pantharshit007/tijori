@@ -33,12 +33,14 @@ Advanced project management features including:
 - [x] Leave project option for non-owners (in Project Settings dialog)
 - [x] Full RBAC implementation (see matrix below)
 
-### Task 6.3: Project Details View Improvements
-- [ ] Grid/table view for project
-- [ ] Card/table showing number of environments and members
-- [ ] Description option when creating a new environment
-- [ ] Optional passcode description field (not immediately visible)
-- [ ] Owner-only project deletion with confirmation and Master Key verification
+### Task 6.3: Project Details View Improvements ✅
+- [x] Card showing number of environments and members (in Settings dialog)
+- [x] Description option when creating a new environment
+- [x] Optional passcode hint field when creating project
+- [x] Owner-only project deletion with Master Key verification
+- [x] Edit project details (name, description, passcode hint) - owners only
+- [x] Environment update/delete mutations added
+- [ ] Grid/table view for project (future)
 
 ### Task 6.4: Bulk Add/Edit Variable Values
 - [ ] Paste multiple key/values from clipboard in textarea, parse and add

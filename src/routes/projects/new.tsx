@@ -21,6 +21,7 @@ function NewProject() {
   const [description, setDescription] = useState("");
   const [passcode, setPasscode] = useState("");
   const [confirmPasscode, setConfirmPasscode] = useState("");
+  const [passcodeHint, setPasscodeHint] = useState("");
   const [masterKey, setMasterKey] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +86,7 @@ function NewProject() {
       const projectId = await createProject({
         name: name.trim(),
         description: description.trim() || undefined,
+        passcodeHint: passcodeHint.trim() || undefined,
         passcodeHash,
         encryptedPasscode: encryptedValue,
         passcodeSalt,
@@ -275,6 +277,21 @@ function NewProject() {
                 onChange={(e) => setConfirmPasscode(e.target.value.replace(/\D/g, ""))}
                 disabled={isLoading}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="passcodeHint">Passcode Hint (Optional)</Label>
+              <Input
+                id="passcodeHint"
+                type="text"
+                placeholder="Help you remember your passcode..."
+                value={passcodeHint}
+                onChange={(e) => setPasscodeHint(e.target.value)}
+                disabled={isLoading}
+                maxLength={100}
+              />
+              <p className="text-xs text-muted-foreground">
+                This hint will be visible in project settings to help you remember your passcode.
+              </p>
             </div>
 
             <Separator />

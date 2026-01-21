@@ -1,6 +1,6 @@
-import { Link, createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
+import { Link, createFileRoute, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, KeyRound, Loader2, LogOut, Plus, Settings, ShieldQuestion } from "lucide-react";
+import { ArrowLeft, KeyRound, Loader2, Plus, Settings, ShieldQuestion } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EnvironmentVariables } from "@/components/environment-variables";
 import { PasscodeRecovery } from "@/components/passcode-recovery";
 import { ProjectMembers } from "@/components/project-members";
+import { ProjectSettings } from "@/components/project-settings";
 import { hash as cryptoHash, deriveKey } from "@/lib/crypto";
 import { keyStore } from "@/lib/key-store";
 
@@ -38,9 +39,10 @@ function ProjectView() {
     projectId: projectId as Id<"projects">,
   });
   const user = useQuery(api.users.me);
+  const members = useQuery(api.projects.listMembers, {
+    projectId: projectId as Id<"projects">,
+  });
   const createEnvironment = useMutation(api.environments.create);
-  const leaveProject = useMutation(api.projects.leaveProject);
-  const navigate = useNavigate();
 
   const [activeEnv, setActiveEnv] = useState<string | null>(null);
   const [derivedKey, setDerivedKey] = useState<CryptoKey | null>(null);
@@ -51,11 +53,8 @@ function ProjectView() {
 
   const [showNewEnvDialog, setShowNewEnvDialog] = useState(false);
   const [newEnvName, setNewEnvName] = useState("");
+  const [newEnvDescription, setNewEnvDescription] = useState("");
   const [isCreatingEnv, setIsCreatingEnv] = useState(false);
-
-  // Settings dialog state
-  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const [isLeaving, setIsLeaving] = useState(false);
 
   // 1. Sync local derivedKey to keyStore (Only if non-null)
   useEffect(() => {
@@ -99,8 +98,10 @@ function ProjectView() {
       await createEnvironment({
         projectId: projectId as Id<"projects">,
         name: newEnvName.trim(),
+        description: newEnvDescription.trim() || undefined,
       });
       setNewEnvName("");
+      setNewEnvDescription("");
       setShowNewEnvDialog(false);
     } catch (err) {
       console.error("Failed to create environment:", err);
@@ -200,62 +201,16 @@ function ProjectView() {
             </Dialog>
           )}
           {/* Project Settings */}
-          <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
-            <DialogTrigger asChild>
+          <ProjectSettings
+            project={project}
+            environmentsCount={environments?.length || 0}
+            membersCount={members?.length || 0}
+            trigger={
               <Button variant="ghost" size="icon">
                 <Settings className="h-4 w-4" />
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Project Settings</DialogTitle>
-                <DialogDescription>
-                  Manage your project membership and settings.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                {/* Only show leave option for non-owners */}
-                {project.role !== "owner" && (
-                  <div className="rounded-lg border p-4">
-                    <h4 className="font-medium text-sm">Leave Project</h4>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      You will lose access to this project and all its variables.
-                    </p>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="mt-3 gap-2"
-                      onClick={async () => {
-                        if (!confirm("Are you sure you want to leave this project?")) return;
-                        setIsLeaving(true);
-                        try {
-                          await leaveProject({ projectId: projectId as Id<"projects"> });
-                          navigate({ to: "/" });
-                        } catch (err) {
-                          console.error("Failed to leave project:", err);
-                        } finally {
-                          setIsLeaving(false);
-                        }
-                      }}
-                      disabled={isLeaving}
-                    >
-                      {isLeaving && <Loader2 className="h-4 w-4 animate-spin" />}
-                      <LogOut className="h-4 w-4" />
-                      Leave Project
-                    </Button>
-                  </div>
-                )}
-                {project.role === "owner" && (
-                  <p className="text-xs text-muted-foreground">
-                    As the owner, you cannot leave this project. Transfer ownership or delete the project instead.
-                  </p>
-                )}
-              </div>
-              <DialogFooter>
-                <Button onClick={() => setShowSettingsDialog(false)}>Close</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+            }
+          />
         </div>
       </div>
 
@@ -293,6 +248,15 @@ function ProjectView() {
                         value={newEnvName}
                         onChange={(e) => setNewEnvName(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleCreateEnvironment()}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="envDescription">Description (Optional)</Label>
+                      <Input
+                        id="envDescription"
+                        placeholder="Production environment for live app..."
+                        value={newEnvDescription}
+                        onChange={(e) => setNewEnvDescription(e.target.value)}
                       />
                     </div>
                   </div>

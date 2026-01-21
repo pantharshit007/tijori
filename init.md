@@ -376,8 +376,8 @@ _Goal: Advanced project management features with role-based access control._
 - [ ] when user is creating a new project, give them optional passcode description field which can be used to remember the passcode, but wouldn't be imediately visible in the dashboard.
 - [ ] allow only owner to delete a project with confirmation and Master Key verification.
 - [ ] give option to edit details, such as project details from the project settings next to the unlock button
-- [ ] Project environment info can be seen or edited from proj setting too including deletion, which you can pick from the TODO added a task around that.
-- [ ] all members info which is currently shown below the vars should be moved to in the proj setting, make the dialog a little bigger to accomodate all. 
+- [ ] Project environment info can be seen or edited from proj setting including deletion, which you can pick from the TODO added a task around that.
+- [ ] all members info (name, img, role, etc) which is currently shown below the vars should be moved to in the project members icon next to unlock and setting, which will open like a drawer from the side showing all info, and all the member related action , including search update etc can be done from here. 
 
 #### Task 6.4: Bulk Add/Edit Variable Values
 
@@ -393,7 +393,7 @@ _Goal: Advanced project management features with role-based access control._
 
 #### Task 6.6: OVERHAUL
 
-- [ ] Vercel-inspired Environment Variable Management UI
+- [ ] Vercel-inspired Environment Variable Management UI (when working on this ask user for an image as a ref, if already not provided)
 
 > Design a web UI for managing environment variables, inspired by Vercel’s environment variable management screen.
 >

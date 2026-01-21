@@ -15,6 +15,7 @@ export default defineSchema({
   projects: defineTable({
     name: v.string(),
     description: v.optional(v.string()),
+    passcodeHint: v.optional(v.string()), // Optional hint to help remember passcode
     passcodeHash: v.string(), // SHA-256 hash of passcode (with salt)
     encryptedPasscode: v.string(), // AES-256-GCM encrypted passcode
     passcodeSalt: v.string(), // Salt for both hash and PBKDF2

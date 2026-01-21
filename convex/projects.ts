@@ -28,6 +28,7 @@ export const create = mutation({
   args: {
     name: v.string(),
     description: v.optional(v.string()),
+    passcodeHint: v.optional(v.string()),
     passcodeHash: v.string(),
     encryptedPasscode: v.string(),
     passcodeSalt: v.string(),
@@ -60,6 +61,7 @@ export const create = mutation({
     const projectId = await ctx.db.insert("projects", {
       name: args.name,
       description: args.description,
+      passcodeHint: args.passcodeHint,
       passcodeHash: args.passcodeHash,
       encryptedPasscode: args.encryptedPasscode,
       passcodeSalt: args.passcodeSalt,
@@ -491,6 +493,108 @@ export const leaveProject = mutation({
 
     // Remove the membership
     await ctx.db.delete(membership._id);
+
+    return { success: true };
+  },
+});
+
+/**
+ * Update project details.
+ * Only owners can update project details.
+ */
+export const updateProject = mutation({
+  args: {
+    projectId: v.id("projects"),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
+    passcodeHint: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
+
+    // Check if user is the owner
+    const membership = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) =>
+        q.eq("projectId", args.projectId).eq("userId", userId)
+      )
+      .unique();
+
+    if (!membership || membership.role !== "owner") {
+      throw new Error("Access denied: Only owners can update project details");
+    }
+
+    // Build update object
+    const updates: Record<string, any> = { updatedAt: Date.now() };
+    if (args.name !== undefined) updates.name = args.name;
+    if (args.description !== undefined) updates.description = args.description;
+    if (args.passcodeHint !== undefined) updates.passcodeHint = args.passcodeHint;
+
+    await ctx.db.patch(args.projectId, updates);
+
+    return { success: true };
+  },
+});
+
+/**
+ * Delete a project and all its data.
+ * Only owners can delete. Requires backend verification (future: verify master key hash).
+ */
+export const deleteProject = mutation({
+  args: {
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
+
+    // Check if user is the owner
+    const membership = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) =>
+        q.eq("projectId", args.projectId).eq("userId", userId)
+      )
+      .unique();
+
+    if (!membership || membership.role !== "owner") {
+      throw new Error("Access denied: Only owners can delete projects");
+    }
+
+    // Delete all shared secrets
+    const sharedSecrets = await ctx.db
+      .query("sharedSecrets")
+      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+      .collect();
+    for (const secret of sharedSecrets) {
+      await ctx.db.delete(secret._id);
+    }
+
+    // Delete all environments and their variables
+    const environments = await ctx.db
+      .query("environments")
+      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+      .collect();
+    for (const env of environments) {
+      const variables = await ctx.db
+        .query("variables")
+        .withIndex("by_environmentId", (q) => q.eq("environmentId", env._id))
+        .collect();
+      for (const variable of variables) {
+        await ctx.db.delete(variable._id);
+      }
+      await ctx.db.delete(env._id);
+    }
+
+    // Delete all project members
+    const members = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+      .collect();
+    for (const member of members) {
+      await ctx.db.delete(member._id);
+    }
+
+    // Delete the project
+    await ctx.db.delete(args.projectId);
 
     return { success: true };
   },

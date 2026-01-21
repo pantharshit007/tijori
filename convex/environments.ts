@@ -3,7 +3,7 @@ import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
 /**
- * Access check helper.
+ * Access check helper - returns user id and role.
  */
 async function checkProjectAccess(ctx: any, projectId: Id<"projects">) {
   const identity = await ctx.auth.getUserIdentity();
@@ -27,7 +27,7 @@ async function checkProjectAccess(ctx: any, projectId: Id<"projects">) {
 
   if (!membership) throw new Error("Access denied");
 
-  return user._id;
+  return { userId: user._id, role: membership.role };
 }
 
 /**
@@ -47,6 +47,7 @@ export const list = query({
 
 /**
  * Create a new environment in a project.
+ * Only owners and admins can create environments.
  */
 export const create = mutation({
   args: {
@@ -55,7 +56,11 @@ export const create = mutation({
     description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await checkProjectAccess(ctx, args.projectId);
+    const { role } = await checkProjectAccess(ctx, args.projectId);
+
+    if (role !== "owner" && role !== "admin") {
+      throw new Error("Access denied: Only owners and admins can create environments");
+    }
 
     return await ctx.db.insert("environments", {
       projectId: args.projectId,
@@ -66,3 +71,76 @@ export const create = mutation({
   },
 });
 
+/**
+ * Update an environment.
+ * Only owners and admins can update environments.
+ */
+export const updateEnvironment = mutation({
+  args: {
+    environmentId: v.id("environments"),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const environment = await ctx.db.get(args.environmentId);
+    if (!environment) throw new Error("Environment not found");
+
+    const { role } = await checkProjectAccess(ctx, environment.projectId);
+
+    if (role !== "owner" && role !== "admin") {
+      throw new Error("Access denied: Only owners and admins can update environments");
+    }
+
+    // Build update object
+    const updates: Record<string, any> = { updatedAt: Date.now() };
+    if (args.name !== undefined) updates.name = args.name;
+    if (args.description !== undefined) updates.description = args.description;
+
+    await ctx.db.patch(args.environmentId, updates);
+
+    return { success: true };
+  },
+});
+
+/**
+ * Delete an environment and all its variables.
+ * Only owners and admins can delete environments.
+ */
+export const deleteEnvironment = mutation({
+  args: {
+    environmentId: v.id("environments"),
+  },
+  handler: async (ctx, args) => {
+    const environment = await ctx.db.get(args.environmentId);
+    if (!environment) throw new Error("Environment not found");
+
+    const { role } = await checkProjectAccess(ctx, environment.projectId);
+
+    if (role !== "owner" && role !== "admin") {
+      throw new Error("Access denied: Only owners and admins can delete environments");
+    }
+
+    // Delete all variables in this environment
+    const variables = await ctx.db
+      .query("variables")
+      .withIndex("by_environmentId", (q) => q.eq("environmentId", args.environmentId))
+      .collect();
+    for (const variable of variables) {
+      await ctx.db.delete(variable._id);
+    }
+
+    // Delete all shared secrets for this environment
+    const sharedSecrets = await ctx.db
+      .query("sharedSecrets")
+      .filter((q) => q.eq(q.field("environmentId"), args.environmentId))
+      .collect();
+    for (const secret of sharedSecrets) {
+      await ctx.db.delete(secret._id);
+    }
+
+    // Delete the environment
+    await ctx.db.delete(args.environmentId);
+
+    return { success: true };
+  },
+});
