@@ -387,14 +387,11 @@ _Goal: Advanced project management features with role-based access control._
 - [ ] Allow user to paste multiple key/values from clipboard in textarea, parse and add
 - [ ] Add option to edit single variable; each shows a pencil icon
 - [x] Member role: can only view and copy variables (cannot share, edit, or delete)
-
-#### Task 6.5: Variable Copy Enhancements
-
-- [ ] Add option to copy all values from selected environment, `"VAR_NAME"= VAR_VALUE`
+- [ ] Add option to copy all values (bulk copy) from selected environment, `"VAR_NAME"= VAR_VALUE`
 
 ---
 
-#### Task 6.6: OVERHAUL
+#### Task 6.5: OVERHAUL
 
 - [ ] Vercel-inspired Environment Variable Management UI (when working on this ask user for an image as a ref, if already not provided)
 
