@@ -47,13 +47,14 @@ Advanced project management features including:
 - [ ] Grid/table view for project (future enhancement)
 
 ### Task 6.4: Bulk Add/Edit Variable Values ✅
-- [x] Paste multiple key/values from clipboard in textarea, parse and add (Bulk Add dialog)
-- [x] Support for KEY=VALUE, export KEY=VALUE, and quoted value formats
-- [x] Preview parsed variables with validation before adding
-- [x] Progress indicator for bulk add operations
-- [x] Edit single variable with pencil icon (inline edit mode)
-- [x] Role-based restrictions: member can only view and copy (implemented)
-- [ ] Copy all values from selected environment (future)
+- [x] Bulk Add dialog: paste KEY=VALUE pairs, preview with validation, add all
+- [x] Bulk Edit dialog: table view to edit multiple variables (name AND value)
+- [x] Raw text edit toggle: checkbox to switch to textarea for KEY="VALUE" editing
+- [x] Edit single variable with pencil icon (inline edit for name AND value)
+- [x] ESC key cancels edit mode
+- [x] Copy All button: copies all variables as KEY="VALUE" format
+- [x] Role-based restrictions: member can only view and copy
+- [x] Refactored into sub-components: VariableRow, VariableEditRow, BulkAddDialog, BulkEditDialog
 
 ### Task 6.5: Variable Copy Enhancements
 - [ ] Copy all values from selected environment as `"VAR_NAME"= VAR_VALUE`

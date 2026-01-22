@@ -384,10 +384,14 @@ _Goal: Advanced project management features with role-based access control._
 
 #### Task 6.4: Bulk Add/Edit Variable Values ✅
 
-- [x] Allow user to paste multiple key/values from clipboard in textarea, parse and add (Bulk Add dialog)
-- [x] Add option to edit single variable; each shows a pencil icon
+- [x] Bulk Add dialog: paste multiple KEY=VALUE pairs, preview with validation, add all at once
+- [x] Bulk Edit dialog: edit multiple variables in table view (both name AND value)
+- [x] Raw text edit toggle: checkbox to switch to textarea for raw KEY="VALUE" editing
+- [x] Edit single variable with pencil icon (inline edit for both name AND value)
+- [x] ESC key cancels edit mode
+- [x] Copy All button: copies all variables as KEY="VALUE" format
 - [x] Member role: can only view and copy variables (cannot share, edit, or delete)
-- [ ] Add option to copy all values (bulk copy) from selected environment, `"VAR_NAME"= VAR_VALUE`
+- [x] Refactored into sub-components: VariableRow, VariableEditRow, BulkAddDialog, BulkEditDialog
 
 ---
 
