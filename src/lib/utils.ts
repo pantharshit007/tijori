@@ -1,7 +1,68 @@
-import {  clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
-import type {ClassValue} from "clsx";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+import type { ClassValue } from "clsx";
+
+import type { ParsedVariable } from "./types";
 
 export function cn(...inputs: Array<ClassValue>) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
+}
+
+/**
+ * Parse bulk input text into variable name-value pairs.
+ * Supports formats: KEY=VALUE, export KEY=VALUE, KEY="VALUE", KEY='VALUE'
+ * Lines starting with # are treated as comments and skipped.
+ */
+export function parseBulkInput(input: string): ParsedVariable[] {
+  const lines = input.split("\n").filter((line) => line.trim());
+  const results: ParsedVariable[] = [];
+
+  for (const line of lines) {
+    let trimmed = line.trim();
+    if (trimmed.startsWith("#")) continue;
+    if (trimmed.toLowerCase().startsWith("export ")) {
+      trimmed = trimmed.slice(7).trim();
+    }
+
+    const eqIndex = trimmed.indexOf("=");
+    if (eqIndex === -1) {
+      results.push({ name: trimmed, value: "", error: "Missing '=' separator" });
+      continue;
+    }
+
+    const name = trimmed.slice(0, eqIndex).trim();
+    let value = trimmed.slice(eqIndex + 1).trim();
+
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    if (!name) {
+      results.push({ name: "", value, error: "Empty variable name" });
+      continue;
+    }
+
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+      results.push({ name, value, error: "Invalid variable name format" });
+      continue;
+    }
+
+    results.push({ name, value });
+  }
+
+  return results;
+}
+
+/**
+ * Convert variables to exportable format (KEY="VALUE" per line).
+ * Filters out empty name/value pairs.
+ */
+export function variablesToExport(vars: { name: string; value: string }[]): string {
+  return vars
+    .filter((v) => v.name.trim() || v.value.trim())
+    .map((v) => `${v.name}="${v.value}"`)
+    .join("\n");
 }
