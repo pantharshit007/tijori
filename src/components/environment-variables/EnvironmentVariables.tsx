@@ -210,7 +210,11 @@ export function EnvironmentVariables({
 
   async function handleDelete(varId: Id<"variables">) {
     if (!confirm("Delete this variable?")) return;
-    await removeVariable({ id: varId });
+    try {
+      await removeVariable({ id: varId });
+    } catch (err: any) {
+      console.error("Failed to delete variable:", err?.message);
+    }
   }
 
   async function handleBulkAdd(vars: ParsedVariable[]) {
