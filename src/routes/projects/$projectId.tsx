@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, KeyRound, Loader2, Plus, Settings, ShieldQuestion } from "lucide-react";
+import { ArrowLeft, KeyRound, Loader2, Plus, Settings, ShieldQuestion, Users } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -25,6 +25,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { EnvironmentVariables } from "@/components/environment-variables";
 import { PasscodeRecovery } from "@/components/passcode-recovery";
+import { MembersDrawer } from "@/components/members-drawer";
+import { ProjectSettings } from "@/components/project-settings";
 import { hash as cryptoHash, deriveKey } from "@/lib/crypto";
 import { keyStore } from "@/lib/key-store";
 
@@ -37,6 +39,9 @@ function ProjectView() {
     projectId: projectId as Id<"projects">,
   });
   const user = useQuery(api.users.me);
+  const members = useQuery(api.projects.listMembers, {
+    projectId: projectId as Id<"projects">,
+  });
   const createEnvironment = useMutation(api.environments.create);
 
   const [activeEnv, setActiveEnv] = useState<string | null>(null);
@@ -48,6 +53,7 @@ function ProjectView() {
 
   const [showNewEnvDialog, setShowNewEnvDialog] = useState(false);
   const [newEnvName, setNewEnvName] = useState("");
+  const [newEnvDescription, setNewEnvDescription] = useState("");
   const [isCreatingEnv, setIsCreatingEnv] = useState(false);
 
   // 1. Sync local derivedKey to keyStore (Only if non-null)
@@ -92,8 +98,10 @@ function ProjectView() {
       await createEnvironment({
         projectId: projectId as Id<"projects">,
         name: newEnvName.trim(),
+        description: newEnvDescription.trim() || undefined,
       });
       setNewEnvName("");
+      setNewEnvDescription("");
       setShowNewEnvDialog(false);
     } catch (err) {
       console.error("Failed to create environment:", err);
@@ -143,10 +151,16 @@ function ProjectView() {
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">{project.name}</h1>
+              <h1 className="text-2xl max-md:text-xl font-bold tracking-tight">{project.name}</h1>
               <Badge variant="outline">{project.role}</Badge>
             </div>
-            <p className="text-muted-foreground">{project.description || "No description"}</p>
+            <p className="text-muted-foreground max-md:text-sm">
+              {project.description
+                ? project.description.length > 30
+                  ? project.description.slice(0, 30) + "..."
+                  : project.description
+                : "No description"}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -181,6 +195,7 @@ function ProjectView() {
                 ) : (
                   <PasscodeUnlock
                     project={project}
+                    userRole={project.role}
                     onUnlockSuccess={(key) => {
                       setDerivedKey(key);
                       setShowUnlockDialog(false);
@@ -191,9 +206,27 @@ function ProjectView() {
               </DialogContent>
             </Dialog>
           )}
-          <Button variant="ghost" size="icon">
-            <Settings className="h-4 w-4" />
-          </Button>
+          {/* Members Drawer */}
+          <MembersDrawer
+            projectId={projectId as Id<"projects">}
+            userRole={project.role}
+            trigger={
+              <Button variant="ghost" size="icon">
+                <Users className="h-4 w-4" />
+              </Button>
+            }
+          />
+          {/* Project Settings */}
+          <ProjectSettings
+            project={project}
+            environments={environments || []}
+            membersCount={members?.length || 0}
+            trigger={
+              <Button variant="ghost" size="icon">
+                <Settings className="h-4 w-4" />
+              </Button>
+            }
+          />
         </div>
       </div>
 
@@ -208,46 +241,64 @@ function ProjectView() {
                 </TabsTrigger>
               ))}
             </TabsList>
-            <Dialog open={showNewEnvDialog} onOpenChange={setShowNewEnvDialog}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-1">
-                  <Plus className="h-3 w-3" />
-                  Add
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Environment</DialogTitle>
-                  <DialogDescription>Create a new environment for this project.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="envName">Environment Name</Label>
-                    <Input
-                      id="envName"
-                      placeholder="Production"
-                      value={newEnvName}
-                      onChange={(e) => setNewEnvName(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleCreateEnvironment()}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    onClick={handleCreateEnvironment}
-                    disabled={isCreatingEnv || !newEnvName.trim()}
-                  >
-                    {isCreatingEnv && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Create
+            {/* Only owners and admins can add environments */}
+            {(project.role === "owner" || project.role === "admin") && (
+              <Dialog open={showNewEnvDialog} onOpenChange={setShowNewEnvDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-1">
+                    <Plus className="h-3 w-3" />
+                    Add
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Environment</DialogTitle>
+                    <DialogDescription>
+                      Create a new environment for this project.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="envName">Environment Name</Label>
+                      <Input
+                        id="envName"
+                        placeholder="Production"
+                        value={newEnvName}
+                        onChange={(e) => setNewEnvName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleCreateEnvironment()}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="envDescription">Description (Optional)</Label>
+                      <Input
+                        id="envDescription"
+                        placeholder="Production environment for live app..."
+                        value={newEnvDescription}
+                        onChange={(e) => setNewEnvDescription(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      onClick={handleCreateEnvironment}
+                      disabled={isCreatingEnv || !newEnvName.trim()}
+                    >
+                      {isCreatingEnv && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Create
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
 
           {environments.map((env) => (
             <TabsContent key={env._id} value={env._id} className="mt-4">
-              <EnvironmentVariables environment={env as Environment} derivedKey={derivedKey} />
+              <EnvironmentVariables
+                environment={env as Environment}
+                derivedKey={derivedKey}
+                userRole={project.role}
+              />
             </TabsContent>
           ))}
         </Tabs>
@@ -264,10 +315,12 @@ function ProjectView() {
 
 function PasscodeUnlock({
   project,
+  userRole,
   onUnlockSuccess,
   onForgotPasscode,
 }: {
   project: any;
+  userRole: "owner" | "admin" | "member";
   onUnlockSuccess: (key: CryptoKey) => void;
   onForgotPasscode: () => void;
 }) {
@@ -327,10 +380,13 @@ function PasscodeUnlock({
         {unlockError && <p className="text-sm text-destructive">{unlockError}</p>}
       </div>
       <DialogFooter className="flex-col gap-2 sm:flex-row">
-        <Button variant="ghost" onClick={onForgotPasscode} className="text-muted-foreground">
-          <ShieldQuestion className="mr-2 h-4 w-4" />
-          Forgot Passcode?
-        </Button>
+        {/* Only owners can recover passcode - it's bound to their master key */}
+        {userRole === "owner" && (
+          <Button variant="ghost" onClick={onForgotPasscode} className="text-muted-foreground">
+            <ShieldQuestion className="mr-2 h-4 w-4" />
+            Forgot Passcode?
+          </Button>
+        )}
         <Button onClick={handleUnlock} disabled={isUnlocking || !passcode}>
           {isUnlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Unlock

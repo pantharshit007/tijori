@@ -336,42 +336,68 @@ _Goal: Advanced master key features._
 
 ### Phase 6: Project Management (Future)
 
-_Goal: Advanced project management features._
+_Goal: Advanced project management features with role-based access control._
 
-#### Task 6.1: Recent Projects Dashboard
+#### Role-Based Access Control (RBAC) Matrix
 
-- [ ] Display recent projects (5) on /dashboard
-- [ ] add light mode and dark mode, toggle button too.
+| Feature             | Owner | Admin | Member |
+| ------------------- | ----- | ----- | ------ |
+| View variables      | ✅    | ✅    | ✅     |
+| Copy variables      | ✅    | ✅    | ✅     |
+| Share variables     | ✅    | ✅    | ❌     |
+| Add/Edit variables  | ✅    | ✅    | ❌     |
+| Delete variables    | ✅    | ✅    | ❌     |
+| Add environments    | ✅    | ✅    | ❌     |
+| Add/remove members  | ✅    | ✅    | ❌     |
+| Update member roles | ✅    | ❌    | ❌     |
+| Passcode recovery   | ✅    | ❌    | ❌     |
+| Leave project       | ❌    | ✅    | ✅     |
+| Delete project      | ✅    | ❌    | ❌     |
 
-#### Task 6.2: Project Member Management
+**Note**: Passcode recovery is only available to owners because the project passcode is encrypted with the owner's master key.
 
-- [ ] Add members to project
-- [ ] Remove members from project
-- [ ] Update the member role
+#### Task 6.1: Recent Projects Dashboard ✅
 
-#### Task 6.3: Project Details View Improvements
+- [x] Display recent projects (5) on /dashboard
+- [x] Add light mode and dark mode with toggle button in sidebar
 
-- [ ] Grid/table view for project
-- [ ] Card or table to show number of environments and members
-- [ ] Add description option to the dialog, when creating a new environment
-- [ ] when user is creating a new project, give them optional passcode description field which can be used to remember the passcode, but wouldn't be imediately visible in the dashboard.
-- [ ] allow only owner to delete a project with confirmation and Master Key verification.
+#### Task 6.2: Project Member Management ✅
 
-#### Task 6.4: Bulk Add/Edit Variable Values
+- [x] Add members to project by email
+- [x] Remove members from project
+- [x] Update the member role (owners only)
+- [x] Leave project option for non-owners (in Project Settings dialog)
 
-- [ ] Allow user to paste multiple key/values from clipboard in textarea, parse and add
-- [ ] Add option to edit single variable; each shows a pencil icon
-- [ ] user with role:member can only view and copy variables they can't share, edit, or delete it.
+#### Task 6.3: Project Details View Improvements ✅
 
-#### Task 6.5: Variable Copy Enhancements
+- [x] Card showing number of environments and members (in Project Settings tabs)
+- [x] Add description option to the dialog, when creating a new environment
+- [x] Optional passcode hint field when creating a project
+- [x] Allow only owner to delete a project with confirmation and Master Key verification
+- [x] Edit project details (name, description, passcode hint) from Project Settings
+- [x] Project environment management with edit/delete in Settings → Environments tab
+- [x] Members moved to slide-out drawer with padding/spacing improvements
+- [x] Members drawer with search, add, role update, and remove functionality
+- [x] `/projects` route implements an "All Projects" placeholder (Coming Soon)
+- [x] Dashboard (`/`) currently displays all projects (until `/projects` is finalized)
+- [ ] Grid/table view for project (future enhancement)
 
-- [ ] Add option to copy all values from selected environment, `"VAR_NAME"= VAR_VALUE`
+#### Task 6.4: Bulk Add/Edit Variable Values ✅
+
+- [x] Bulk Add dialog: paste multiple KEY=VALUE pairs, preview with validation, add all at once
+- [x] Bulk Edit dialog: edit multiple variables in table view (both name AND value)
+- [x] Raw text edit toggle: checkbox to switch to textarea for raw KEY="VALUE" editing
+- [x] Edit single variable with pencil icon (inline edit for both name AND value)
+- [x] ESC key cancels edit mode
+- [x] Copy All button: copies all variables as KEY="VALUE" format
+- [x] Member role: can only view and copy variables (cannot share, edit, or delete)
+- [x] Refactored into sub-components: VariableRow, VariableEditRow, BulkAddDialog, BulkEditDialog
 
 ---
 
-#### Task 6.6: OVERHAUL
+#### Task 6.5: OVERHAUL
 
-- [ ] Vercel-inspired Environment Variable Management UI
+- [ ] Vercel-inspired Environment Variable Management UI (when working on this ask user for an image as a ref, if already not provided)
 
 > Design a web UI for managing environment variables, inspired by Vercel’s environment variable management screen.
 >

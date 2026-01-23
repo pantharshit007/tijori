@@ -345,3 +345,134 @@ In Tijori, `passcodeSalt` is used for **two purposes**:
 // BOTH must be updated when passcodeSalt changes!
 ```
 
+---
+
+## 2026-01-21 - Phase 6
+
+### Role-Based Access Control (RBAC) Implementation
+
+When implementing granular access control, consider both **UI restrictions** and **backend authorization**:
+
+#### UI-Level Restrictions
+
+Conditionally render UI elements based on user role:
+
+```tsx
+// Only show for owners and admins
+{(userRole === "owner" || userRole === "admin") && (
+  <ShareButton />
+)}
+
+// Only show for owners
+{userRole === "owner" && (
+  <DeleteProjectButton />
+)}
+```
+
+#### Backend Authorization
+
+Always validate permissions in mutations, even if UI hides the action:
+
+```typescript
+const membership = await ctx.db.query("projectMembers")
+  .withIndex("by_project_user", (q) => 
+    q.eq("projectId", args.projectId).eq("userId", userId)
+  )
+  .unique();
+
+if (!membership || membership.role === "member") {
+  throw new Error("Access denied");
+}
+```
+
+**Both layers are required**: UI restrictions improve UX, backend restrictions prevent bypass.
+
+### Master Key Binding and Passcode Recovery
+
+An important security design decision: **Passcode recovery is only available to project owners**.
+
+**Why**: The project passcode is encrypted using a key derived from the **owner's master key**. This creates a cryptographic binding:
+
+```text
+encryptedPasscode = AES_Encrypt(passcode, deriveKey(ownerMasterKey, passcodeSalt))
+```
+
+**Implications**:
+1. Only the owner can recover the passcode (they need their master key)
+2. Admins and members cannot recover the passcode - they must ask the owner
+3. If a project is transferred (owner changed), the new owner would need to re-encrypt the passcode with their master key
+
+**UI Pattern**: Only show "Forgot Passcode?" for owners:
+
+```tsx
+{userRole === "owner" && (
+  <Button onClick={onForgotPasscode}>
+    Forgot Passcode?
+  </Button>
+)}
+```
+
+### Leave Project Pattern
+
+Non-owners need a way to remove themselves from projects they no longer want access to:
+
+**Backend**:
+```typescript
+export const leaveProject = mutation({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, args) => {
+    const membership = await getMembership(ctx, args.projectId);
+    
+    // Owners cannot leave their own project
+    if (membership.role === "owner") {
+      throw new Error("Owners cannot leave. Transfer ownership or delete instead.");
+    }
+    
+    await ctx.db.delete(membership._id);
+  }
+});
+```
+
+**UI Pattern**: Add to a "Project Settings" dialog accessible via a Settings icon:
+
+```tsx
+<Dialog>
+  <DialogTrigger>
+    <Settings />
+  </DialogTrigger>
+  <DialogContent>
+    {project.role !== "owner" && (
+      <Button variant="destructive" onClick={handleLeave}>
+        Leave Project
+      </Button>
+    )}
+  </DialogContent>
+</Dialog>
+```
+
+### Theme Management Best Practices
+
+When implementing theme switching (dark/light/system):
+
+1. **Prevent Flash of Unstyled Content (FOUC)**: Add an inline script in `<head>` that runs before React hydrates:
+
+```tsx
+<script dangerouslySetInnerHTML={{
+  __html: `
+    (function() {
+      const stored = localStorage.getItem('theme');
+      const theme = stored || 'dark';
+      const resolved = theme === 'system'
+        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : theme;
+      document.documentElement.classList.add(resolved);
+    })();
+  `
+}} />
+```
+
+2. **Use `suppressHydrationWarning`**: Add to `<html>` element to prevent React warnings about class mismatch between server and client.
+
+3. **Persist to localStorage**: Store user preference so it survives page reloads.
+
+4. **Position thoughtfully**: Theme toggles work well in sidebars near user profile, not in the main header.

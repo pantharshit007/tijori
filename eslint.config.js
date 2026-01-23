@@ -7,6 +7,7 @@ export default [
   {
     rules: {
       "@typescript-eslint/no-unnecessary-condition": "off",
+      "@typescript-eslint/array-type": "off",
     },
   },
   {

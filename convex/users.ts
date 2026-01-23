@@ -34,7 +34,7 @@ export const store = mutation({
       ) {
         await ctx.db.patch(user._id, {
           name: args.name,
-          email: args.email,
+          email: args.email.toLowerCase(),
           image: args.image,
         });
       }
@@ -45,7 +45,7 @@ export const store = mutation({
     return await ctx.db.insert("users", {
       tokenIdentifier: identity.tokenIdentifier,
       name: args.name,
-      email: args.email,
+      email: args.email.toLowerCase(),
       image: args.image,
     });
   },

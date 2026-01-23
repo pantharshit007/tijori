@@ -28,6 +28,7 @@ export const create = mutation({
   args: {
     name: v.string(),
     description: v.optional(v.string()),
+    passcodeHint: v.optional(v.string()),
     passcodeHash: v.string(),
     encryptedPasscode: v.string(),
     passcodeSalt: v.string(),
@@ -60,6 +61,7 @@ export const create = mutation({
     const projectId = await ctx.db.insert("projects", {
       name: args.name,
       description: args.description,
+      passcodeHint: args.passcodeHint,
       passcodeHash: args.passcodeHash,
       encryptedPasscode: args.encryptedPasscode,
       passcodeSalt: args.passcodeSalt,
@@ -69,7 +71,6 @@ export const create = mutation({
       updatedAt: now,
     });
 
-    // Add the creator as the owner in projectMembers
     await ctx.db.insert("projectMembers", {
       projectId,
       userId: user._id,
@@ -257,5 +258,327 @@ export const batchUpdatePasscodes = mutation({
     });
 
     return { success: true, updatedCount };
+  },
+});
+
+/**
+ * List all members of a project.
+ * Only project members can view the member list.
+ */
+export const listMembers = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
+
+    // Check if user is a member of this project
+    const membership = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
+      .unique();
+
+    if (!membership) {
+      throw new Error("Access denied: Not a member of this project");
+    }
+
+    // Get all members
+    const members = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+      .collect();
+
+    // Get user details for each member
+    const membersWithDetails = await Promise.all(
+      members.map(async (member) => {
+        const user = await ctx.db.get(member.userId);
+        return {
+          _id: member._id,
+          userId: member.userId,
+          role: member.role,
+          name: user?.name || "Unknown",
+          email: user?.email || "",
+          image: user?.image,
+        };
+      })
+    );
+
+    return membersWithDetails;
+  },
+});
+
+/**
+ * Add a member to a project by email.
+ * Only owners and admins can add members.
+ */
+export const addMember = mutation({
+  args: {
+    projectId: v.id("projects"),
+    email: v.string(),
+    role: v.union(v.literal("admin"), v.literal("member")),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
+
+    // Check if user has permission (owner or admin)
+    const membership = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
+      .unique();
+
+    if (!membership || (membership.role !== "owner" && membership.role !== "admin")) {
+      throw new Error("Access denied: Only owners and admins can add members");
+    }
+
+    const normalizedEmail = args.email.toLowerCase();
+    const targetUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+      .unique();
+
+    if (!targetUser) {
+      throw new Error("User not found with that email address");
+    }
+
+    // Check if user is already a member
+    const existingMembership = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) =>
+        q.eq("projectId", args.projectId).eq("userId", targetUser._id)
+      )
+      .unique();
+
+    if (existingMembership) {
+      throw new Error("User is already a member of this project");
+    }
+
+    // Add the member
+    await ctx.db.insert("projectMembers", {
+      projectId: args.projectId,
+      userId: targetUser._id,
+      role: args.role,
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Remove a member from a project.
+ * Owners can remove anyone. Admins can remove members.
+ * No one can remove the owner.
+ */
+export const removeMember = mutation({
+  args: {
+    projectId: v.id("projects"),
+    memberId: v.id("projectMembers"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
+
+    // Get the current user's membership
+    const myMembership = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
+      .unique();
+
+    if (!myMembership || (myMembership.role !== "owner" && myMembership.role !== "admin")) {
+      throw new Error("Access denied: Only owners and admins can remove members");
+    }
+
+    // Get the target membership
+    const targetMembership = await ctx.db.get(args.memberId);
+
+    if (!targetMembership || targetMembership.projectId !== args.projectId) {
+      throw new Error("Membership not found");
+    }
+
+    // Cannot remove the owner
+    if (targetMembership.role === "owner") {
+      throw new Error("Cannot remove the project owner");
+    }
+
+    // Admins can only remove members, not other admins
+    if (myMembership.role === "admin" && targetMembership.role === "admin") {
+      throw new Error("Admins cannot remove other admins");
+    }
+
+    // Remove the membership
+    await ctx.db.delete(args.memberId);
+
+    return { success: true };
+  },
+});
+
+/**
+ * Update a member's role.
+ * Only owners can update roles.
+ */
+export const updateMemberRole = mutation({
+  args: {
+    projectId: v.id("projects"),
+    memberId: v.id("projectMembers"),
+    role: v.union(v.literal("admin"), v.literal("member")),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
+
+    // Check if user is the owner
+    const myMembership = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
+      .unique();
+
+    if (!myMembership || myMembership.role !== "owner") {
+      throw new Error("Access denied: Only owners can update member roles");
+    }
+
+    // Get the target membership
+    const targetMembership = await ctx.db.get(args.memberId);
+
+    if (!targetMembership || targetMembership.projectId !== args.projectId) {
+      throw new Error("Membership not found");
+    }
+
+    // Cannot change owner's role
+    if (targetMembership.role === "owner") {
+      throw new Error("Cannot change the owner's role");
+    }
+
+    // Update the role
+    await ctx.db.patch(args.memberId, { role: args.role });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Leave a project.
+ * Members and admins can leave. Owners cannot leave their own project.
+ */
+export const leaveProject = mutation({
+  args: {
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
+
+    // Get the user's membership
+    const membership = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
+      .unique();
+
+    if (!membership) {
+      throw new Error("You are not a member of this project");
+    }
+
+    // Owners cannot leave
+    if (membership.role === "owner") {
+      throw new Error(
+        "Owners cannot leave their own project. Transfer ownership or delete the project instead."
+      );
+    }
+
+    // Remove the membership
+    await ctx.db.delete(membership._id);
+
+    return { success: true };
+  },
+});
+
+/**
+ * Update project details.
+ * Only owners can update project details.
+ */
+export const updateProject = mutation({
+  args: {
+    projectId: v.id("projects"),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
+    passcodeHint: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
+
+    // Check if user is the owner
+    const membership = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
+      .unique();
+
+    if (!membership || membership.role !== "owner") {
+      throw new Error("Access denied: Only owners can update project details");
+    }
+
+    // Build update object
+    const updates: Record<string, any> = { updatedAt: Date.now() };
+    if (args.name !== undefined) updates.name = args.name;
+    if (args.description !== undefined) updates.description = args.description;
+    if (args.passcodeHint !== undefined) updates.passcodeHint = args.passcodeHint;
+
+    await ctx.db.patch(args.projectId, updates);
+
+    return { success: true };
+  },
+});
+
+/**
+ * Delete a project and all its data.
+ * Only owners can delete. Requires backend verification (future: verify master key hash).
+ */
+export const deleteProject = mutation({
+  args: {
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
+
+    // Check if user is the owner
+    const membership = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
+      .unique();
+
+    if (!membership || membership.role !== "owner") {
+      throw new Error("Access denied: Only owners can delete projects");
+    }
+
+    // Delete all shared secrets
+    const sharedSecrets = await ctx.db
+      .query("sharedSecrets")
+      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+      .collect();
+    for (const secret of sharedSecrets) {
+      await ctx.db.delete(secret._id);
+    }
+
+    // Delete all environments and their variables
+    const environments = await ctx.db
+      .query("environments")
+      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+      .collect();
+    for (const env of environments) {
+      const variables = await ctx.db
+        .query("variables")
+        .withIndex("by_environmentId", (q) => q.eq("environmentId", env._id))
+        .collect();
+      for (const variable of variables) {
+        await ctx.db.delete(variable._id);
+      }
+      await ctx.db.delete(env._id);
+    }
+
+    // Delete all project members
+    const members = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+      .collect();
+    for (const member of members) {
+      await ctx.db.delete(member._id);
+    }
+
+    // Delete the project
+    await ctx.db.delete(args.projectId);
+
+    return { success: true };
   },
 });

@@ -10,6 +10,7 @@ import {
   User,
 } from "lucide-react";
 import { keyStore } from "@/lib/key-store";
+import { SidebarThemeToggle } from "@/components/sidebar-theme-toggle";
 import {
   Sidebar,
   SidebarContent,
@@ -136,6 +137,9 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
+        <div className="px-2 py-2">
+          <SidebarThemeToggle />
+        </div>
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { 
   Check, 
   Clock, 
@@ -54,6 +54,7 @@ export interface ShareDialogProps {
     expiresAt?: number;
     isIndefinite: boolean;
   }) => Promise<Id<"sharedSecrets">>;
+  trigger?: React.ReactNode;
 }
 
 export function ShareDialog({
@@ -61,6 +62,7 @@ export function ShareDialog({
   environment,
   derivedKey,
   createShare,
+  trigger,
 }: ShareDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedVars, setSelectedVars] = useState<Set<string>>(new Set());
@@ -227,10 +229,12 @@ export function ShareDialog({
   return (
     <Dialog open={open} onOpenChange={(isOpen) => (isOpen ? setOpen(true) : handleClose())}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1">
-          <Share2 className="h-3 w-3" />
-          Share
-        </Button>
+        {React.isValidElement(trigger) ? trigger : (
+          <Button variant="outline" size="sm" className="gap-1">
+            <Share2 className="h-3 w-3" />
+            Share
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-md">
         {!shareUrl ? (

@@ -56,3 +56,24 @@ export interface SharedSecret {
   views: number;
   isExpired: boolean;
 }
+
+export interface EnvironmentVariablesProps {
+  environment: Environment;
+  derivedKey: CryptoKey | null;
+  userRole: "owner" | "admin" | "member";
+}
+
+export interface ParsedVariable {
+  name: string;
+  value: string;
+  error?: string;
+}
+
+export interface BulkEditVariable {
+  id: string;
+  originalName: string;
+  name: string;
+  value: string;
+  isNew?: boolean;
+  toDelete?: boolean;
+}
