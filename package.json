@@ -2,9 +2,9 @@
   "name": "tijori",
   "private": true,
   "type": "module",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "scripts": {
-    "dev": "vite dev --port 3001",
+    "dev": "vite dev",
     "dev:convex": "bunx convex dev",
     "build": "vite build",
     "preview": "vite preview",

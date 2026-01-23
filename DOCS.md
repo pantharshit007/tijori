@@ -6,7 +6,7 @@ The environment variable management module provides a comprehensive UI for viewi
 
 ## Directory Structure
 
-```
+```text
 src/
 ├── lib/
 │   ├── types.ts          # Shared types (ParsedVariable, BulkEditVariable, etc.)

@@ -62,7 +62,7 @@ export function parseBulkInput(input: string): ParsedVariable[] {
  */
 export function variablesToExport(vars: { name: string; value: string }[]): string {
   return vars
-    .filter((v) => v.name.trim() || v.value.trim())
+    .filter((v) => v.name.trim())
     .map((v) => `${v.name}="${v.value}"`)
     .join("\n");
 }

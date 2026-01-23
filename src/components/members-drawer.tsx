@@ -78,7 +78,9 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
     if (!confirm("Remove this member from the project?")) return;
     try {
       await removeMember({ projectId, memberId });
-    } catch (err) {
+    } catch (err: any) {
+      const message = err?.message || "Failed to remove member";
+      alert(message);
       console.error("Failed to remove member:", err);
     }
   }
@@ -86,7 +88,9 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
   async function handleUpdateRole(memberId: Id<"projectMembers">, newRole: "admin" | "member") {
     try {
       await updateMemberRole({ projectId, memberId, role: newRole });
-    } catch (err) {
+    } catch (err: any) {
+      const message = err?.message || "Failed to update role";
+      alert(message);
       console.error("Failed to update role:", err);
     }
   }
@@ -189,8 +193,12 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
                       <p className="text-sm text-muted-foreground truncate">{member.email}</p>
                     </div>
 
-                    {/* Actions */}
-                    {member.role !== "owner" && canManageMembers && (
+                    {/* Actions - Only show if:
+                        - Member is not owner (can never act on owners)
+                        - Current user can manage members
+                        - If member is admin, only owner can act on them */}
+                    {member.role !== "owner" && canManageMembers && 
+                     (member.role !== "admin" || userRole === "owner") && (
                       <MemberActions
                         canUpdateRoles={canUpdateRoles}
                         memberRole={member.role}

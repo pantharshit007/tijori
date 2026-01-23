@@ -37,11 +37,11 @@ export function VariableEditRow({
     if (e.key === "Escape" && onCancel) {
       e.preventDefault();
       onCancel();
-    } else if (e.key === "Enter" && onSave && !e.shiftKey) {
+    } else if (e.key === "Enter" && onSave && !e.shiftKey && name.trim()) {
       e.preventDefault();
       onSave();
     }
-  }, [onCancel, onSave]);
+  }, [onCancel, onSave, name]);
 
   return (
     <div className="flex items-center gap-3 p-3 rounded-lg border bg-card border-primary/50">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { 
   Check, 
   Clock, 
@@ -229,7 +229,7 @@ export function ShareDialog({
   return (
     <Dialog open={open} onOpenChange={(isOpen) => (isOpen ? setOpen(true) : handleClose())}>
       <DialogTrigger asChild>
-        {trigger || (
+        {React.isValidElement(trigger) ? trigger : (
           <Button variant="outline" size="sm" className="gap-1">
             <Share2 className="h-3 w-3" />
             Share

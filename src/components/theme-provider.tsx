@@ -17,10 +17,21 @@ function getSystemTheme(): "dark" | "light" {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+const VALID_THEMES: Theme[] = ["dark", "light", "system"];
+
+function isValidTheme(value: unknown): value is Theme {
+  return typeof value === "string" && VALID_THEMES.includes(value as Theme);
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window === "undefined") return "dark";
-    return (localStorage.getItem(STORAGE_KEY) as Theme) || "dark";
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return isValidTheme(stored) ? stored : "dark";
+    } catch {
+      return "dark";
+    }
   });
 
   const resolvedTheme = theme === "system" ? getSystemTheme() : theme;

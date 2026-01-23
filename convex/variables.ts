@@ -11,9 +11,7 @@ async function checkEnvironmentAccess(ctx: any, environmentId: Id<"environments"
 
   const user = await ctx.db
     .query("users")
-    .withIndex("by_tokenIdentifier", (q: any) =>
-      q.eq("tokenIdentifier", identity.tokenIdentifier),
-    )
+    .withIndex("by_tokenIdentifier", (q: any) => q.eq("tokenIdentifier", identity.tokenIdentifier))
     .unique();
 
   if (!user) throw new Error("User not found");
@@ -24,13 +22,13 @@ async function checkEnvironmentAccess(ctx: any, environmentId: Id<"environments"
   const membership = await ctx.db
     .query("projectMembers")
     .withIndex("by_project_user", (q: any) =>
-      q.eq("projectId", environment.projectId).eq("userId", user._id),
+      q.eq("projectId", environment.projectId).eq("userId", user._id)
     )
     .unique();
 
   if (!membership) throw new Error("Access denied");
 
-  return user._id;
+  return { userId: user._id, membership };
 }
 
 /**
@@ -61,13 +59,15 @@ export const save = mutation({
     authTag: v.string(),
   },
   handler: async (ctx, args) => {
-    await checkEnvironmentAccess(ctx, args.environmentId);
+    const { membership } = await checkEnvironmentAccess(ctx, args.environmentId);
+
+    if (membership.role !== "owner" && membership.role !== "admin") {
+      throw new Error("Forbidden: Only owners and admins can modify variables");
+    }
 
     const existing = await ctx.db
       .query("variables")
-      .withIndex("by_environmentId", (q) =>
-        q.eq("environmentId", args.environmentId),
-      )
+      .withIndex("by_environmentId", (q) => q.eq("environmentId", args.environmentId))
       .filter((q) => q.eq(q.field("name"), args.name))
       .unique();
 
@@ -99,7 +99,12 @@ export const remove = mutation({
     const variable = await ctx.db.get(args.id);
     if (!variable) throw new Error("Variable not found");
 
-    await checkEnvironmentAccess(ctx, variable.environmentId);
+    const { membership } = await checkEnvironmentAccess(ctx, variable.environmentId);
+
+    // Enforce role-based access: only owner and admin can delete variables
+    if (membership.role !== "owner" && membership.role !== "admin") {
+      throw new Error("Forbidden: Only owners and admins can delete variables");
+    }
 
     await ctx.db.delete(args.id);
   },

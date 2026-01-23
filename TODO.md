@@ -1,5 +1,4 @@
 - [ ] haven't thought about how to add a new memeber to a project
-- [ ] either remove the settings button or add something to it in /projects/$projectId
 - [ ] update the sidebar with the correct functionality, log out button, and settings button and profile, along with correct user info.
 - [ ] do we need a profile page? what is even the use case for it?
 - [ ] in `handleReveal` and `handleCopy` are we re-calculating the decrypted value every time? for each value? if yes, then we should cache it in state or fix it such that once we unlock the passcode, we don't need to decrypt the same value again.
@@ -10,3 +9,4 @@
 - [ ] add length limit to description field and other such fields in schema.
 - [ ] update the enums such as "admin" and "member" to be "owner" and "member" in react files to types directly from convex.
 - [ ] when removing a env key, instead of the alert we should get a dialog telling us the name and the environment where the key is used, which will get deleted.
+- [ ] remove mutation in variable.ts `const variable = await ctx.db.get(args.id);` why are we querying the whole db again, instead of that specific table?

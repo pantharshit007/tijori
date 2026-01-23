@@ -18,9 +18,10 @@ import { formatRelativeTime } from '@/lib/time'
 function Dashboard() {
   const projects = useQuery(api.projects.list)
 
-  // Sort projects by updatedAt
+  // Sort projects by updatedAt (create copy to avoid mutating original)
   const sortedProjects = projects
-    ?.sort((a, b) => b.updatedAt - a.updatedAt)
+    ? [...projects].sort((a, b) => b.updatedAt - a.updatedAt)
+    : undefined;
 
   return (
     <div className="space-y-8">

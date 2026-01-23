@@ -14,6 +14,29 @@ const config = defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Only split node_modules
+          if (!id.includes('node_modules')) return;
+          
+          // Split Radix UI components
+          if (id.includes('@radix-ui')) {
+            return 'radix-ui';
+          }
+          // Split TanStack libraries
+          if (id.includes('@tanstack')) {
+            return 'tanstack';
+          }
+          // Split Convex
+          if (id.includes('convex')) {
+            return 'convex';
+          }
+        },
+      },
+    },
+  },
   plugins: [
     devtools(),
     nitro(),

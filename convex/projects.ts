@@ -328,9 +328,11 @@ export const addMember = mutation({
       throw new Error("Access denied: Only owners and admins can add members");
     }
 
-    // Find the user by email
-    const users = await ctx.db.query("users").collect();
-    const targetUser = users.find((u) => u.email.toLowerCase() === args.email.toLowerCase());
+    const normalizedEmail = args.email.toLowerCase();
+    const targetUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+      .unique();
 
     if (!targetUser) {
       throw new Error("User not found with that email address");

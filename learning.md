@@ -393,7 +393,7 @@ An important security design decision: **Passcode recovery is only available to 
 
 **Why**: The project passcode is encrypted using a key derived from the **owner's master key**. This creates a cryptographic binding:
 
-```
+```text
 encryptedPasscode = AES_Encrypt(passcode, deriveKey(ownerMasterKey, passcodeSalt))
 ```
 
