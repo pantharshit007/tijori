@@ -1,6 +1,15 @@
 import { Link, createFileRoute, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, KeyRound, Loader2, Plus, Settings, ShieldQuestion, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  KeyRound,
+  Loader2,
+  Plus,
+  Settings,
+  Share2,
+  ShieldQuestion,
+  Users,
+} from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -20,6 +29,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -47,6 +63,12 @@ function ProjectView() {
   const [activeEnv, setActiveEnv] = useState<string | null>(null);
   const [derivedKey, setDerivedKey] = useState<CryptoKey | null>(null);
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState<"project" | "shared">("project");
+
+  // Query shared secrets for the Shared tab
+  const sharedSecrets = useQuery(api.sharedSecrets.listByProject, {
+    projectId: projectId as Id<"projects">,
+  });
 
   // Passcode recovery state
   const [recoveryMode, setRecoveryMode] = useState(false);
@@ -140,7 +162,10 @@ function ProjectView() {
   }
 
   return (
-    <div className="space-y-6">
+    <div
+      className="w-full max-w-300 mx-auto space-y-6 px-2 sm:px-4 md:px-8 lg:px-12 xl:px-20"
+      style={{ minWidth: 0 }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -230,85 +255,158 @@ function ProjectView() {
         </div>
       </div>
 
-      {/* Environment Tabs */}
-      {environments.length > 0 ? (
-        <Tabs value={activeEnv || undefined} onValueChange={setActiveEnv} className="w-full">
-          <div className="flex items-center gap-2">
-            <TabsList>
-              {environments.map((env) => (
-                <TabsTrigger key={env._id} value={env._id}>
-                  {env.name}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            {/* Only owners and admins can add environments */}
-            {(project.role === "owner" || project.role === "admin") && (
-              <Dialog open={showNewEnvDialog} onOpenChange={setShowNewEnvDialog}>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-1">
-                    <Plus className="h-3 w-3" />
-                    Add
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Environment</DialogTitle>
-                    <DialogDescription>
-                      Create a new environment for this project.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="envName">Environment Name</Label>
-                      <Input
-                        id="envName"
-                        placeholder="Production"
-                        value={newEnvName}
-                        onChange={(e) => setNewEnvName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleCreateEnvironment()}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="envDescription">Description (Optional)</Label>
-                      <Input
-                        id="envDescription"
-                        placeholder="Production environment for live app..."
-                        value={newEnvDescription}
-                        onChange={(e) => setNewEnvDescription(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      onClick={handleCreateEnvironment}
-                      disabled={isCreatingEnv || !newEnvName.trim()}
-                    >
-                      {isCreatingEnv && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Create
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            )}
-          </div>
+      {/* Project / Shared Tabs */}
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as "project" | "shared")}
+        className="w-full"
+      >
+        <TabsList>
+          <TabsTrigger value="project" className="data-[state=active]:bg-secondary dark:data-[state=active]:bg-secondary text-accent data-[state=active]:text-accent data-[state=inactive]:text-zinc-800">
+            Project
+          </TabsTrigger>
+          <TabsTrigger
+            value="shared"
+            className="gap-1.5 data-[state=active]:bg-secondary dark:data-[state=active]:bg-secondary text-accent data-[state=active]:text-accent  data-[state=inactive]:text-zinc-800"
+          >
+            <Share2 className="h-3 w-3" />
+            Shared
+          </TabsTrigger>
+        </TabsList>
 
-          {environments.map((env) => (
-            <TabsContent key={env._id} value={env._id} className="mt-4">
-              <EnvironmentVariables
-                environment={env as Environment}
-                derivedKey={derivedKey}
-                userRole={project.role}
-              />
-            </TabsContent>
-          ))}
-        </Tabs>
-      ) : (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="text-muted-foreground">No environments found</p>
-          </CardContent>
-        </Card>
-      )}
+        {/* Project Tab Content */}
+        <TabsContent value="project" className="mt-4 space-y-4">
+          {environments.length > 0 ? (
+            <>
+              {/* Environment Dropdown + Add Button */}
+              <div className="flex items-center gap-2">
+                <Select value={activeEnv || undefined} onValueChange={setActiveEnv}>
+                  <SelectTrigger className="w-50">
+                    <SelectValue placeholder="Select Environment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {environments.map((env) => (
+                      <SelectItem key={env._id} value={env._id}>
+                        {env.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Only owners and admins can add environments */}
+                {(project.role === "owner" || project.role === "admin") && (
+                  <Dialog open={showNewEnvDialog} onOpenChange={setShowNewEnvDialog}>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="gap-1">
+                        <Plus className="h-3 w-3" />
+                        Add
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add Environment</DialogTitle>
+                        <DialogDescription>
+                          Create a new environment for this project.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="envName">Environment Name</Label>
+                          <Input
+                            id="envName"
+                            placeholder="Production"
+                            value={newEnvName}
+                            onChange={(e) => setNewEnvName(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleCreateEnvironment()}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="envDescription">Description (Optional)</Label>
+                          <Input
+                            id="envDescription"
+                            placeholder="Production environment for live app..."
+                            value={newEnvDescription}
+                            onChange={(e) => setNewEnvDescription(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          onClick={handleCreateEnvironment}
+                          disabled={isCreatingEnv || !newEnvName.trim()}
+                        >
+                          {isCreatingEnv && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Create
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </div>
+
+              {/* Environment Variables */}
+              {activeEnv && environments.find((e) => e._id === activeEnv) && (
+                <EnvironmentVariables
+                  environment={environments.find((e) => e._id === activeEnv) as Environment}
+                  derivedKey={derivedKey}
+                  userRole={project.role}
+                />
+              )}
+            </>
+          ) : (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <p className="text-muted-foreground">No environments found</p>
+                {(project.role === "owner" || project.role === "admin") && (
+                  <Button variant="link" onClick={() => setShowNewEnvDialog(true)} className="mt-2">
+                    Create your first environment
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Shared Tab Content */}
+        <TabsContent value="shared" className="mt-4">
+          {sharedSecrets && sharedSecrets.length > 0 ? (
+            <div className="space-y-2">
+              {sharedSecrets.map((share) => (
+                <Card key={share._id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{share.environmentName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {share.isDisabled ? "Disabled" : share.isExpired ? "Expired" : "Active"}
+                        {" • "}
+                        {share.views} views
+                      </p>
+                    </div>
+                    <Badge
+                      variant={
+                        share.isDisabled ? "disabled" : share.isExpired ? "expired" : "active"
+                      }
+                    >
+                      {share.isDisabled ? "Disabled" : share.isExpired ? "Expired" : "Active"}
+                    </Badge>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                <Share2 className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="font-medium">No shared variables linked</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Link variables from your team's shared environment variables to use them in this
+                  project.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

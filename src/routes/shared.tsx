@@ -267,21 +267,21 @@ function SharedDashboard() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className="font-mono">
+                    <Badge variant="secondary" className="font-mono ">
                       {share.views}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     {share.isDisabled ? (
-                      <Badge variant="outline" className="text-destructive border-destructive/30">
+                      <Badge variant="disabled" >
                         Disabled
                       </Badge>
                     ) : share.isExpired ? (
-                      <Badge variant="outline" className="text-amber-500 border-amber-500/30">
+                      <Badge variant="expired">
                         Expired
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="text-green-500 border-green-500/30">
+                      <Badge variant="active" >
                         Active
                       </Badge>
                     )}

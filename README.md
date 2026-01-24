@@ -295,3 +295,11 @@ Files prefixed with `demo` can be safely deleted. They are there to provide a st
 # Learn More
 
 You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
+
+# License
+
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. 
+
+The AGPL is a strong copyleft license specifically designed for network-server software. It ensures that if you run a modified version of the software on a server and let the public access it, you must also make the source code of that modified version available to the public.
+
+See the [LICENSE](./LICENSE) file for the full text.

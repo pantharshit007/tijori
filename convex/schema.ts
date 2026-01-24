@@ -48,6 +48,8 @@ export default defineSchema({
     encryptedValue: v.string(),
     iv: v.string(),
     authTag: v.string(),
+    createdBy: v.id("users"),
+    updatedAt: v.number(),
   }).index("by_environmentId", ["environmentId"]),
 
   sharedSecrets: defineTable({

@@ -17,6 +17,10 @@ export interface Variable {
   iv: string;
   authTag: string;
   environmentId: Id<"environments">;
+  createdBy: Id<"users">;
+  updatedAt: number;
+  creatorName?: string;
+  creatorImage?: string;
 }
 
 export interface SharedVariable {

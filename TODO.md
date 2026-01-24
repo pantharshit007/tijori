@@ -10,3 +10,4 @@
 - [ ] update the enums such as "admin" and "member" to be "owner" and "member" in react files to types directly from convex.
 - [ ] when removing a env key, instead of the alert we should get a dialog telling us the name and the environment where the key is used, which will get deleted.
 - [ ] remove mutation in variable.ts `const variable = await ctx.db.get(args.id);` why are we querying the whole db again, instead of that specific table?
+- [ ] Transfer ownership of project, pending.

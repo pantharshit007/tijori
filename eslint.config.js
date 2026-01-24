@@ -13,6 +13,7 @@ export default [
   {
     ignores: [
       ".agent",
+      ".agents",
       ".opencode",
       "convex/_generated/**",
       "init.md",
