@@ -41,6 +41,7 @@ export interface ShareDialogProps {
   createShare: (args: {
     projectId: Id<"projects">;
     environmentId: Id<"environments">;
+    name?: string;
     encryptedPasscode: string;
     passcodeIv: string;
     passcodeAuthTag: string;
@@ -67,6 +68,7 @@ export function ShareDialog({
   const [open, setOpen] = useState(false);
   const [selectedVars, setSelectedVars] = useState<Set<string>>(new Set());
   const [expiry, setExpiry] = useState<ShareExpiryValue>("24h");
+  const [shareName, setShareName] = useState("");
   const [sharePasscode, setSharePasscode] = useState("");
   const [passcodeError, setPasscodeError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -182,6 +184,7 @@ export function ShareDialog({
       const shareId = await createShare({
         projectId: environment.projectId,
         environmentId: environment._id,
+        name: shareName.trim() || undefined,
         encryptedPasscode: encPass,
         passcodeIv: passIv,
         passcodeAuthTag: passTag,
@@ -219,12 +222,14 @@ export function ShareDialog({
     setTimeout(() => {
       setSelectedVars(new Set());
       setExpiry("24h");
+      setShareName("");
       setSharePasscode("");
       setPasscodeError(null);
       setShareUrl(null);
       setCopied(false);
     }, 200);
   }
+
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => (isOpen ? setOpen(true) : handleClose())}>
@@ -284,6 +289,22 @@ export function ShareDialog({
                 </p>
               </div>
 
+              {/* Share label (optional) */}
+              <div className="space-y-2">
+                <Label htmlFor="share-name">Label (optional)</Label>
+                <Input
+                  id="share-name"
+                  type="text"
+                  maxLength={50}
+                  placeholder="e.g., For QA Team, Staging Deploy"
+                  value={shareName}
+                  onChange={(e) => setShareName(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  A short description to help you identify this share later.
+                </p>
+              </div>
+
               {/* Passcode input */}
               <div className="space-y-2">
                 <Label htmlFor="share-passcode">Share Passcode</Label>
@@ -304,6 +325,7 @@ export function ShareDialog({
                   Recipients will need this passcode to view the secrets.
                 </p>
               </div>
+
 
               {/* Expiry selection */}
               <div className="space-y-2">

@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { 
   Clock, 
   Copy, 
@@ -56,12 +56,23 @@ import { formatDateTime, formatRelativeTime } from "@/lib/time";
 import { SHARE_EXPIRY_OPTIONS  } from "@/lib/constants";
 import { keyStore } from "@/lib/key-store";
 import { decrypt } from "@/lib/crypto";
+import { UserAvatar } from "@/components/user-avatar";
+
+type SharedSearchParams = {
+  p?: string;
+};
 
 export const Route = createFileRoute("/shared")({
+  validateSearch: (search: Record<string, unknown>): SharedSearchParams => {
+    return {
+      p: typeof search.p === "string" ? search.p : undefined,
+    };
+  },
   component: SharedDashboard,
 });
 
 function SharedDashboard() {
+  const { p: initialProjectFilter } = useSearch({ from: "/shared" });
   const sharedSecrets = useQuery(api.sharedSecrets.listByUser);
   const toggleDisabled = useMutation(api.sharedSecrets.toggleDisabled);
   const removeShare = useMutation(api.sharedSecrets.remove);
@@ -72,6 +83,19 @@ function SharedDashboard() {
   const [revealedPasscodes, setRevealedPasscodes] = useState<Set<string>>(new Set());
   const [decryptedPasscodes, setDecryptedPasscodes] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Initialize project filter from URL param once data is loaded
+  useEffect(() => {
+    if (initialProjectFilter && sharedSecrets) {
+      const matchingProject = sharedSecrets.find(
+        (s) => s.projectName.toLowerCase() === initialProjectFilter.toLowerCase()
+      );
+      if (matchingProject) {
+        setProjectFilter(matchingProject.projectName);
+      }
+    }
+  }, [initialProjectFilter, sharedSecrets]);
+
 
   if (sharedSecrets === undefined) {
     return (
@@ -92,12 +116,14 @@ function SharedDashboard() {
   const filteredShares = sharedSecrets.filter((share) => {
     const matchesSearch = 
       share.projectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      share.environmentName.toLowerCase().includes(searchQuery.toLowerCase());
+      share.environmentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (share.name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
     
     const matchesProject = projectFilter === "all" || share.projectName === projectFilter;
     
     return matchesSearch && matchesProject;
   });
+
 
   async function togglePasscode(share: SharedSecret) {
     const id = share._id;
@@ -200,7 +226,9 @@ function SharedDashboard() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Label</TableHead>
               <TableHead>Environment / Project</TableHead>
+              <TableHead>Created By</TableHead>
               <TableHead>Passcode</TableHead>
               <TableHead>Expiry</TableHead>
               <TableHead>Views</TableHead>
@@ -211,19 +239,42 @@ function SharedDashboard() {
           <TableBody>
             {filteredShares.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
                   No shared secrets found
                 </TableCell>
               </TableRow>
             ) : (
               filteredShares.map((share) => (
+
                 <TableRow key={share._id}>
+                  <TableCell>
+                    {share.name ? (
+                      <span className="font-medium text-sm">{share.name}</span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs italic">No label</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="font-medium">{share.environmentName}</span>
                       <span className="text-xs text-muted-foreground">{share.projectName}</span>
                     </div>
                   </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <UserAvatar
+                        src={share.creatorImage}
+                        name={share.creatorName}
+                        size="sm"
+                        showTooltip={true}
+                        tooltipContent={<p className="text-xs font-medium">{share.creatorName}</p>}
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {share.creatorName?.split(" ")[0] || "Unknown"}
+                      </span>
+                    </div>
+                  </TableCell>
+
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">
@@ -304,13 +355,18 @@ function SharedDashboard() {
                           View public page
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        {!keyStore.getKey(share.projectId) ? (
+                        {!share.canManage ? (
+                          <DropdownMenuItem disabled className="text-muted-foreground">
+                            <Lock className="h-4 w-4 mr-2" />
+                            View Only
+                          </DropdownMenuItem>
+                        ) : !keyStore.getKey(share.projectId) ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div>
                                 <DropdownMenuItem disabled>
                                   <Lock className="h-4 w-4 mr-2" />
-                                  Management Locked
+                                  Unlock to Manage
                                 </DropdownMenuItem>
                               </div>
                             </TooltipTrigger>
@@ -362,6 +418,7 @@ function SharedDashboard() {
                             </DropdownMenuItem>
                           </>
                         )}
+
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

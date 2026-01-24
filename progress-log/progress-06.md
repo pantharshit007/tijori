@@ -60,16 +60,34 @@ Advanced project management features including:
 - [ ] Copy all values from selected environment as `"VAR_NAME"= VAR_VALUE`
 
 ### Task 6.6: OVERHAUL - Vercel-inspired Environment Variable Management UI
-- [ ] Search input for filtering variables
-- [ ] Dropdown to filter by environment
-- [ ] Sort dropdown (e.g., "Last Updated")
-- [ ] Variable list with masked values, reveal/copy behavior
-- [ ] Row metadata (added date, user avatar, kebab menu)
+- [x] Search input for filtering variables
+- [x] Dropdown to filter by environment
+- [x] Sort dropdown (e.g., "Last Updated")
+- [x] Variable list with masked values, reveal/copy behavior
+- [x] Row metadata (added date, user avatar, kebab menu)
 - [ ] Accessibility and keyboard navigation
+
+### Task 6.7: SharedSecrets Management Improvements ✅
+- [x] **Security Fix**: Role-based access control for shared secrets mutations
+  - Owner can modify/delete any share in their projects
+  - Creator can only modify if they still have admin/owner role
+  - Demoted members (e.g., admin → member) cannot manage their old shares
+- [x] **Visibility Fix**: Owners can now see all shared secrets from their projects in `/shared`
+  - Added `canManage` flag to differentiate view-only vs. manageable shares
+- [x] **Reusable UserAvatar component** with customizable size, tooltip, and styling
+- [x] **Optional Share Label/Name**: Add descriptive label when creating shares
+  - Label shows in `/shared` table and project Shared tab
+  - Searchable by label in `/shared`
+- [x] **UI Improvements**:
+  - First name shown next to avatar, full name in tooltip
+  - 3-column layout in project Shared tab cards
+  - "View Only" indicator for shares user cannot manage
+  - Clicking shared secret card navigates to `/shared?p=[project-name]`
 
 ---
 
 ## Role-Based Access Control (RBAC) Matrix
+
 
 | Feature | Owner | Admin | Member |
 |---------|-------|-------|--------|

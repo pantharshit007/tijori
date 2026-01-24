@@ -56,6 +56,7 @@ export default defineSchema({
     projectId: v.id("projects"),
     environmentId: v.id("environments"),
     createdBy: v.id("users"),
+    name: v.optional(v.string()), 
     encryptedPasscode: v.string(), // Passcode encrypted with Project Key
     passcodeIv: v.string(),
     passcodeAuthTag: v.string(),
@@ -75,3 +76,4 @@ export default defineSchema({
     .index("by_createdBy", ["createdBy"])
     .index("by_expiry", ["expiresAt"]),
 });
+

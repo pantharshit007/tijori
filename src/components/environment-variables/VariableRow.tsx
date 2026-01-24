@@ -4,7 +4,7 @@ import { Check, Code2, Copy, Eye, EyeOff, MoreVertical, Pencil, Trash2 } from "l
 import type { Variable } from "@/lib/types";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import {
   Tooltip,
   TooltipContent,
@@ -60,12 +60,11 @@ export const VariableRow = memo(function VariableRow({
     ? decryptedValue.length > 10 ? `${decryptedValue.slice(0, 10)}…` : decryptedValue
     : null;
 
-  const firstName = variable.creatorName?.split(" ")[0] || "Unknown";
-
   // Determine if added or updated (threshold of 5 seconds)
   const isUpdated = variable.updatedAt && variable._creationTime 
     ? (variable.updatedAt - variable._creationTime) > 5000 
     : false;
+
 
   return (
     <div className="grid grid-cols-12 items-center gap-4 py-4 px-4 hover:bg-accent/10 transition-colors group">
@@ -141,21 +140,12 @@ export const VariableRow = memo(function VariableRow({
               : `Added ${new Date(variable._creationTime).toLocaleDateString()}`}
           </span>
           
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Avatar className="h-7 w-7 border ring-offset-background transition-all hover:ring-2 hover:ring-accent">
-                  <AvatarImage src={variable.creatorImage} alt={variable.creatorName} />
-                  <AvatarFallback className="text-[10px] bg-muted/50 font-bold">
-                    {firstName.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs font-medium">{firstName}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <UserAvatar
+            src={variable.creatorImage}
+            name={variable.creatorName}
+            size="md"
+            showTooltip={true}
+          />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

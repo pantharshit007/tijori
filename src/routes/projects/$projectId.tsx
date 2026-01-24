@@ -2,6 +2,7 @@ import { Link, createFileRoute, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
+  ExternalLink,
   KeyRound,
   Loader2,
   Plus,
@@ -43,8 +44,10 @@ import { EnvironmentVariables } from "@/components/environment-variables";
 import { PasscodeRecovery } from "@/components/passcode-recovery";
 import { MembersDrawer } from "@/components/members-drawer";
 import { ProjectSettings } from "@/components/project-settings";
+import { UserAvatar } from "@/components/user-avatar";
 import { hash as cryptoHash, deriveKey } from "@/lib/crypto";
 import { keyStore } from "@/lib/key-store";
+
 
 function ProjectView() {
   const { projectId } = useParams({ from: "/projects/$projectId" });
@@ -372,25 +375,56 @@ function ProjectView() {
           {sharedSecrets && sharedSecrets.length > 0 ? (
             <div className="space-y-2">
               {sharedSecrets.map((share) => (
-                <Card key={share._id} className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{share.environmentName}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {share.isDisabled ? "Disabled" : share.isExpired ? "Expired" : "Active"}
-                        {" • "}
-                        {share.views} views
-                      </p>
+                <Link
+                  key={share._id}
+                  to="/shared"
+                  search={{ p: project.name }}
+                  className="block"
+                >
+                  <Card className="p-4 hover:bg-accent/50 transition-colors cursor-pointer group">
+                    <div className="grid grid-cols-12 items-center gap-4">
+                      {/* Column 1: Creator Avatar (col 1) */}
+                      <div className="col-span-1">
+                        <UserAvatar
+                          src={share.creatorImage}
+                          name={share.creatorName}
+                          size="md"
+                          showTooltip={true}
+                          tooltipContent={<p className="text-xs font-medium">{share.creatorName}</p>}
+                        />
+                      </div>
+
+                      {/* Column 2: Label, Environment, Creator, Views (col 2-8) */}
+                      <div className="col-span-7 min-w-0">
+                        <div className="flex items-center gap-2">
+                          {share.name && (
+                            <span className="font-medium text-sm truncate">{share.name}</span>
+                          )}
+                          <span className={`text-sm ${share.name ? 'text-muted-foreground' : 'font-medium'}`}>
+                            {share.environmentName}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          by {share.creatorName?.split(" ")[0] || "Unknown"} • {share.views} views
+                        </p>
+                      </div>
+
+                      {/* Column 3: Status + Arrow (col 9-12) */}
+                      <div className="col-span-4 flex items-center justify-end gap-3">
+                        <Badge
+                          variant={
+                            share.isDisabled ? "disabled" : share.isExpired ? "expired" : "active"
+                          }
+                        >
+                          {share.isDisabled ? "Disabled" : share.isExpired ? "Expired" : "Active"}
+                        </Badge>
+                        <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
                     </div>
-                    <Badge
-                      variant={
-                        share.isDisabled ? "disabled" : share.isExpired ? "expired" : "active"
-                      }
-                    >
-                      {share.isDisabled ? "Disabled" : share.isExpired ? "Expired" : "Active"}
-                    </Badge>
-                  </div>
-                </Card>
+                  </Card>
+
+
+                </Link>
               ))}
             </div>
           ) : (
@@ -406,6 +440,7 @@ function ProjectView() {
             </Card>
           )}
         </TabsContent>
+
       </Tabs>
     </div>
   );
