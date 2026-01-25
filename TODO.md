@@ -13,3 +13,5 @@
 - [ ] Transfer ownership of project, pending.
 - [ ] more options like select all, select none, and select few in shared section in dashboard to perform bulk actions, disable, expire, delete.
 - [ ] add toast notifications for successful actions, ex: copy, delete, etc.
+- [ ] add a role attribute to user table, role is whole platform based, role: user, pro, pro_plus, super_admin
+  - [ ] continuation of the above, this will limit few things, ex: number of projects creation 5 or 10, no. of environments 3 or 5, no. of members per project 2 or 5, etc.

@@ -394,7 +394,7 @@ function SharedDashboard() {
                               <DropdownMenuItem onClick={() => toggleDisabled({ id: share._id })}>
                                 {share.isDisabled ? (
                                   <>
-                                    <Unlock className="h-4 w-4 mr-2" text-primary />
+                                    <Unlock className="h-4 w-4 mr-2 text-primary" />
                                     Enable link
                                   </>
                                 ) : (
