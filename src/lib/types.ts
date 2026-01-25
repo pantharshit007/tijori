@@ -17,6 +17,10 @@ export interface Variable {
   iv: string;
   authTag: string;
   environmentId: Id<"environments">;
+  createdBy: Id<"users">;
+  updatedAt: number;
+  creatorName?: string;
+  creatorImage?: string;
 }
 
 export interface SharedVariable {
@@ -40,6 +44,7 @@ export interface SharedSecret {
   environmentId: Id<"environments">;
   projectName: string;
   environmentName: string;
+  name?: string;
   encryptedPasscode: string;
   passcodeIv: string;
   passcodeAuthTag: string;
@@ -55,6 +60,11 @@ export interface SharedSecret {
   isDisabled: boolean;
   views: number;
   isExpired: boolean;
+  canManage?: boolean;
+  isCreator?: boolean;
+  isOwner?: boolean;
+  creatorName?: string;
+  creatorImage?: string;
 }
 
 export interface EnvironmentVariablesProps {

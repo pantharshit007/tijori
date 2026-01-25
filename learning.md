@@ -476,3 +476,82 @@ When implementing theme switching (dark/light/system):
 3. **Persist to localStorage**: Store user preference so it survives page reloads.
 
 4. **Position thoughtfully**: Theme toggles work well in sidebars near user profile, not in the main header.
+
+---
+
+## 2026-01-25 - Phase 6.7: SharedSecrets RBAC
+
+### The canManage Pattern
+
+When a resource can be viewed by multiple users but only managed by some, implement a `canManage` flag at query time:
+
+```typescript
+// In the query, compute permissions upfront
+return allSharedSecrets.map((s) => {
+  const userRole = roleMap.get(s.projectId) || null;
+  const isOwner = userRole === "owner";
+  const isCreator = s.createdBy === user._id;
+  
+  // canManage = owner OR creator with admin rights
+  const canManage = isOwner || (isCreator && (userRole === "owner" || userRole === "admin"));
+
+  return {
+    ...s,
+    isOwner,
+    isCreator,
+    canManage, // Frontend uses this to show/hide actions
+  };
+});
+```
+
+**Frontend usage:**
+
+```tsx
+{share.canManage ? (
+  <DropdownMenuItem onClick={handleEdit}>Edit</DropdownMenuItem>
+) : (
+  <DropdownMenuItem disabled>View Only</DropdownMenuItem>
+)}
+```
+
+**Key Insight**: Always compute permissions on the backend and pass them to the frontend. Never derive permissions solely on the frontend from other flags - the backend is the source of truth.
+
+### Demoted User Anti-Pattern
+
+**Scenario**: User was admin and created a shared link. Later, they're demoted to member.
+
+**Wrong approach**: Check only `createdBy === user._id` (allows demoted users to modify)
+
+**Correct approach**: Check BOTH ownership AND current role:
+
+```typescript
+// In mutation
+const membership = await getMembership(ctx, sharedSecret.projectId);
+
+// Demoted creator cannot manage
+const canManage = membership.role === "owner" || 
+  (sharedSecret.createdBy === user._id && membership.role === "admin");
+
+if (!canManage) {
+  throw new Error("Access denied");
+}
+```
+
+### Dual-Layer Visibility
+
+When a resource should be visible to multiple user types for different reasons:
+
+```typescript
+// 1. Get user's own shares (by createdBy)
+const userShares = await getSharesByCreator(user._id);
+
+// 2. Get all shares from projects where user is owner
+const ownerProjectIds = getMembershipsByRole(user._id, "owner");
+const ownerShares = await getSharesByProjects(ownerProjectIds);
+
+// 3. Combine, deduplicate, mark appropriately
+const allShares = dedupe([...userShares, ...ownerShares]);
+```
+
+**Result**: The creator sees their share to monitor it, the owner sees it to govern it.
+

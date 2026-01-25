@@ -397,7 +397,7 @@ _Goal: Advanced project management features with role-based access control._
 
 #### Task 6.5: OVERHAUL
 
-- [ ] Vercel-inspired Environment Variable Management UI (when working on this ask user for an image as a ref, if already not provided)
+- [x] Vercel-inspired Environment Variable Management UI (when working on this ask user for an image as a ref, if already not provided)
 
 > Design a web UI for managing environment variables, inspired by Vercel’s environment variable management screen.
 >
@@ -456,9 +456,28 @@ _Goal: Advanced project management features with role-based access control._
 > - Ensure accessibility (keyboard navigation, aria-labels)
 > - Include a search bar to search vars
 
+#### Task 6.7: SharedSecrets Management Improvements ✅
+
+- [x] **Security Fix**: Role-based access control for shared secrets mutations
+  - Owner can modify/delete any share in their projects
+  - Creator can only modify if they still have admin/owner role
+  - Demoted members cannot manage their old shares (view only)
+- [x] **Visibility Fix**: Owners see all shared secrets from their projects in `/shared`
+  - `canManage` flag differentiates view-only vs. manageable shares
+- [x] **Reusable UserAvatar component** with customizable size, tooltip, styling
+- [x] **Optional Share Label/Name**: Descriptive label when creating shares
+  - Label shows in `/shared` table and project Shared tab
+  - Searchable by label in `/shared` route
+- [x] **UI Improvements**:
+  - First name shown next to avatar, full name in tooltip
+  - 3-column grid layout in project Shared tab cards
+  - "View Only" indicator for shares user cannot manage
+  - Clicking shared secret card navigates to `/shared?p=[project-name]`
+
 ---
 
 ### Phase 7: Security Audit & Hardening
+
 
 _Goal: Comprehensive security review and penetration testing._
 

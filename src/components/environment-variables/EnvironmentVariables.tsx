@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import {
+  ArrowUpDown,
   Check,
   ClipboardCopy,
   Clock,
-  Copy,
   FileEdit,
   FileText,
   KeyRound,
   MoreVertical,
   Plus,
+  Search,
+  Share2,
 } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import { ShareDialog } from "../share-dialog";
@@ -32,6 +34,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 /**
  * Main EnvironmentVariables component.
@@ -82,7 +92,24 @@ export function EnvironmentVariables({
   const [showBulkEdit, setShowBulkEdit] = useState(false);
   const [isBulkEditSaving, setIsBulkEditSaving] = useState(false);
 
+  // Search and sort
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"updated" | "name-asc" | "name-desc">("updated");
+
   const canEdit = userRole === "owner" || userRole === "admin";
+
+  // Filter and sort variables
+  const filteredVariables = variables
+    ?.filter((v) => v.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    ?.sort((a, b) => {
+      if (sortBy === "name-asc") {
+        return a.name.localeCompare(b.name);
+      }
+      if (sortBy === "name-desc") {
+        return b.name.localeCompare(a.name);
+      }
+      return (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
 
   // Reset state when locked
   useEffect(() => {
@@ -150,6 +177,7 @@ export function EnvironmentVariables({
   ) {
     if (!derivedKey) return;
 
+    setShowNewVar(false);
     try {
       let value = decryptedValues[varId];
       if (value === undefined) {
@@ -290,8 +318,6 @@ export function EnvironmentVariables({
     }
   }
 
-  // ==================== Render ====================
-
   if (variables === undefined) {
     return (
       <div className="space-y-2">
@@ -304,11 +330,40 @@ export function EnvironmentVariables({
 
   return (
     <div className="space-y-4">
+      {/* Search and Sort Controls */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-50 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select
+          value={sortBy}
+          onValueChange={(v) => setSortBy(v as "updated" | "name-asc" | "name-desc")}
+        >
+          <SelectTrigger className="w-47.5">
+            <ArrowUpDown className="h-3 w-3 mr-2" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="updated">Last Updated</SelectItem>
+            <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+            <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            {variables.length} variable{variables.length !== 1 ? "s" : ""}
+            {filteredVariables?.length ?? 0} variable
+            {(filteredVariables?.length ?? 0) !== 1 ? "s" : ""}
+            {searchQuery && ` (filtered from ${variables.length})`}
           </p>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
@@ -324,7 +379,10 @@ export function EnvironmentVariables({
             {canEdit && (
               <Button
                 size="sm"
-                onClick={() => setShowNewVar(true)}
+                onClick={() => {
+                  cancelEdit();
+                  setShowNewVar(true);
+                }}
                 disabled={showNewVar}
                 className="gap-1"
               >
@@ -339,13 +397,13 @@ export function EnvironmentVariables({
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-60">
                 {variables.length > 0 && (
                   <DropdownMenuItem onClick={handleCopyAll} className="gap-2">
                     {copied === "all" ? (
                       <Check className="h-4 w-4 text-green-500" />
                     ) : (
-                      <ClipboardCopy className="h-4 w-4" />
+                      <ClipboardCopy className="h-4 w-4 text-primary" />
                     )}
                     Copy All Variables
                   </DropdownMenuItem>
@@ -354,13 +412,13 @@ export function EnvironmentVariables({
                 {canEdit && (
                   <>
                     <DropdownMenuItem onClick={() => setShowBulkAdd(true)} className="gap-2">
-                      <FileText className="h-4 w-4" />
+                      <FileText className="h-4 w-4 text-primary" />
                       Bulk Add Variables
                     </DropdownMenuItem>
 
                     {variables.length > 0 && (
                       <DropdownMenuItem onClick={() => setShowBulkEdit(true)} className="gap-2">
-                        <FileEdit className="h-4 w-4" />
+                        <FileEdit className="h-4 w-4 text-primary" />
                         Bulk Edit Variables
                       </DropdownMenuItem>
                     )}
@@ -372,7 +430,7 @@ export function EnvironmentVariables({
                       createShare={createShare}
                       trigger={
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2">
-                          <Copy className="h-4 w-4" />
+                          <Share2 className="h-4 w-4 text-primary" />
                           Share Secrets
                         </DropdownMenuItem>
                       }
@@ -395,27 +453,25 @@ export function EnvironmentVariables({
         </div>
       )}
 
-      {/* New variable form */}
-      {showNewVar && derivedKey && (
-        <VariableEditRow
-          name={newName}
-          value={newValue}
-          onNameChange={setNewName}
-          onValueChange={setNewValue}
-          onSave={handleAddVariable}
-          onCancel={() => {
-            setShowNewVar(false);
-            setNewName("");
-            setNewValue("");
-          }}
-          isSaving={isSaving}
-          isNew
-        />
-      )}
-
       {/* Variables list */}
-      <div className="space-y-2">
-        {variables.map((variable) =>
+      <div className="rounded-xl border bg-card/30 divide-y divide-border/50 overflow-hidden">
+        {showNewVar && derivedKey && (
+          <VariableEditRow
+            name={newName}
+            value={newValue}
+            onNameChange={setNewName}
+            onValueChange={setNewValue}
+            onSave={handleAddVariable}
+            onCancel={() => {
+              setShowNewVar(false);
+              setNewName("");
+              setNewValue("");
+            }}
+            isSaving={isSaving}
+            isNew
+          />
+        )}
+        {(filteredVariables ?? []).map((variable) =>
           editingVarId === variable._id ? (
             <VariableEditRow
               key={variable._id}
@@ -431,6 +487,7 @@ export function EnvironmentVariables({
             <VariableRow
               key={variable._id}
               variable={variable}
+              environmentName={environment.name}
               derivedKey={derivedKey}
               canEdit={canEdit}
               revealedVars={revealedVars}

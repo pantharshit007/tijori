@@ -33,16 +33,31 @@ async function checkEnvironmentAccess(ctx: any, environmentId: Id<"environments"
 
 /**
  * List all variables for a specific environment.
+ * Includes creator info for avatar display.
  */
 export const list = query({
   args: { environmentId: v.id("environments") },
   handler: async (ctx, args) => {
     await checkEnvironmentAccess(ctx, args.environmentId);
 
-    return await ctx.db
+    const variables = await ctx.db
       .query("variables")
       .withIndex("by_environmentId", (q) => q.eq("environmentId", args.environmentId))
       .collect();
+
+    // Join user data for each variable
+    const variablesWithCreator = await Promise.all(
+      variables.map(async (variable) => {
+        const creator = await ctx.db.get(variable.createdBy);
+        return {
+          ...variable,
+          creatorName: creator?.name,
+          creatorImage: creator?.image,
+        };
+      })
+    );
+
+    return variablesWithCreator;
   },
 });
 
@@ -59,11 +74,13 @@ export const save = mutation({
     authTag: v.string(),
   },
   handler: async (ctx, args) => {
-    const { membership } = await checkEnvironmentAccess(ctx, args.environmentId);
+    const { userId, membership } = await checkEnvironmentAccess(ctx, args.environmentId);
 
     if (membership.role !== "owner" && membership.role !== "admin") {
       throw new Error("Forbidden: Only owners and admins can modify variables");
     }
+
+    const now = Date.now();
 
     const existing = await ctx.db
       .query("variables")
@@ -76,6 +93,7 @@ export const save = mutation({
         encryptedValue: args.encryptedValue,
         iv: args.iv,
         authTag: args.authTag,
+        updatedAt: now,
       });
       return existing._id;
     } else {
@@ -85,6 +103,8 @@ export const save = mutation({
         encryptedValue: args.encryptedValue,
         iv: args.iv,
         authTag: args.authTag,
+        createdBy: userId,
+        updatedAt: now,
       });
     }
   },

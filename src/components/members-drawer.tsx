@@ -28,6 +28,10 @@ interface MembersDrawerProps {
   trigger: React.ReactNode;
 }
 
+function getDisplayName(member: { name?: string | null; email?: string | null }): string {
+  const displayName = member.name || member.email || "Unknown";
+  return displayName.length > 15 ? displayName.slice(0, 15) + "..." : displayName;
+}
 export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerProps) {
   const members = useQuery(api.projects.listMembers, { projectId });
   const addMember = useMutation(api.projects.addMember);
@@ -106,7 +110,7 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
     }
   }
 
-  function getRoleBadgeVariant(role: string) {
+  function getRoleBadgeVariant(role: "owner" | "admin" | "member") {
     switch (role) {
       case "owner":
         return "default";
@@ -181,16 +185,17 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium truncate">{member.name || "Unknown"}</p>
+                        <p className="font-medium truncate">{getDisplayName(member)}</p>
+
                         <Badge
-                          variant={getRoleBadgeVariant(member.role) as any}
+                          variant={getRoleBadgeVariant(member.role)}
                           className="gap-1 text-xs"
                         >
                           {getRoleIcon(member.role)}
                           {member.role}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">{member.email}</p>
+                      <p className="text-xs pt-0.5 text-muted-foreground truncate">{member.email}</p>
                     </div>
 
                     {/* Actions - Only show if:

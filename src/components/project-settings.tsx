@@ -46,7 +46,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from "@/components/ui/tabs";
 import { hash as cryptoHash } from "@/lib/crypto";
 
 interface Environment {
@@ -210,9 +215,7 @@ export function ProjectSettings({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {trigger}
-      </DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Project Settings</DialogTitle>
@@ -224,9 +227,7 @@ export function ProjectSettings({
         <Tabs defaultValue="general" className="mt-4">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="environments">
-              Environments ({environments.length})
-            </TabsTrigger>
+            <TabsTrigger value="environments">Environments ({environments.length})</TabsTrigger>
             <TabsTrigger value="danger">Danger</TabsTrigger>
           </TabsList>
 
@@ -284,8 +285,8 @@ export function ProjectSettings({
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         onClick={handleSaveProject}
                         disabled={isSavingProject || !editName.trim()}
                       >
@@ -293,8 +294,8 @@ export function ProjectSettings({
                         <Save className="h-4 w-4 mr-1" />
                         Save
                       </Button>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         variant="ghost"
                         onClick={() => {
                           setIsEditingProject(false);
@@ -317,7 +318,8 @@ export function ProjectSettings({
                         </p>
                         {project.passcodeHint && (
                           <p className="text-xs text-muted-foreground mt-1">
-                            <span className="font-medium">Passcode hint:</span> {project.passcodeHint}
+                            <span className="font-medium">Passcode hint:</span>{" "}
+                            {project.passcodeHint}
                           </p>
                         )}
                       </div>
@@ -376,11 +378,7 @@ export function ProjectSettings({
                             {isSavingEnv && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
                             Save
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditingEnvId(null)}
-                          >
+                          <Button size="sm" variant="ghost" onClick={() => setEditingEnvId(null)}>
                             Cancel
                           </Button>
                         </div>
@@ -419,7 +417,8 @@ export function ProjectSettings({
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Delete Environment?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      This will permanently delete "{env.name}" and all its variables. This action cannot be undone.
+                                      This will permanently delete "{env.name}" and all its
+                                      variables. This action cannot be undone.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
@@ -479,7 +478,7 @@ export function ProjectSettings({
                     <Button
                       variant="destructive"
                       size="sm"
-                      className="mt-3 gap-2"
+                      className="mt-3 gap-2 bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
                       <Trash2 className="h-4 w-4" />
                       Delete Project
@@ -507,9 +506,7 @@ export function ProjectSettings({
                         value={masterKeyForDelete}
                         onChange={(e) => setMasterKeyForDelete(e.target.value)}
                       />
-                      {deleteError && (
-                        <p className="text-sm text-destructive">{deleteError}</p>
-                      )}
+                      {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
                     </div>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -533,7 +530,8 @@ export function ProjectSettings({
             {/* Owner note */}
             {isOwner && (
               <p className="text-xs text-muted-foreground">
-                As the owner, you cannot leave this project. Transfer ownership or delete it instead.
+                As the owner, you cannot leave this project. Transfer ownership or delete it
+                instead.
               </p>
             )}
           </TabsContent>

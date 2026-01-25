@@ -3,7 +3,6 @@ import { Loader2, Save, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export interface VariableEditRowProps {
   name: string;
@@ -13,7 +12,6 @@ export interface VariableEditRowProps {
   onSave?: () => void;
   onCancel?: () => void;
   isSaving?: boolean;
-  showActions?: boolean;
   isNew?: boolean;
   onDelete?: () => void;
 }
@@ -29,7 +27,6 @@ export function VariableEditRow({
   onSave,
   onCancel,
   isSaving,
-  showActions = true,
   isNew = false,
   onDelete,
 }: VariableEditRowProps) {
@@ -44,55 +41,56 @@ export function VariableEditRow({
   }, [onCancel, onSave, name]);
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg border bg-card border-primary/50">
-      <div className="flex-1 grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Name</Label>
+    <div className="grid grid-cols-12 items-center gap-4 py-3 px-4 bg-accent/5 transition-colors">
+      <div className="col-span-4 flex items-start gap-4">
+        <div className="mt-1 p-2 rounded border bg-muted/30">
+          <Loader2 className={`h-4 w-4 text-muted-foreground ${isSaving ? 'animate-spin' : ''}`} />
+        </div>
+        <div className="flex-1 space-y-1">
           <Input
             value={name}
             onChange={(e) => onNameChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="font-mono text-sm"
+            className="font-mono text-[13px] h-9 bg-background uppercase"
             placeholder="VARIABLE_NAME"
             autoFocus={isNew}
           />
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Value</Label>
-          <Input
-            value={value}
-            onChange={(e) => onValueChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="font-mono text-sm"
-            placeholder="value"
-          />
-        </div>
       </div>
-      {showActions && (
-        <div className="flex items-center gap-1 shrink-0">
-          {onDelete && (
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={onDelete}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
-          {onCancel && (
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onCancel}>
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-          {onSave && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-green-600 hover:text-green-700"
-              onClick={onSave}
-              disabled={isSaving || !name.trim()}
-            >
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            </Button>
-          )}
-        </div>
-      )}
+
+      <div className="col-span-5">
+        <Input
+          value={value}
+          onChange={(e) => onValueChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="font-mono text-[13px] h-9 bg-background"
+          placeholder="value"
+        />
+      </div>
+
+      <div className="col-span-3 flex items-center justify-end gap-2">
+        {onDelete && (
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" onClick={onDelete}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+        {onCancel && (
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onCancel}>
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+        {onSave && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 text-green-600 hover:text-green-700 hover:bg-green-500/10"
+            onClick={onSave}
+            disabled={isSaving || !name.trim()}
+          >
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
