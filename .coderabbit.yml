@@ -20,6 +20,7 @@ reviews:
     - '!**/.gitignore'
     - '!**/example.env'
     - '!**/.env.example'
+    - '!**/.agents'
 
   # Generate a high-level summary of the changes in the PR description.
   high_level_summary: true

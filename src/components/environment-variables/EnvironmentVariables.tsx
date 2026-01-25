@@ -108,7 +108,6 @@ export function EnvironmentVariables({
       if (sortBy === "name-desc") {
         return b.name.localeCompare(a.name);
       }
-      // Sort by updatedAt descending (newest first)
       return (b.updatedAt || 0) - (a.updatedAt || 0);
     });
 
@@ -318,8 +317,6 @@ export function EnvironmentVariables({
       setIsBulkEditSaving(false);
     }
   }
-
-  // ==================== Render ====================
 
   if (variables === undefined) {
     return (

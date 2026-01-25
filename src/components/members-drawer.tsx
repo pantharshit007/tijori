@@ -28,6 +28,10 @@ interface MembersDrawerProps {
   trigger: React.ReactNode;
 }
 
+function getDisplayName(member: { name?: string | null; email?: string | null }): string {
+  const displayName = member.name || member.email || "Unknown";
+  return displayName.length > 15 ? displayName.slice(0, 15) + "..." : displayName;
+}
 export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerProps) {
   const members = useQuery(api.projects.listMembers, { projectId });
   const addMember = useMutation(api.projects.addMember);
@@ -181,7 +185,8 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium truncate">{member.name.length > 15 ? member.name.slice(0, 15) + "..." : member.name}</p>
+                        <p className="font-medium truncate">{getDisplayName(member)}</p>
+
                         <Badge
                           variant={getRoleBadgeVariant(member.role)}
                           className="gap-1 text-xs"

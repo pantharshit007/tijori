@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 
 /**
  * Create a shared secret link.
@@ -53,6 +54,10 @@ export const create = mutation({
       throw new Error("Access denied");
     }
 
+    if (membership.role !== "owner" && membership.role !== "admin") {
+      throw new Error("Access denied - only owners and admins can share variables");
+    }
+
     // Verify environment belongs to the project
     const environment = await ctx.db.get(args.environmentId);
     if (!environment || environment.projectId !== args.projectId) {
@@ -84,7 +89,6 @@ export const create = mutation({
     return sharedSecretId;
   },
 });
-
 
 /**
  * Get a shared secret by ID.
@@ -178,63 +182,63 @@ export const listByUser = query({
 
     // Build role map and identify owner projects
     const roleMap = new Map<string, string>();
-    const ownerProjectIds = new Set<string>();
+    const ownerProjectIds: Id<"projects">[] = [];
     for (const m of allMemberships) {
       roleMap.set(m.projectId, m.role);
       if (m.role === "owner") {
-        ownerProjectIds.add(m.projectId);
+        ownerProjectIds.push(m.projectId);
       }
     }
 
-    // Get all shared secrets created by this user
-    const userSharedSecrets = await ctx.db
-      .query("sharedSecrets")
-      .withIndex("by_createdBy", (q) => q.eq("createdBy", user._id))
-      .collect();
-
-    // Get shared secrets from projects where user is owner (but not already in userSharedSecrets)
-    const userSecretIds = new Set(userSharedSecrets.map((s) => s._id));
-    const ownerSharedSecrets: typeof userSharedSecrets = [];
-    
-    for (const projectId of ownerProjectIds) {
-      const projectSecrets = await ctx.db
+    // **OPTIMIZATION: Parallel queries for user secrets + all owner project secrets**
+    const [userSharedSecrets, ...ownerProjectSecrets] = await Promise.all([
+      ctx.db
         .query("sharedSecrets")
-        .withIndex("by_projectId", (q) => q.eq("projectId", projectId as any))
-        .collect();
-      
-      for (const secret of projectSecrets) {
-        if (!userSecretIds.has(secret._id)) {
-          ownerSharedSecrets.push(secret);
-          userSecretIds.add(secret._id);
-        }
-      }
-    }
+        .withIndex("by_createdBy", (q) => q.eq("createdBy", user._id))
+        .collect(),
+      ...ownerProjectIds.map((projectId) =>
+        ctx.db
+          .query("sharedSecrets")
+          .withIndex("by_projectId", (q) => q.eq("projectId", projectId))
+          .collect()
+      ),
+    ]);
 
-    // Combine both lists
+    // Deduplicate and combine
+    const userSecretIds = new Set(userSharedSecrets.map((s) => s._id));
+    const ownerSharedSecrets = ownerProjectSecrets
+      .flat()
+      .filter((secret) => !userSecretIds.has(secret._id));
+
     const allSharedSecrets = [...userSharedSecrets, ...ownerSharedSecrets];
 
-    // Get project and environment names
+    // **OPTIMIZATION: Parallel queries for all related data**
     const projectIds = [...new Set(allSharedSecrets.map((s) => s.projectId))];
     const environmentIds = [...new Set(allSharedSecrets.map((s) => s.environmentId))];
-
-    const projects = await Promise.all(projectIds.map((id) => ctx.db.get(id)));
-    const environments = await Promise.all(environmentIds.map((id) => ctx.db.get(id)));
-
-    const projectMap = Object.fromEntries(projects.filter(Boolean).map((p) => [p!._id, p!.name]));
-    const envMap = Object.fromEntries(environments.filter(Boolean).map((e) => [e!._id, e!.name]));
-
-    // Get creator info for each shared secret
     const creatorIds = [...new Set(allSharedSecrets.map((s) => s.createdBy))];
-    const creators = await Promise.all(creatorIds.map((id) => ctx.db.get(id)));
+
+    const [projects, environments, creators] = await Promise.all([
+      Promise.all(projectIds.map((id) => ctx.db.get(id))),
+      Promise.all(environmentIds.map((id) => ctx.db.get(id))),
+      Promise.all(creatorIds.map((id) => ctx.db.get(id))),
+    ]);
+
+    // Build lookup maps
+    const projectMap = Object.fromEntries(
+      projects.filter(Boolean).map((p) => [p!._id, p!.name])
+    );
+    const envMap = Object.fromEntries(
+      environments.filter(Boolean).map((e) => [e!._id, e!.name])
+    );
     const creatorMap = Object.fromEntries(
       creators.filter(Boolean).map((c) => [c!._id, { name: c!.name, image: c!.image }])
     );
 
+    // Map to final response shape
     return allSharedSecrets.map((s) => {
       const userRole = roleMap.get(s.projectId) || null;
       const isOwner = userRole === "owner";
       const isCreator = s.createdBy === user._id;
-      // canManage: owner can manage anything, creator can manage if they are still admin/owner
       const canManage = isOwner || (isCreator && (userRole === "owner" || userRole === "admin"));
 
       return {
@@ -261,7 +265,6 @@ export const listByUser = query({
     });
   },
 });
-
 
 
 /**
@@ -324,7 +327,6 @@ export const listByProject = query({
       creatorName: creatorMap[s.createdBy]?.name,
       creatorImage: creatorMap[s.createdBy]?.image,
     }));
-
   },
 });
 
@@ -359,7 +361,7 @@ export const toggleDisabled = mutation({
     // Check user's current role in the project
     const membership = await ctx.db
       .query("projectMembers")
-      .withIndex("by_project_user", (q) => 
+      .withIndex("by_project_user", (q) =>
         q.eq("projectId", sharedSecret.projectId).eq("userId", user._id)
       )
       .unique();
@@ -370,12 +372,14 @@ export const toggleDisabled = mutation({
 
     // Allow if: owner of project, OR creator who is still admin/owner
     const isOwner = membership.role === "owner";
-    const isCreatorWithAdminAccess = 
-      sharedSecret.createdBy === user._id && 
+    const isCreatorWithAdminAccess =
+      sharedSecret.createdBy === user._id &&
       (membership.role === "owner" || membership.role === "admin");
 
     if (!isOwner && !isCreatorWithAdminAccess) {
-      throw new Error("Access denied - only project owner or the creator (with admin rights) can modify");
+      throw new Error(
+        "Access denied - only project owner or the creator (with admin rights) can modify"
+      );
     }
 
     await ctx.db.patch(args.id, {
@@ -422,7 +426,7 @@ export const updateExpiry = mutation({
     // Check user's current role in the project
     const membership = await ctx.db
       .query("projectMembers")
-      .withIndex("by_project_user", (q) => 
+      .withIndex("by_project_user", (q) =>
         q.eq("projectId", sharedSecret.projectId).eq("userId", user._id)
       )
       .unique();
@@ -433,12 +437,14 @@ export const updateExpiry = mutation({
 
     // Allow if: owner of project, OR creator who is still admin/owner
     const isOwner = membership.role === "owner";
-    const isCreatorWithAdminAccess = 
-      sharedSecret.createdBy === user._id && 
+    const isCreatorWithAdminAccess =
+      sharedSecret.createdBy === user._id &&
       (membership.role === "owner" || membership.role === "admin");
 
     if (!isOwner && !isCreatorWithAdminAccess) {
-      throw new Error("Access denied - only project owner or the creator (with admin rights) can modify");
+      throw new Error(
+        "Access denied - only project owner or the creator (with admin rights) can modify"
+      );
     }
 
     await ctx.db.patch(args.id, {
@@ -479,7 +485,7 @@ export const remove = mutation({
     // Check user's current role in the project
     const membership = await ctx.db
       .query("projectMembers")
-      .withIndex("by_project_user", (q) => 
+      .withIndex("by_project_user", (q) =>
         q.eq("projectId", sharedSecret.projectId).eq("userId", user._id)
       )
       .unique();
@@ -490,15 +496,16 @@ export const remove = mutation({
 
     // Allow if: owner of project, OR creator who is still admin/owner
     const isOwner = membership.role === "owner";
-    const isCreatorWithAdminAccess = 
-      sharedSecret.createdBy === user._id && 
+    const isCreatorWithAdminAccess =
+      sharedSecret.createdBy === user._id &&
       (membership.role === "owner" || membership.role === "admin");
 
     if (!isOwner && !isCreatorWithAdminAccess) {
-      throw new Error("Access denied - only project owner or the creator (with admin rights) can delete");
+      throw new Error(
+        "Access denied - only project owner or the creator (with admin rights) can delete"
+      );
     }
 
     await ctx.db.delete(args.id);
   },
 });
-

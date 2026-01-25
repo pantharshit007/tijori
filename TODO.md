@@ -12,3 +12,4 @@
 - [ ] remove mutation in variable.ts `const variable = await ctx.db.get(args.id);` why are we querying the whole db again, instead of that specific table?
 - [ ] Transfer ownership of project, pending.
 - [ ] more options like select all, select none, and select few in shared section in dashboard to perform bulk actions, disable, expire, delete.
+- [ ] add toast notifications for successful actions, ex: copy, delete, etc.

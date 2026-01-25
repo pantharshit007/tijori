@@ -1,16 +1,9 @@
 import React, { useState } from "react";
-import { 
-  Check, 
-  Clock, 
-  Copy, 
-  ExternalLink, 
-  Loader2, 
-  Share2
-} from "lucide-react";
+import { Check, Clock, Copy, ExternalLink, Loader2, Share2 } from "lucide-react";
 import type { Id } from "../../convex/_generated/dataModel";
 
-import type {ShareExpiryValue} from "@/lib/constants";
-import type {Environment, Variable} from "@/lib/types";
+import type { ShareExpiryValue } from "@/lib/constants";
+import type { Environment, Variable } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { decrypt, deriveKey, encrypt, generateSalt } from "@/lib/crypto";
-import { SHARE_EXPIRY_OPTIONS  } from "@/lib/constants";
+import { SHARE_EXPIRY_OPTIONS } from "@/lib/constants";
 
 export interface ShareDialogProps {
   variables: Array<Variable>;
@@ -98,7 +91,6 @@ export function ShareDialog({
   async function handleCreate() {
     if (selectedVars.size === 0) return;
 
-    // Validate passcode
     if (!/^\d{6}$/.test(sharePasscode)) {
       setPasscodeError("Passcode must be exactly 6 digits");
       return;
@@ -174,10 +166,10 @@ export function ShareDialog({
 
       // 8. Encrypt the share passcode itself using Project Key (derivedKey)
       // This is so the creator can see it in their dashboard but it's not plaintext in DB.
-      const { 
-        encryptedValue: encPass, 
-        iv: passIv, 
-        authTag: passTag 
+      const {
+        encryptedValue: encPass,
+        iv: passIv,
+        authTag: passTag,
       } = await encrypt(sharePasscode, derivedKey);
 
       // 9. Create the share
@@ -230,11 +222,12 @@ export function ShareDialog({
     }, 200);
   }
 
-
   return (
     <Dialog open={open} onOpenChange={(isOpen) => (isOpen ? setOpen(true) : handleClose())}>
       <DialogTrigger asChild>
-        {React.isValidElement(trigger) ? trigger : (
+        {React.isValidElement(trigger) ? (
+          trigger
+        ) : (
           <Button variant="outline" size="sm" className="gap-1">
             <Share2 className="h-3 w-3" />
             Share
@@ -260,12 +253,7 @@ export function ShareDialog({
                     <Button variant="ghost" size="sm" onClick={selectAll} className="h-7 text-xs">
                       All
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={deselectAll}
-                      className="h-7 text-xs"
-                    >
+                    <Button variant="ghost" size="sm" onClick={deselectAll} className="h-7 text-xs">
                       None
                     </Button>
                   </div>
@@ -318,14 +306,11 @@ export function ShareDialog({
                   value={sharePasscode}
                   onChange={(e) => setSharePasscode(e.target.value.replace(/\D/g, ""))}
                 />
-                {passcodeError && (
-                  <p className="text-xs text-destructive">{passcodeError}</p>
-                )}
+                {passcodeError && <p className="text-xs text-destructive">{passcodeError}</p>}
                 <p className="text-xs text-muted-foreground">
                   Recipients will need this passcode to view the secrets.
                 </p>
               </div>
-
 
               {/* Expiry selection */}
               <div className="space-y-2">
@@ -364,7 +349,8 @@ export function ShareDialog({
             <DialogHeader>
               <DialogTitle>Share Link Created</DialogTitle>
               <DialogDescription>
-                Your secure link is ready. Anyone with the link and passcode can view these secrets until it expires.
+                Your secure link is ready. Anyone with the link and passcode can view these secrets
+                until it expires.
               </DialogDescription>
             </DialogHeader>
 
@@ -390,22 +376,26 @@ export function ShareDialog({
                 <div className="flex justify-between items-center text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    <span>{expiry === "never" ? "No expiration" : `Expires ${SHARE_EXPIRY_OPTIONS.find(o => o.value === expiry)?.label}`}</span>
+                    <span>
+                      {expiry === "never"
+                        ? "No expiration"
+                        : `Expires ${SHARE_EXPIRY_OPTIONS.find((o) => o.value === expiry)?.label}`}
+                    </span>
                   </div>
                   <span>{selectedVars.size} variables shared</span>
                 </div>
               </div>
 
               <div className="flex flex-col gap-2">
-                 <Button className="w-full gap-2" variant="outline" asChild>
-                    <a href={shareUrl} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-4 w-4" />
-                      Test Link
-                    </a>
-                 </Button>
-                 <Button className="w-full" onClick={handleClose}>
-                    Done
-                 </Button>
+                <Button className="w-full gap-2" variant="outline" asChild>
+                  <a href={shareUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4" />
+                    Test Link
+                  </a>
+                </Button>
+                <Button className="w-full" onClick={handleClose}>
+                  Done
+                </Button>
               </div>
             </div>
           </>

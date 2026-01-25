@@ -404,6 +404,7 @@ function ProjectView() {
                             {share.environmentName}
                           </span>
                         </div>
+
                         <p className="text-xs text-muted-foreground mt-0.5">
                           by {share.creatorName?.split(" ")[0] || "Unknown"} • {share.views} views
                         </p>
