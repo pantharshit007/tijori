@@ -491,10 +491,10 @@ _Goal: Comprehensive security review and penetration testing._
 #### Task 7.2: Input Validation & Sanitization
 
 - [x] Verify 6-digit passcode enforcement everywhere
-- [ ] Check for XSS vulnerabilities in user inputs
+- [x] Check for XSS vulnerabilities in user inputs
 - [x] Validate all Convex mutation arguments
 - [x] Test SQL injection prevention (Convex handles this, but verify)
-- [ ] Review file upload security (if applicable)
+- [x] Review file upload security (N/A - no file uploads)
 
 #### Task 7.3: Authentication & Authorization
 
@@ -508,9 +508,9 @@ _Goal: Comprehensive security review and penetration testing._
 
 - [x] Verify all secrets are encrypted at rest
 - [x] Check for accidental logging of sensitive data
-- [ ] Review error messages for information leakage
+- [x] Review error messages for information leakage
 - [x] Verify master key is never stored in plaintext
-- [ ] Test passcode hash collision resistance
+- [x] Test passcode hash collision resistance (SHA-256)
 
 #### Task 7.5: Frontend Security
 
@@ -539,7 +539,7 @@ _Goal: Comprehensive security review and penetration testing._
 
 - [x] Document security architecture
 - [ ] Consider GDPR/privacy compliance
-- [ ] Add security disclosure policy
+- [x] Add security disclosure policy
 
 ---
 

@@ -10,11 +10,11 @@ Tijori employs a **zero-knowledge architecture** where the server never sees pla
 
 ### Algorithms Used
 
-| Purpose | Algorithm | Parameters |
-|---------|-----------|------------|
-| Symmetric Encryption | AES-256-GCM | 256-bit key, 96-bit IV, 128-bit auth tag |
-| Key Derivation | PBKDF2 | 100,000 iterations, SHA-256, 128-bit salt |
-| Hashing | SHA-256 | With salt prepended |
+| Purpose              | Algorithm   | Parameters                                |
+| -------------------- | ----------- | ----------------------------------------- |
+| Symmetric Encryption | AES-256-GCM | 256-bit key, 96-bit IV, 128-bit auth tag  |
+| Key Derivation       | PBKDF2      | 100,000 iterations, SHA-256, 128-bit salt |
+| Hashing              | SHA-256     | With salt prepended                       |
 
 ### Key Hierarchy
 
@@ -68,15 +68,16 @@ Share Access (by recipient):
 
 Three roles per project:
 
-| Role | Permissions |
-|------|-------------|
-| **Owner** | Full control, delete project, manage all members |
-| **Admin** | CRUD variables/environments, share secrets, add members |
-| **Member** | Read-only access to variables |
+| Role       | Permissions                                             |
+| ---------- | ------------------------------------------------------- |
+| **Owner**  | Full control, delete project, manage all members        |
+| **Admin**  | CRUD variables/environments, share secrets, add members |
+| **Member** | Read-only access to variables                           |
 
 ### Access Control Enforcement
 
 Every Convex mutation/query:
+
 1. Validates JWT via `getUserIdentity()`
 2. Looks up user in database
 3. Checks project membership
@@ -86,12 +87,12 @@ Every Convex mutation/query:
 
 ### At Rest
 
-| Data | Storage | Protection |
-|------|---------|------------|
-| Master Key | Not stored | Only hash + salt stored |
-| Project Passcode | Convex | Encrypted with Master Key |
-| Environment Variables | Convex | Encrypted with Project Key |
-| Shared Secrets | Convex | Encrypted with Share Key |
+| Data                  | Storage    | Protection                 |
+| --------------------- | ---------- | -------------------------- |
+| Master Key            | Not stored | Only hash + salt stored    |
+| Project Passcode      | Convex     | Encrypted with Master Key  |
+| Environment Variables | Convex     | Encrypted with Project Key |
+| Shared Secrets        | Convex     | Encrypted with Share Key   |
 
 ### In Transit
 
@@ -110,14 +111,14 @@ Every Convex mutation/query:
 
 Implemented via Nitro middleware and config:
 
-| Header | Value | Purpose |
-|--------|-------|---------|
-| `Content-Security-Policy` | Allowlist for self, Clerk, Convex, fonts | Prevent XSS |
-| `X-Content-Type-Options` | `nosniff` | Prevent MIME sniffing |
-| `X-Frame-Options` | `DENY` | Prevent clickjacking |
-| `X-XSS-Protection` | `1; mode=block` | Legacy XSS filter |
-| `Referrer-Policy` | `strict-origin-when-cross-origin` | Control referrer leakage |
-| `Permissions-Policy` | Disable camera, mic, geo | Limit browser APIs |
+| Header                    | Value                                    | Purpose                  |
+| ------------------------- | ---------------------------------------- | ------------------------ |
+| `Content-Security-Policy` | Allowlist for self, Clerk, Convex, fonts | Prevent XSS              |
+| `X-Content-Type-Options`  | `nosniff`                                | Prevent MIME sniffing    |
+| `X-Frame-Options`         | `DENY`                                   | Prevent clickjacking     |
+| `X-XSS-Protection`        | `1; mode=block`                          | Legacy XSS filter        |
+| `Referrer-Policy`         | `strict-origin-when-cross-origin`        | Control referrer leakage |
+| `Permissions-Policy`      | Disable camera, mic, geo                 | Limit browser APIs       |
 
 ## Input Validation
 
@@ -161,3 +162,28 @@ Implemented via Nitro middleware and config:
 - [ ] Check project membership before resource access
 - [ ] Use `v.*` validators for all mutation arguments
 - [ ] Clear keys on logout/navigation
+
+---
+
+## Security Disclosure Policy
+
+We take security seriously. If you discover a security vulnerability, please follow responsible disclosure:
+
+### Reporting a Vulnerability
+
+1. **Do NOT** open a public GitHub issue for security vulnerabilities
+2. Email security concerns to the project maintainers
+3. Include:
+   - Description of the vulnerability
+   - Steps to reproduce
+   - Potential impact
+   - Any suggested fixes (optional)
+
+### Recognition
+
+Security researchers who report valid vulnerabilities will be:
+
+- Credited in our changelog (if desired)
+- Added to our security acknowledgments
+
+Thank you for helping keep Tijori secure!
