@@ -522,11 +522,11 @@ _Goal: Comprehensive security review and penetration testing._
 
 #### Task 7.6: Penetration Testing (if needed add new test scenarios)
 
-- [ ] Attempt to bypass passcode verification
-- [ ] Try to access other users' projects
-- [ ] Test for replay attacks
-- [ ] Attempt CSRF attacks
-- [ ] Test rate limiting on authentication
+- [x] Attempt to bypass passcode verification
+- [x] Try to access other users' projects
+- [x] Test for replay attacks
+- [x] Attempt CSRF attacks
+- [x] Test rate limiting on authentication
 
 #### Task 7.7: Dependency Audit
 

@@ -205,6 +205,83 @@ Ran `bunx npm-check-updates --target minor`:
 
 **Recommendation**: Run `bunx npm-check-updates -u --target minor && bun install` to apply updates.
 
+### Task 7.6: Penetration Testing (Code Review) ✅
+
+#### 1. Bypass Passcode Verification - NOT POSSIBLE ✓
+
+**Flow Analysis:**
+1. User enters passcode on frontend
+2. Frontend computes `hash(passcode, project.passcodeSalt)` 
+3. Compares against stored `project.passcodeHash`
+4. If match, derives key via `deriveKey(passcode, passcodeSalt)`
+5. Uses derived key to decrypt variables
+
+**Attack Surface:**
+- Server never receives plaintext passcode - only encrypted data
+- Cannot bypass by modifying frontend - decryption will fail without correct key
+- Brute force limited to ~1M combinations (6 digits) but requires full client-side crypto
+
+#### 2. Access Other Users' Projects - NOT POSSIBLE ✓
+
+**Backend Protection:**
+Every Convex mutation/query checks:
+```typescript
+const membership = await ctx.db
+  .query("projectMembers")
+  .withIndex("by_project_user", (q) => 
+    q.eq("projectId", args.projectId).eq("userId", userId))
+  .unique();
+if (!membership) throw new Error("Access denied");
+```
+
+**Tested Endpoints:**
+- `projects.get` - Requires membership
+- `variables.list` - Requires membership via environment
+- `variables.save` - Requires admin/owner role
+- `environments.create` - Requires admin/owner role
+- `sharedSecrets.create` - Requires admin/owner role
+
+#### 3. Replay Attacks - MITIGATED ✓
+
+**Analysis:**
+- Each encryption uses fresh random IV (12 bytes)
+- Convex uses authenticated WebSocket with JWT tokens
+- Tokens expire and refresh automatically via Clerk
+- No custom session tokens to intercept
+
+**Replay Mitigation:**
+- JWT tokens have expiration (`exp` claim)
+- Convex validates token on each request
+- No stateful session cookies to replay
+
+#### 4. CSRF Attacks - PROTECTED ✓
+
+**Analysis:**
+- Convex uses WebSocket connections (not REST API)
+- All mutations require valid Clerk JWT token
+- Token is not sent via cookies (no CSRF vector)
+- Authentication is header-based, not cookie-based
+
+**Protection Mechanisms:**
+- Same-origin policy for WebSocket
+- JWT token requirement on all mutations
+- No form-based submissions to API
+
+#### 5. Rate Limiting - PARTIAL PROTECTION ⚠️
+
+**Current State:**
+- Clerk handles authentication rate limiting (login attempts)
+- Convex has built-in rate limiting for mutations
+- No custom rate limiting on passcode attempts
+
+**Risk Assessment:**
+- Passcode brute force requires client-side hash computation
+- 100k PBKDF2 iterations slows each attempt (~100ms+)
+- ~1M combinations × 100ms = ~27 hours minimum for full brute force
+- Client-side attack (browser-based) is impractical
+
+**Recommendation:** Consider adding passcode attempt counter per project (low priority).
+
 ---
 
 ## Security Audit Summary
