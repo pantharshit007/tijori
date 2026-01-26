@@ -105,8 +105,9 @@ export const setMasterKey = mutation({
     return { success: true };
   },
 });
+
 /**
- * Get usage stats for the current user to show in the UI against limits.
+ * Get usage stats for the current user to show in the UI against limits, returns project counts and role.
  */
 export const getUsageStats = query({
   args: {},
@@ -127,30 +128,8 @@ export const getUsageStats = query({
       .withIndex("by_ownerId", (q) => q.eq("ownerId", user._id))
       .collect();
 
-    // Sum environments and members across owned projects
-    let totalEnvironments = 0;
-    let totalMembers = 0;
-
-    // For better efficiency we can query environments by projectId in a loop or use a join-like approach
-    // Since users have few projects, a loop is fine for now on Convex.
-    for (const project of projects) {
-      const environments = await ctx.db
-        .query("environments")
-        .withIndex("by_projectId", (q) => q.eq("projectId", project._id))
-        .collect();
-      totalEnvironments += environments.length;
-
-      const members = await ctx.db
-        .query("projectMembers")
-        .withIndex("by_projectId", (q) => q.eq("projectId", project._id))
-        .collect();
-      totalMembers += members.length;
-    }
-
     return {
       projectsCount: projects.length,
-      totalEnvironments,
-      totalMembers,
       role: user.platformRole,
     };
   },

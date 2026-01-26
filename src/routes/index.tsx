@@ -1,14 +1,30 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { SignInButton, SignedIn, SignedOut } from "@clerk/tanstack-react-start";
-import { ArrowRight, Github, KeyRound, Lock, Share2, Shield, Users, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  Github,
+  KeyRound,
+  Lightbulb,
+  Lock,
+  Share2,
+  Shield,
+  Users,
+  Zap,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { META_DATA } from "@/lib/constants";
+import { useTheme } from "@/components/theme-provider";
 
 export const Route = createFileRoute("/")({
   component: LandingPage,
 });
 
 function LandingPage() {
+  const { setTheme, resolvedTheme } = useTheme();
+
+  const handleToggleTheme = () => {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+  };
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground overflow-hidden">
       {/* Background patterns */}
@@ -48,6 +64,14 @@ function LandingPage() {
           </nav>
 
           <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              className="h-8 w-8 border-none dark:bg-transparent"
+              onClick={handleToggleTheme}
+            >
+              <Lightbulb className="h-4 w-4 fill-primary" />
+              <span className="sr-only">Toggle Dark Mode</span>
+            </Button>
             <SignedOut>
               <SignInButton mode="modal">
                 <Button variant="ghost" className="hidden sm:inline-flex">
@@ -115,7 +139,7 @@ function LandingPage() {
                   </Button>
                 </Link>
               </SignedIn>
-              <a href="https://github.com/pantharshit007/tijori" target="_blank" rel="noreferrer">
+              <a href={META_DATA.github} target="_blank" rel="noreferrer">
                 <Button
                   size="lg"
                   variant="outline"

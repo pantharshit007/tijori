@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
-import { ROLE_LIMITS, type PlatformRole } from "../../../convex/lib/roleLimits";
 import {
   ArrowUpDown,
   Check,
@@ -15,6 +14,7 @@ import {
   Search,
   Share2,
 } from "lucide-react";
+import {  ROLE_LIMITS } from "../../../convex/lib/roleLimits";
 import { api } from "../../../convex/_generated/api";
 import { ShareDialog } from "../share-dialog";
 import { VariableRow } from "./VariableRow";
@@ -22,6 +22,7 @@ import { VariableEditRow } from "./VariableEditRow";
 import { BulkAddDialog } from "./BulkAddDialog";
 import { BulkEditDialog } from "./BulkEditDialog";
 import { useVariableActions } from "./useVariableActions";
+import type {PlatformRole} from "../../../convex/lib/roleLimits";
 import type { Id } from "../../../convex/_generated/dataModel";
 
 import type { EnvironmentVariablesProps, ParsedVariable } from "@/lib/types";

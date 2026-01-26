@@ -379,7 +379,7 @@ function ProjectView() {
                   environment={environments.find((e) => e._id === activeEnv) as Environment}
                   derivedKey={derivedKey}
                   userRole={project.role}
-                  platformRole={user?.platformRole}
+                  platformRole={project.ownerPlatformRole}
                 />
               )}
             </>

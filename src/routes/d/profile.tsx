@@ -29,6 +29,12 @@ function ProfilePage() {
 
   const limits = me ? ROLE_LIMITS[me.role || "user"] : null;
 
+  function displayLimit(val: number | undefined) {
+    if (val === undefined) return "∞";
+    if (val === Infinity) return "∞";
+    return val;
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-8 py-10">
       <div>
@@ -50,7 +56,7 @@ function ProfilePage() {
             <CardTitle className="text-2xl font-bold">{user.fullName || user.username}</CardTitle>
             <CardDescription>{user.primaryEmailAddress?.emailAddress}</CardDescription>
             <div className="flex gap-2 mt-2">
-              <Badge variant="secondary" className="uppercase font-bold">
+              <Badge variant="default" className="uppercase font-bold">
                 {me?.role || "user"}
               </Badge>
               <Badge variant="outline">
@@ -98,19 +104,38 @@ function ProfilePage() {
           <div className="space-y-4">
             <h3 className="text-sm font-medium">Resources & Usage</h3>
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="p-4 rounded-lg border bg-accent/5">
-                <div className="text-xs text-muted-foreground uppercase mb-1">Projects</div>
-                <div className="text-2xl font-bold">{me?.projectsCount} / {limits?.maxProjects || "∞"}</div>
+              <div className="profile-card">
+                <p className="profile-card-name">Projects</p>
+                <div className="text-2xl font-bold text-primary">
+                  {me?.projectsCount} / {displayLimit(limits?.maxProjects)}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">Total projects you own</p>
               </div>
-              <div className="p-4 rounded-lg border bg-accent/5">
-                <div className="text-xs text-muted-foreground uppercase mb-1">Environments</div>
-                <div className="text-2xl font-bold">{me?.totalEnvironments}</div>
-                <div className="text-[10px] text-muted-foreground">({limits?.maxEnvironmentsPerProject} per project)</div>
+              <div className="profile-card">
+                <p className="profile-card-name">Environments</p>
+                <div className="text-2xl font-bold text-primary">
+                  {displayLimit(limits?.maxEnvironmentsPerProject)}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">Allowed per project</p>
               </div>
-              <div className="p-4 rounded-lg border bg-accent/5">
-                <div className="text-xs text-muted-foreground uppercase mb-1">Members</div>
-                <div className="text-2xl font-bold">{me?.totalMembers}</div>
-                <div className="text-[10px] text-muted-foreground">({limits?.maxMembersPerProject} per project)</div>
+              <div className="profile-card">
+                <p className="profile-card-name">Members</p>
+                <div className="text-2xl font-bold text-primary">
+                  {displayLimit(limits?.maxMembersPerProject)}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">Collaborators per project</p>
+              </div>
+            </div>
+
+            {/* Additional Limits */}
+            <div className="grid gap-4 sm:grid-cols-2 mt-4">
+              <div className="flex items-center justify-between p-3 rounded-lg border bg-secondary/20">
+                <span className="text-sm">Variables per environment</span>
+                <span className="font-semibold">{limits?.maxVariablesPerEnvironment || "∞"}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border bg-secondary/20">
+                <span className="text-sm">Shared secret links</span>
+                <span className="font-semibold">{limits?.maxSharedSecretsPerProject || "∞"}</span>
               </div>
             </div>
           </div>

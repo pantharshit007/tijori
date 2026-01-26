@@ -53,6 +53,11 @@ const mainNavItems = [
 
 const settingsNavItems = [
   {
+    title: "Profile",
+    url: "/d/profile",
+    icon: User,
+  },
+  {
     title: "Settings",
     url: "/d/settings",
     icon: Settings,

@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import {  getRoleLimits } from "./lib/roleLimits";
-import type {PlatformRole} from "./lib/roleLimits";
+import { getProjectOwnerLimits, getRoleLimits } from "./lib/roleLimits";
+import type { PlatformRole } from "./lib/roleLimits";
 
 /**
  * Helper to get the current user ID or throw.
@@ -165,9 +165,13 @@ export const get = query({
       throw new ConvexError("Project not found");
     }
 
+    // Fetch owner's platformRole for frontend limit display
+    const owner = await ctx.db.get(project.ownerId);
+
     return {
       ...project,
       role: membership.role,
+      ownerPlatformRole: owner?.platformRole ?? "user",
     };
   },
 });
@@ -357,8 +361,8 @@ export const addMember = mutation({
       throw new ConvexError("Access denied: Only owners and admins can add members");
     }
 
-    // Check role-based member limit
-    const limits = getRoleLimits(currentUser.platformRole as PlatformRole | undefined);
+    // Check member limit based on PROJECT OWNER's role
+    const limits = await getProjectOwnerLimits(ctx, args.projectId);
     const existingMembers = await ctx.db
       .query("projectMembers")
       .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
@@ -366,7 +370,7 @@ export const addMember = mutation({
 
     if (existingMembers.length >= limits.maxMembersPerProject) {
       throw new ConvexError(
-        `Member limit reached (${limits.maxMembersPerProject}). Upgrade to Pro for more.`
+        `Member limit reached (${limits.maxMembersPerProject}). Project owner needs to upgrade for more.`
       );
     }
 

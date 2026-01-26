@@ -227,10 +227,12 @@ For sensitive operations like key rotation, a multi-step dialog provides:
 
 ```tsx
 // Example pattern: step-based dialog state
-const [rotationStep, setRotationStep] = useState<'verify' | 'update'>('verify')
+const [rotationStep, setRotationStep] = useState<"verify" | "update">("verify");
 
 // Step 1: Verify, Step 2: Update
-{rotationStep === 'verify' ? <VerifyForm /> : <UpdateForm />}
+{
+  rotationStep === "verify" ? <VerifyForm /> : <UpdateForm />;
+}
 ```
 
 #### Client-Side Hash Verification
@@ -239,15 +241,16 @@ Since we store only the **hash** of the master key (not the plaintext), verifica
 
 ```typescript
 // Hash entered key with stored salt
-const enteredHash = await hash(currentMasterKey, user.masterKeySalt)
+const enteredHash = await hash(currentMasterKey, user.masterKeySalt);
 
 // Compare with stored hash
 if (enteredHash !== user.masterKeyHash) {
-  throw new Error('Incorrect master key')
+  throw new Error("Incorrect master key");
 }
 ```
 
 **Security Note**: This pattern is safe because:
+
 - The salt and hash are already in the client (loaded via `useQuery`)
 - No secret data is exposed - the hash is designed to be public
 - The actual plaintext master key never leaves the browser
@@ -267,33 +270,40 @@ When rotating a key that encrypts other secrets (like the Master Key encrypting 
 
 ```typescript
 // 1. Fetch all affected records
-const projects = await listOwned()
+const projects = await listOwned();
 
 // 2. For each record:
 for (const project of projects) {
   // Decrypt with OLD key
-  const oldKey = await deriveKey(oldMasterKey, project.passcodeSalt)
+  const oldKey = await deriveKey(oldMasterKey, project.passcodeSalt);
   const plainPasscode = await decrypt(
     project.encryptedPasscode,
     project.iv,
     project.authTag,
     oldKey
-  )
+  );
 
   // Re-encrypt with NEW key (and fresh salt!)
-  const newSalt = generateSalt()
-  const newKey = await deriveKey(newMasterKey, newSalt)
-  const { encryptedValue, iv, authTag } = await encrypt(plainPasscode, newKey)
+  const newSalt = generateSalt();
+  const newKey = await deriveKey(newMasterKey, newSalt);
+  const { encryptedValue, iv, authTag } = await encrypt(plainPasscode, newKey);
 
   // Collect updates
-  updates.push({ projectId, encryptedPasscode: encryptedValue, passcodeSalt: newSalt, iv, authTag })
+  updates.push({
+    projectId,
+    encryptedPasscode: encryptedValue,
+    passcodeSalt: newSalt,
+    iv,
+    authTag,
+  });
 }
 
 // 3. Batch update atomically
-await batchUpdatePasscodes({ updates })
+await batchUpdatePasscodes({ updates });
 ```
 
 **Key Points**:
+
 - Generate a **fresh salt** for each re-encrypted item (better security)
 - Batch the database updates for atomicity
 - Client-side re-encryption means server never sees plaintext
@@ -303,21 +313,22 @@ await batchUpdatePasscodes({ updates })
 For multi-step operations, use a step-based state machine:
 
 ```typescript
-const [step, setStep] = useState<'verify' | 'update' | 'processing'>('verify')
-const [progress, setProgress] = useState(0)
-const [status, setStatus] = useState('')
+const [step, setStep] = useState<"verify" | "update" | "processing">("verify");
+const [progress, setProgress] = useState(0);
+const [status, setStatus] = useState("");
 
 // In processing step:
 for (let i = 0; i < items.length; i++) {
-  setStatus(`Processing: ${items[i].name}...`)
-  setProgress(Math.round(((i + 0.5) / total) * 100))
+  setStatus(`Processing: ${items[i].name}...`);
+  setProgress(Math.round(((i + 0.5) / total) * 100));
   // ... do work
 }
-setProgress(100)
-setStatus('Complete!')
+setProgress(100);
+setStatus("Complete!");
 ```
 
 This provides:
+
 - Real-time feedback during potentially slow operations
 - User confidence that the app isn't frozen
 - Clear indication of what's happening
@@ -325,14 +336,17 @@ This provides:
 ### Critical: Shared Salt Architecture Warning ⚠️
 
 In Tijori, `passcodeSalt` is used for **two purposes**:
+
 1. Deriving the recovery key (from Master Key) for `encryptedPasscode`
 2. Hashing the 6-digit passcode for verification (`passcodeHash`)
 
 **Problem**: If you change the salt during any operation, you MUST update BOTH:
+
 - `encryptedPasscode` (re-encrypt)
 - `passcodeHash` (re-compute)
 
 **Failure mode**: If only one is updated, the other becomes invalid:
+
 - If only `encryptedPasscode` is updated → Passcode verification fails on unlock
 - If only `passcodeHash` is updated → Passcode recovery fails
 
@@ -359,14 +373,14 @@ Conditionally render UI elements based on user role:
 
 ```tsx
 // Only show for owners and admins
-{(userRole === "owner" || userRole === "admin") && (
-  <ShareButton />
-)}
+{
+  (userRole === "owner" || userRole === "admin") && <ShareButton />;
+}
 
 // Only show for owners
-{userRole === "owner" && (
-  <DeleteProjectButton />
-)}
+{
+  userRole === "owner" && <DeleteProjectButton />;
+}
 ```
 
 #### Backend Authorization
@@ -374,10 +388,9 @@ Conditionally render UI elements based on user role:
 Always validate permissions in mutations, even if UI hides the action:
 
 ```typescript
-const membership = await ctx.db.query("projectMembers")
-  .withIndex("by_project_user", (q) => 
-    q.eq("projectId", args.projectId).eq("userId", userId)
-  )
+const membership = await ctx.db
+  .query("projectMembers")
+  .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
   .unique();
 
 if (!membership || membership.role === "member") {
@@ -398,6 +411,7 @@ encryptedPasscode = AES_Encrypt(passcode, deriveKey(ownerMasterKey, passcodeSalt
 ```
 
 **Implications**:
+
 1. Only the owner can recover the passcode (they need their master key)
 2. Admins and members cannot recover the passcode - they must ask the owner
 3. If a project is transferred (owner changed), the new owner would need to re-encrypt the passcode with their master key
@@ -405,11 +419,9 @@ encryptedPasscode = AES_Encrypt(passcode, deriveKey(ownerMasterKey, passcodeSalt
 **UI Pattern**: Only show "Forgot Passcode?" for owners:
 
 ```tsx
-{userRole === "owner" && (
-  <Button onClick={onForgotPasscode}>
-    Forgot Passcode?
-  </Button>
-)}
+{
+  userRole === "owner" && <Button onClick={onForgotPasscode}>Forgot Passcode?</Button>;
+}
 ```
 
 ### Leave Project Pattern
@@ -417,19 +429,20 @@ encryptedPasscode = AES_Encrypt(passcode, deriveKey(ownerMasterKey, passcodeSalt
 Non-owners need a way to remove themselves from projects they no longer want access to:
 
 **Backend**:
+
 ```typescript
 export const leaveProject = mutation({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
     const membership = await getMembership(ctx, args.projectId);
-    
+
     // Owners cannot leave their own project
     if (membership.role === "owner") {
       throw new Error("Owners cannot leave. Transfer ownership or delete instead.");
     }
-    
+
     await ctx.db.delete(membership._id);
-  }
+  },
 });
 ```
 
@@ -457,8 +470,9 @@ When implementing theme switching (dark/light/system):
 1. **Prevent Flash of Unstyled Content (FOUC)**: Add an inline script in `<head>` that runs before React hydrates:
 
 ```tsx
-<script dangerouslySetInnerHTML={{
-  __html: `
+<script
+  dangerouslySetInnerHTML={{
+    __html: `
     (function() {
       const stored = localStorage.getItem('theme');
       const theme = stored || 'dark';
@@ -467,8 +481,9 @@ When implementing theme switching (dark/light/system):
         : theme;
       document.documentElement.classList.add(resolved);
     })();
-  `
-}} />
+  `,
+  }}
+/>
 ```
 
 2. **Use `suppressHydrationWarning`**: Add to `<html>` element to prevent React warnings about class mismatch between server and client.
@@ -491,7 +506,7 @@ return allSharedSecrets.map((s) => {
   const userRole = roleMap.get(s.projectId) || null;
   const isOwner = userRole === "owner";
   const isCreator = s.createdBy === user._id;
-  
+
   // canManage = owner OR creator with admin rights
   const canManage = isOwner || (isCreator && (userRole === "owner" || userRole === "admin"));
 
@@ -507,11 +522,13 @@ return allSharedSecrets.map((s) => {
 **Frontend usage:**
 
 ```tsx
-{share.canManage ? (
-  <DropdownMenuItem onClick={handleEdit}>Edit</DropdownMenuItem>
-) : (
-  <DropdownMenuItem disabled>View Only</DropdownMenuItem>
-)}
+{
+  share.canManage ? (
+    <DropdownMenuItem onClick={handleEdit}>Edit</DropdownMenuItem>
+  ) : (
+    <DropdownMenuItem disabled>View Only</DropdownMenuItem>
+  );
+}
 ```
 
 **Key Insight**: Always compute permissions on the backend and pass them to the frontend. Never derive permissions solely on the frontend from other flags - the backend is the source of truth.
@@ -529,7 +546,8 @@ return allSharedSecrets.map((s) => {
 const membership = await getMembership(ctx, sharedSecret.projectId);
 
 // Demoted creator cannot manage
-const canManage = membership.role === "owner" || 
+const canManage =
+  membership.role === "owner" ||
   (sharedSecret.createdBy === user._id && membership.role === "admin");
 
 if (!canManage) {
@@ -555,3 +573,42 @@ const allShares = dedupe([...userShares, ...ownerShares]);
 
 **Result**: The creator sees their share to monitor it, the owner sees it to govern it.
 
+---
+
+## 2026-01-26 - Owner-Based Limits Refactor
+
+### Tying Limits to Resource Owner
+
+In a collaborative platform, limits should be enforced based on the **Project Owner's** tier, not the acting user's tier. This ensures:
+
+1.  **Fairness**: A free-tier user invited to a Pro-tier project should enjoy Pro-tier limits within that project.
+2.  **Consistency**: The project's capacity doesn't change depending on who is performing the action.
+3.  **Monetization**: The owner is the one who pays for the capacity and governs the project.
+
+### Implementation Pattern: `getProjectOwnerLimits`
+
+We centralize the limit retrieval by project:
+
+```typescript
+export async function getProjectOwnerLimits(ctx, projectId) {
+  const project = await ctx.db.get(projectId);
+  const owner = await ctx.db.get(project.ownerId);
+  return getRoleLimits(owner.platformRole);
+}
+```
+
+### UI Consistency
+
+The frontend must also display limits based on the project owner's role. This requires:
+
+- Passing the owner's role from the backend in project-related queries.
+- Distinguishing between the acting user's role (for permission checks) and the project owner's role (for limit display).
+
+### New Limits Added
+
+- **Indefinite Shares**: Restricted to Pro+ tiers. Checked in `create` and `updateExpiry`.
+- **Variables Count**: Restricted per environment based on owner tier. Checked in `save`.
+
+### Profile UI Refinement
+
+On a global profile page, per-project counts (like environments or members) can be misleading against per-project limits. It's better to show project-wide counts only for global limits (like `maxProjects`) and show only the allowed limits for per-project features.

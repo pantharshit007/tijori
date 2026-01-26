@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { getProjectOwnerLimits } from "./lib/roleLimits";
 import type { Id } from "./_generated/dataModel";
 
 /**
@@ -97,6 +98,22 @@ export const save = mutation({
       });
       return existing._id;
     } else {
+      // Check variable limit based on PROJECT OWNER's role
+      const env = await ctx.db.get(args.environmentId);
+      if (!env) throw new ConvexError("Environment not found");
+      
+      const limits = await getProjectOwnerLimits(ctx, env.projectId);
+      const existingVars = await ctx.db
+        .query("variables")
+        .withIndex("by_environmentId", (q) => q.eq("environmentId", args.environmentId))
+        .collect();
+
+      if (existingVars.length >= limits.maxVariablesPerEnvironment) {
+        throw new ConvexError(
+          `Variable limit reached (${limits.maxVariablesPerEnvironment}). Project owner needs to upgrade for more.`
+        );
+      }
+
       return await ctx.db.insert("variables", {
         environmentId: args.environmentId,
         name: args.name,

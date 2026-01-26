@@ -1,7 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getRoleLimits } from "./lib/roleLimits";
-import type { PlatformRole } from "./lib/roleLimits";
+import { getProjectOwnerLimits } from "./lib/roleLimits";
 import type { Id } from "./_generated/dataModel";
 
 /**
@@ -55,14 +54,14 @@ export const create = mutation({
     description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { role, user } = await checkProjectAccess(ctx, args.projectId);
+    const { role } = await checkProjectAccess(ctx, args.projectId);
 
     if (role !== "owner" && role !== "admin") {
       throw new ConvexError("Access denied: Only owners and admins can create environments");
     }
 
-    // Check role-based environment limit
-    const limits = getRoleLimits(user.platformRole as PlatformRole | undefined);
+    // Check environment limit based on PROJECT OWNER's role
+    const limits = await getProjectOwnerLimits(ctx, args.projectId);
     const existingEnvs = await ctx.db
       .query("environments")
       .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
@@ -70,7 +69,7 @@ export const create = mutation({
 
     if (existingEnvs.length >= limits.maxEnvironmentsPerProject) {
       throw new ConvexError(
-        `Environment limit reached (${limits.maxEnvironmentsPerProject}). Upgrade to Pro for more.`
+        `Environment limit reached (${limits.maxEnvironmentsPerProject}). Project owner needs to upgrade for more.`
       );
     }
 

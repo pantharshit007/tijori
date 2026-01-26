@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { getProjectOwnerLimits } from "./lib/roleLimits";
 import type { Id } from "./_generated/dataModel";
 
 /**
@@ -62,6 +63,25 @@ export const create = mutation({
     const environment = await ctx.db.get(args.environmentId);
     if (!environment || environment.projectId !== args.projectId) {
       throw new ConvexError("Invalid environment for this project");
+    }
+
+    // Check shared secrets limit based on PROJECT OWNER's role
+    const limits = await getProjectOwnerLimits(ctx, args.projectId);
+    const existingShares = await ctx.db
+      .query("sharedSecrets")
+      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+      .collect();
+
+    if (existingShares.length >= limits.maxSharedSecretsPerProject) {
+      throw new ConvexError(
+        `Shared secrets limit reached (${limits.maxSharedSecretsPerProject}). Project owner needs to upgrade for more.`
+      );
+    }
+
+    if (args.isIndefinite && !limits.canCreateIndefiniteShares) {
+      throw new ConvexError(
+        "Indefinite shares are only available on Pro plans. Project owner needs to upgrade."
+      );
     }
 
     // Create the shared secret
@@ -444,6 +464,14 @@ export const updateExpiry = mutation({
     if (!isOwner && !isCreatorWithAdminAccess) {
       throw new ConvexError(
         "Access denied - only project owner or the creator (with admin rights) can modify"
+      );
+    }
+
+    // Check shared secrets limit based on PROJECT OWNER's role
+    const limits = await getProjectOwnerLimits(ctx, sharedSecret.projectId);
+    if (args.isIndefinite && !limits.canCreateIndefiniteShares) {
+      throw new ConvexError(
+        "Indefinite shares are only available on Pro plans. Project owner needs to upgrade."
       );
     }
 
