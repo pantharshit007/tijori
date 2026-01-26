@@ -1,5 +1,6 @@
 import { Link, createFileRoute, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   ExternalLink,
@@ -12,8 +13,8 @@ import {
   Users,
 } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 
 import type { Environment } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -48,9 +49,8 @@ import { UserAvatar } from "@/components/user-avatar";
 import { hash as cryptoHash, deriveKey } from "@/lib/crypto";
 import { keyStore } from "@/lib/key-store";
 
-
 function ProjectView() {
-  const { projectId } = useParams({ from: "/projects/$projectId" });
+  const { projectId } = useParams({ from: "/d/project/$projectId" });
   const project = useQuery(api.projects.get, {
     projectId: projectId as Id<"projects">,
   });
@@ -67,6 +67,24 @@ function ProjectView() {
   const [derivedKey, setDerivedKey] = useState<CryptoKey | null>(null);
   const [showUnlockDialog, setShowUnlockDialog] = useState(false);
   const [activeTab, setActiveTab] = useState<"project" | "shared">("project");
+
+  // Keyboard shortcut for Unlock
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (e.key.toLowerCase() === "u" && !derivedKey) {
+        e.preventDefault();
+        setShowUnlockDialog(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [derivedKey]);
 
   // Query shared secrets for the Shared tab
   const sharedSecrets = useQuery(api.sharedSecrets.listByProject, {
@@ -128,8 +146,10 @@ function ProjectView() {
       setNewEnvName("");
       setNewEnvDescription("");
       setShowNewEnvDialog(false);
-    } catch (err) {
-      console.error("Failed to create environment:", err);
+      toast.success("Environment created successfully");
+    } catch (err: any) {
+      console.error("Failed to create environment:", { err });
+      toast.error(err.data || "Failed to create environment");
     } finally {
       setIsCreatingEnv(false);
     }
@@ -157,7 +177,7 @@ function ProjectView() {
         <p className="text-muted-foreground mt-2">
           This project may have been deleted or you don't have access.
         </p>
-        <Link to="/">
+        <Link to="/d/dashboard">
           <Button className="mt-4">Go to Dashboard</Button>
         </Link>
       </div>
@@ -172,7 +192,7 @@ function ProjectView() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link to="/">
+          <Link to="/d/dashboard">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -208,9 +228,12 @@ function ProjectView() {
               }}
             >
               <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2 relative">
                   <KeyRound className="h-4 w-4" />
                   Unlock
+                  <kbd className="hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                    <span className="text-xs">U</span>
+                  </kbd>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -265,7 +288,10 @@ function ProjectView() {
         className="w-full"
       >
         <TabsList>
-          <TabsTrigger value="project" className="data-[state=active]:bg-secondary dark:data-[state=active]:bg-secondary text-accent data-[state=active]:text-accent data-[state=inactive]:text-zinc-800">
+          <TabsTrigger
+            value="project"
+            className="data-[state=active]:bg-secondary dark:data-[state=active]:bg-secondary text-accent data-[state=active]:text-accent data-[state=inactive]:text-zinc-800"
+          >
             Project
           </TabsTrigger>
           <TabsTrigger
@@ -353,6 +379,7 @@ function ProjectView() {
                   environment={environments.find((e) => e._id === activeEnv) as Environment}
                   derivedKey={derivedKey}
                   userRole={project.role}
+                  platformRole={user?.platformRole}
                 />
               )}
             </>
@@ -375,12 +402,7 @@ function ProjectView() {
           {sharedSecrets && sharedSecrets.length > 0 ? (
             <div className="space-y-2">
               {sharedSecrets.map((share) => (
-                <Link
-                  key={share._id}
-                  to="/shared"
-                  search={{ p: project.name }}
-                  className="block"
-                >
+                <Link key={share._id} to="/d/shared" search={{ p: project.name }} className="block">
                   <Card className="p-4 hover:bg-accent/50 transition-colors cursor-pointer group">
                     <div className="grid grid-cols-12 items-center gap-4">
                       {/* Column 1: Creator Avatar (col 1) */}
@@ -390,7 +412,9 @@ function ProjectView() {
                           name={share.creatorName}
                           size="md"
                           showTooltip={true}
-                          tooltipContent={<p className="text-xs font-medium">{share.creatorName}</p>}
+                          tooltipContent={
+                            <p className="text-xs font-medium">{share.creatorName}</p>
+                          }
                         />
                       </div>
 
@@ -400,7 +424,9 @@ function ProjectView() {
                           {share.name && (
                             <span className="font-medium text-sm truncate">{share.name}</span>
                           )}
-                          <span className={`text-sm ${share.name ? 'text-muted-foreground' : 'font-medium'}`}>
+                          <span
+                            className={`text-sm ${share.name ? "text-muted-foreground" : "font-medium"}`}
+                          >
                             {share.environmentName}
                           </span>
                         </div>
@@ -423,8 +449,6 @@ function ProjectView() {
                       </div>
                     </div>
                   </Card>
-
-
                 </Link>
               ))}
             </div>
@@ -441,7 +465,6 @@ function ProjectView() {
             </Card>
           )}
         </TabsContent>
-
       </Tabs>
     </div>
   );
@@ -473,6 +496,7 @@ function PasscodeUnlock({
       const enteredHash = await cryptoHash(passcode, project.passcodeSalt);
       if (enteredHash !== project.passcodeHash) {
         setUnlockError("Invalid passcode. Please try again.");
+        toast.error("Invalid passcode");
         setIsUnlocking(false);
         return;
       }
@@ -481,9 +505,11 @@ function PasscodeUnlock({
       const key = await deriveKey(passcode, project.passcodeSalt);
       onUnlockSuccess(key);
       setPasscode("");
+      toast.success("Project unlocked");
     } catch (err: any) {
       console.error("Unlock failed:", err);
       setUnlockError("Failed to unlock. Please check your passcode.");
+      toast.error(err.data || "Failed to unlock");
     } finally {
       setIsUnlocking(false);
     }
@@ -496,6 +522,11 @@ function PasscodeUnlock({
         <DialogDescription>Enter your project passcode to view and edit secrets.</DialogDescription>
       </DialogHeader>
       <div className="space-y-4 py-4">
+        {unlockError && (
+          <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium">
+            {unlockError}
+          </div>
+        )}
         <div className="space-y-2">
           <Label htmlFor="passcode">6-Digit Passcode</Label>
           <Input
@@ -511,7 +542,6 @@ function PasscodeUnlock({
             autoFocus
           />
         </div>
-        {unlockError && <p className="text-sm text-destructive">{unlockError}</p>}
       </div>
       <DialogFooter className="flex-col gap-2 sm:flex-row">
         {/* Only owners can recover passcode - it's bound to their master key */}
@@ -530,6 +560,6 @@ function PasscodeUnlock({
   );
 }
 
-export const Route = createFileRoute("/projects/$projectId")({
+export const Route = createFileRoute("/d/project/$projectId")({
   component: ProjectView,
 });

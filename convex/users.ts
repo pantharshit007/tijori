@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 /**
@@ -14,31 +14,31 @@ export const store = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Called storeUser without authentication identity");
+      throw new ConvexError("Called storeUser without authentication identity");
     }
 
     // Check if the user already exists
     const user = await ctx.db
       .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier),
-      )
+      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
 
     const name = (args.name || args.email.split("@")[0] || "Unknown User").trim();
 
-
     if (user !== null) {
       // If we've seen this user before but their name or picture has changed, update them.
+      // Also ensure platformRole is set if missing (backtracking).
       if (
         user.name !== name ||
         user.email !== args.email.toLowerCase() ||
-        user.image !== args.image
+        user.image !== args.image ||
+        !user.platformRole
       ) {
         await ctx.db.patch(user._id, {
           name,
           email: args.email.toLowerCase(),
           image: args.image,
+          platformRole: user.platformRole || "user",
         });
       }
       return user._id;
@@ -50,7 +50,7 @@ export const store = mutation({
       name,
       email: args.email.toLowerCase(),
       image: args.image,
-      platformRole: "user", // Default free tier
+      platformRole: "user",
     });
   },
 });
@@ -68,9 +68,7 @@ export const me = query({
 
     return await ctx.db
       .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier),
-      )
+      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
   },
 });
@@ -87,18 +85,16 @@ export const setMasterKey = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthenticated");
+      throw new ConvexError("Unauthenticated");
     }
 
     const user = await ctx.db
       .query("users")
-      .withIndex("by_tokenIdentifier", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier),
-      )
+      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new ConvexError("User not found");
     }
 
     await ctx.db.patch(user._id, {
@@ -107,5 +103,55 @@ export const setMasterKey = mutation({
     });
 
     return { success: true };
+  },
+});
+/**
+ * Get usage stats for the current user to show in the UI against limits.
+ */
+export const getUsageStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!user) return null;
+
+    // Count owned projects
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_ownerId", (q) => q.eq("ownerId", user._id))
+      .collect();
+
+    // Sum environments and members across owned projects
+    let totalEnvironments = 0;
+    let totalMembers = 0;
+
+    // For better efficiency we can query environments by projectId in a loop or use a join-like approach
+    // Since users have few projects, a loop is fine for now on Convex.
+    for (const project of projects) {
+      const environments = await ctx.db
+        .query("environments")
+        .withIndex("by_projectId", (q) => q.eq("projectId", project._id))
+        .collect();
+      totalEnvironments += environments.length;
+
+      const members = await ctx.db
+        .query("projectMembers")
+        .withIndex("by_projectId", (q) => q.eq("projectId", project._id))
+        .collect();
+      totalMembers += members.length;
+    }
+
+    return {
+      projectsCount: projects.length,
+      totalEnvironments,
+      totalMembers,
+      role: user.platformRole,
+    };
   },
 });

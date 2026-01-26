@@ -72,7 +72,7 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
       setNewMemberEmail("");
       setShowAddDialog(false);
     } catch (err: any) {
-      setAddError(err.message || "Failed to add member");
+      setAddError(err.data || "Failed to add member");
     } finally {
       setIsAdding(false);
     }

@@ -2,7 +2,7 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { AlertTriangle, ArrowLeft, Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "../../../../convex/_generated/api";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,6 @@ function NewProject() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [passcode, setPasscode] = useState("");
-  const [confirmPasscode, setConfirmPasscode] = useState("");
   const [passcodeHint, setPasscodeHint] = useState("");
   const [masterKey, setMasterKey] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -41,10 +40,6 @@ function NewProject() {
     // Enforce 6-digit numeric passcode
     if (!/^\d{6}$/.test(passcode)) {
       setError("Passcode must be exactly 6 digits");
-      return;
-    }
-    if (passcode !== confirmPasscode) {
-      setError("Passcodes do not match");
       return;
     }
     if (!masterKey.trim()) {
@@ -95,9 +90,9 @@ function NewProject() {
       });
 
       // Navigate to the new project
-      navigate({ to: "/projects/$projectId", params: { projectId } });
+      navigate({ to: "/d/project/$projectId", params: { projectId } });
     } catch (err: any) {
-      setError(err.message || "Failed to create project");
+      setError(err.data || "Failed to create project");
       setIsLoading(false);
     }
   }
@@ -143,7 +138,7 @@ function NewProject() {
               Your master key is used to encrypt project passcodes for recovery. This is a one-time
               setup that you can manage in Settings.
             </p>
-            <Link to="/settings">
+            <Link to="/d/settings">
               <Button className="gap-2">
                 <KeyRound className="h-4 w-4" />
                 Go to Settings
@@ -158,7 +153,7 @@ function NewProject() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
-        <Link to="/dashboard">
+        <Link to="/d/dashboard">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -170,6 +165,12 @@ function NewProject() {
           </p>
         </div>
       </div>
+
+      {error && (
+        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium">
+          {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <Card>
@@ -265,20 +266,6 @@ function NewProject() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPasscode">Confirm Passcode *</Label>
-              <Input
-                id="confirmPasscode"
-                type={showPasscode ? "text" : "password"}
-                inputMode="numeric"
-                pattern="\d{6}"
-                maxLength={6}
-                placeholder="Confirm 6-digit passcode"
-                value={confirmPasscode}
-                onChange={(e) => setConfirmPasscode(e.target.value.replace(/\D/g, ""))}
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="passcodeHint">Passcode Hint (Optional)</Label>
               <Input
                 id="passcodeHint"
@@ -314,12 +301,6 @@ function NewProject() {
           </CardContent>
         </Card>
 
-        {error && (
-          <div className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-            {error}
-          </div>
-        )}
-
         <div className="mt-6 flex justify-end gap-4">
           <Link to="/">
             <Button type="button" variant="outline" disabled={isLoading}>
@@ -336,6 +317,6 @@ function NewProject() {
   );
 }
 
-export const Route = createFileRoute("/projects/new")({
+export const Route = createFileRoute("/d/projects/new")({
   component: NewProject,
 });

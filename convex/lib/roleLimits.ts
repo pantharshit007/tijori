@@ -23,13 +23,13 @@ export const ROLE_LIMITS: Record<PlatformRole, RoleLimits> = {
   user: {
     maxProjects: 3,
     maxEnvironmentsPerProject: 2,
-    maxMembersPerProject: 2,
+    maxMembersPerProject: 3,
     maxSharedSecretsPerProject: 5,
-    maxVariablesPerEnvironment: 20,
+    maxVariablesPerEnvironment: 30,
     canCreateIndefiniteShares: false,
   },
   pro: {
-    maxProjects: 10,
+    maxProjects: 20,
     maxEnvironmentsPerProject: 5,
     maxMembersPerProject: 5,
     maxSharedSecretsPerProject: 25,

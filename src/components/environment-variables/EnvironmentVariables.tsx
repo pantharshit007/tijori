@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { toast } from "sonner";
+import { ROLE_LIMITS, type PlatformRole } from "../../../convex/lib/roleLimits";
 import {
   ArrowUpDown,
   Check,
@@ -51,6 +53,7 @@ export function EnvironmentVariables({
   environment,
   derivedKey,
   userRole,
+  platformRole,
 }: EnvironmentVariablesProps) {
   const variables = useQuery(api.variables.list, { environmentId: environment._id });
   const saveVariable = useMutation(api.variables.save);
@@ -161,8 +164,10 @@ export function EnvironmentVariables({
       setNewName("");
       setNewValue("");
       setShowNewVar(false);
-    } catch (err) {
+      toast.success("Variable saved successfully");
+    } catch (err: any) {
       console.error("Failed to save:", err);
+      toast.error(err.data || "Failed to save variable");
     } finally {
       setIsSaving(false);
     }
@@ -222,8 +227,10 @@ export function EnvironmentVariables({
       setEditName("");
       setEditValue("");
       setEditOriginalName("");
-    } catch (err) {
+      toast.success("Variable updated successfully");
+    } catch (err: any) {
       console.error("Failed to update:", err);
+      toast.error(err.data || "Failed to update variable");
     } finally {
       setIsEditSaving(false);
     }
@@ -240,8 +247,10 @@ export function EnvironmentVariables({
     if (!confirm("Delete this variable?")) return;
     try {
       await removeVariable({ id: varId });
+      toast.success("Variable deleted");
     } catch (err: any) {
       console.error("Failed to delete variable:", err?.message);
+      toast.error("Failed to delete variable");
     }
   }
 
@@ -361,8 +370,10 @@ export function EnvironmentVariables({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            {filteredVariables?.length ?? 0} variable
-            {(filteredVariables?.length ?? 0) !== 1 ? "s" : ""}
+            {filteredVariables?.length ?? 0} /{" "}
+            {ROLE_LIMITS[(platformRole as PlatformRole) || "user"]?.maxVariablesPerEnvironment ||
+              "∞"}{" "}
+            variables
             {searchQuery && ` (filtered from ${variables.length})`}
           </p>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">

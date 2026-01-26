@@ -188,7 +188,7 @@ export function ProjectSettings({
       setOpen(false);
       navigate({ to: "/" });
     } catch (err: any) {
-      setDeleteError(err.message || "Failed to delete project");
+      setDeleteError(err.data || "Failed to delete project");
     } finally {
       setIsDeleting(false);
     }

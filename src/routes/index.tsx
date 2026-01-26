@@ -59,7 +59,7 @@ function LandingPage() {
               </SignInButton>
             </SignedOut>
             <SignedIn>
-              <Link to="/dashboard">
+              <Link to="/d/dashboard">
                 <Button className="gap-2 shadow-lg shadow-primary/20">
                   Dashboard
                   <ArrowRight className="size-4" />
@@ -105,7 +105,7 @@ function LandingPage() {
                 </SignInButton>
               </SignedOut>
               <SignedIn>
-                <Link to="/dashboard">
+                <Link to="/d/dashboard">
                   <Button
                     size="lg"
                     className="h-12 px-8 text-md font-semibold gap-2 shadow-xl shadow-primary/20"
@@ -294,7 +294,7 @@ function LandingPage() {
                 </SignInButton>
               </SignedOut>
               <SignedIn>
-                <Link to="/dashboard">
+                <Link to="/d/dashboard">
                   <Button
                     size="lg"
                     variant="secondary"

@@ -1,8 +1,14 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { useClerk, useUser } from "@clerk/tanstack-react-start";
-import { FolderKey, Home, KeyRound, LogOut, Settings, Share2, User } from "lucide-react";
-import { keyStore } from "@/lib/key-store";
+import { FolderKey, Home, KeyRound, LogOut, Settings, Share2, ShieldCheck, User } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import {  ROLE_LIMITS } from "../../convex/lib/roleLimits";
+import type {PlatformRole} from "../../convex/lib/roleLimits";
 import { SidebarThemeToggle } from "@/components/sidebar-theme-toggle";
+import { keyStore } from "@/lib/key-store";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import {
   Sidebar,
   SidebarContent,
@@ -30,25 +36,25 @@ import { cn } from "@/lib/utils";
 const mainNavItems = [
   {
     title: "Dashboard",
-    url: "/dashboard",
+    url: "/d/dashboard",
     icon: Home,
   },
   {
-    title: "Projects",
-    url: "/projects",
-    icon: FolderKey,
+    title: "Shared",
+    url: "/d/shared",
+    icon: Share2,
   },
   {
-    title: "Shared Secrets",
-    url: "/shared",
-    icon: Share2,
+    title: "All Projects",
+    url: "/d/projects",
+    icon: FolderKey,
   },
 ];
 
 const settingsNavItems = [
   {
     title: "Settings",
-    url: "/settings",
+    url: "/d/settings",
     icon: Settings,
   },
 ];
@@ -57,14 +63,19 @@ export function AppSidebar() {
   const { user: clerkUser, isLoaded } = useUser();
   const { signOut } = useClerk();
   const { state } = useSidebar();
+  const location = useLocation();
+  const me = useQuery(api.users.getUsageStats);
 
   const user = clerkUser
     ? {
         name: clerkUser.fullName || clerkUser.username || "User",
         email: clerkUser.primaryEmailAddress?.emailAddress || "",
         image: clerkUser.imageUrl || null,
+        role: (me?.role as PlatformRole) || "user",
       }
     : null;
+
+  const limits = me ? ROLE_LIMITS[user?.role || "user"] : null;
 
   const handleLogout = async () => {
     keyStore.clear();
@@ -81,7 +92,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link to="/dashboard">
+              <Link to="/d/dashboard">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <KeyRound className="size-4" />
                 </div>
@@ -102,7 +113,11 @@ export function AppSidebar() {
             <SidebarMenu>
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title}>
+                  <SidebarMenuButton 
+                    asChild 
+                    tooltip={item.title}
+                    isActive={location.pathname === item.url}
+                  >
                     <Link to={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -110,9 +125,47 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {user?.role === "super_admin" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    tooltip="Admin Panel"
+                    isActive={location.pathname === "/d/admin"}
+                  >
+                    <Link to="/d/admin" className="text-amber-500 font-medium">
+                      <ShieldCheck className="size-4" />
+                      <span>Admin Panel</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {state === "expanded" && me && limits && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Usage</SidebarGroupLabel>
+            <SidebarGroupContent className="px-3 py-2 space-y-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                  <span>Projects</span>
+                  <span>{me.projectsCount} / {limits.maxProjects}</span>
+                </div>
+                <Progress value={(me.projectsCount / (limits.maxProjects || 1)) * 100} className="h-1.5" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                  <span>Shared Secrets</span>
+                  <span>{limits.maxSharedSecretsPerProject === Infinity ? "No Limit" : limits.maxSharedSecretsPerProject}</span>
+                </div>
+                <div className="text-[10px] text-muted-foreground">
+                  Limit per project
+                </div>
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         <SidebarGroup>
           <SidebarGroupLabel>Account</SidebarGroupLabel>
@@ -120,7 +173,11 @@ export function AppSidebar() {
             <SidebarMenu>
               {settingsNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title}>
+                  <SidebarMenuButton 
+                    asChild 
+                    tooltip={item.title}
+                    isActive={location.pathname === item.url}
+                  >
                     <Link to={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -162,7 +219,12 @@ export function AppSidebar() {
                         </AvatarFallback>
                       </Avatar>
                       <div className="grid flex-1 text-left text-sm leading-tight">
-                        <span className="truncate font-semibold">{user.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="truncate font-semibold">{user.name}</span>
+                          <Badge variant="outline" className="h-4 px-1 text-[9px] uppercase font-bold">
+                            {user.role}
+                          </Badge>
+                        </div>
                         <span className="truncate text-xs text-muted-foreground">{user.email}</span>
                       </div>
                     </>
@@ -176,13 +238,13 @@ export function AppSidebar() {
                 sideOffset={4}
               >
                 <DropdownMenuItem asChild>
-                  <Link to="/profile">
+                  <Link to="/d/profile">
                     <User className="mr-2 size-4" />
                     Profile
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/settings">
+                  <Link to="/d/settings">
                     <Settings className="mr-2 size-4" />
                     Settings
                   </Link>

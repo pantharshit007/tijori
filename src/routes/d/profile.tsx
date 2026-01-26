@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useUser } from "@clerk/tanstack-react-start";
-import { Calendar, Mail, Shield, Trash2, User } from "lucide-react";
+import { Calendar, Mail, Shield, User } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { ROLE_LIMITS } from "../../../convex/lib/roleLimits";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
@@ -8,20 +11,23 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatDateTime } from "@/lib/time";
 
-export const Route = createFileRoute("/profile")({
+export const Route = createFileRoute("/d/profile")({
   component: ProfilePage,
 });
 
 function ProfilePage() {
   const { user, isLoaded } = useUser();
+  const me = useQuery(api.users.getUsageStats);
 
-  if (!isLoaded) {
+  if (!isLoaded || me === undefined) {
     return <div>Loading...</div>;
   }
 
   if (!user) {
     return <div>Please sign in to view your profile.</div>;
   }
+
+  const limits = me ? ROLE_LIMITS[me.role || "user"] : null;
 
   return (
     <div className="max-w-2xl mx-auto space-y-8 py-10">
@@ -44,7 +50,9 @@ function ProfilePage() {
             <CardTitle className="text-2xl font-bold">{user.fullName || user.username}</CardTitle>
             <CardDescription>{user.primaryEmailAddress?.emailAddress}</CardDescription>
             <div className="flex gap-2 mt-2">
-              <Badge variant="secondary">Pro User</Badge>
+              <Badge variant="secondary" className="uppercase font-bold">
+                {me?.role || "user"}
+              </Badge>
               <Badge variant="outline">
                 {user.hasVerifiedEmailAddress ? "Verified" : "Unverified"}
               </Badge>
@@ -83,6 +91,26 @@ function ProfilePage() {
                     ? formatDateTime(new Date(user.lastSignInAt).getTime())
                     : "Unknown"}
                 </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium">Resources & Usage</h3>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="p-4 rounded-lg border bg-accent/5">
+                <div className="text-xs text-muted-foreground uppercase mb-1">Projects</div>
+                <div className="text-2xl font-bold">{me?.projectsCount} / {limits?.maxProjects || "∞"}</div>
+              </div>
+              <div className="p-4 rounded-lg border bg-accent/5">
+                <div className="text-xs text-muted-foreground uppercase mb-1">Environments</div>
+                <div className="text-2xl font-bold">{me?.totalEnvironments}</div>
+                <div className="text-[10px] text-muted-foreground">({limits?.maxEnvironmentsPerProject} per project)</div>
+              </div>
+              <div className="p-4 rounded-lg border bg-accent/5">
+                <div className="text-xs text-muted-foreground uppercase mb-1">Members</div>
+                <div className="text-2xl font-bold">{me?.totalMembers}</div>
+                <div className="text-[10px] text-muted-foreground">({limits?.maxMembersPerProject} per project)</div>
               </div>
             </div>
           </div>

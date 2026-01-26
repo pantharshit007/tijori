@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, KeyRound, Lock, Shield, Zap, Check, ExternalLink } from "lucide-react";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { ArrowLeft, Check, ExternalLink, KeyRound, Lock, Shield, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -87,8 +87,8 @@ function SecurityDocsPage() {
               <CardContent className="text-sm text-muted-foreground space-y-2">
                 <p>100,000 iterations with SHA-256 and a 128-bit salt.</p>
                 <p>
-                  Derives a cryptographic key from your 6-digit passcode. High iteration count
-                  makes brute-force attacks computationally expensive.
+                  Derives a cryptographic key from your 6-digit passcode. High iteration count makes
+                  brute-force attacks computationally expensive.
                 </p>
               </CardContent>
             </Card>
@@ -264,7 +264,7 @@ Project Passcode (6-digit)
 
         {/* CTA */}
         <section className="text-center py-8">
-          <Link to="/dashboard">
+          <Link to="/d/dashboard">
             <Button size="lg" className="gap-2">
               Go to Dashboard
             </Button>

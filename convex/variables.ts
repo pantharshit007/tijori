@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
@@ -7,17 +7,17 @@ import type { Id } from "./_generated/dataModel";
  */
 async function checkEnvironmentAccess(ctx: any, environmentId: Id<"environments">) {
   const identity = await ctx.auth.getUserIdentity();
-  if (!identity) throw new Error("Unauthenticated");
+  if (!identity) throw new ConvexError("Unauthenticated");
 
   const user = await ctx.db
     .query("users")
     .withIndex("by_tokenIdentifier", (q: any) => q.eq("tokenIdentifier", identity.tokenIdentifier))
     .unique();
 
-  if (!user) throw new Error("User not found");
+  if (!user) throw new ConvexError("User not found");
 
   const environment = await ctx.db.get(environmentId);
-  if (!environment) throw new Error("Environment not found");
+  if (!environment) throw new ConvexError("Environment not found");
 
   const membership = await ctx.db
     .query("projectMembers")
@@ -26,7 +26,7 @@ async function checkEnvironmentAccess(ctx: any, environmentId: Id<"environments"
     )
     .unique();
 
-  if (!membership) throw new Error("Access denied");
+  if (!membership) throw new ConvexError("Access denied");
 
   return { userId: user._id, membership };
 }
@@ -77,7 +77,7 @@ export const save = mutation({
     const { userId, membership } = await checkEnvironmentAccess(ctx, args.environmentId);
 
     if (membership.role !== "owner" && membership.role !== "admin") {
-      throw new Error("Forbidden: Only owners and admins can modify variables");
+      throw new ConvexError("Forbidden: Only owners and admins can modify variables");
     }
 
     const now = Date.now();
@@ -117,13 +117,13 @@ export const remove = mutation({
   args: { id: v.id("variables") },
   handler: async (ctx, args) => {
     const variable = await ctx.db.get(args.id);
-    if (!variable) throw new Error("Variable not found");
+    if (!variable) throw new ConvexError("Variable not found");
 
     const { membership } = await checkEnvironmentAccess(ctx, variable.environmentId);
 
     // Enforce role-based access: only owner and admin can delete variables
     if (membership.role !== "owner" && membership.role !== "admin") {
-      throw new Error("Forbidden: Only owners and admins can delete variables");
+      throw new ConvexError("Forbidden: Only owners and admins can delete variables");
     }
 
     await ctx.db.delete(args.id);

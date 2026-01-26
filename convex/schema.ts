@@ -9,15 +9,13 @@ export default defineSchema({
     image: v.optional(v.string()),
     masterKeyHash: v.optional(v.string()),
     masterKeySalt: v.optional(v.string()),
-    // Platform-wide user role for feature gating
-    platformRole: v.optional(
-      v.union(
-        v.literal("user"),
-        v.literal("pro"),
-        v.literal("pro_plus"),
-        v.literal("super_admin")
-      )
+    platformRole: v.union(
+      v.literal("user"),
+      v.literal("pro"),
+      v.literal("pro_plus"),
+      v.literal("super_admin")
     ),
+    isDeactivated: v.optional(v.boolean()),
   })
     .index("by_tokenIdentifier", ["tokenIdentifier"])
     .index("by_email", ["email"]),
@@ -65,7 +63,7 @@ export default defineSchema({
     projectId: v.id("projects"),
     environmentId: v.id("environments"),
     createdBy: v.id("users"),
-    name: v.optional(v.string()), 
+    name: v.optional(v.string()),
     encryptedPasscode: v.string(), // Passcode encrypted with Project Key
     passcodeIv: v.string(),
     passcodeAuthTag: v.string(),
@@ -85,4 +83,3 @@ export default defineSchema({
     .index("by_createdBy", ["createdBy"])
     .index("by_expiry", ["expiresAt"]),
 });
-

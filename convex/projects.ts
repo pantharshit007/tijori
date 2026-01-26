@@ -1,6 +1,7 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getRoleLimits, type PlatformRole } from "./lib/roleLimits";
+import {  getRoleLimits } from "./lib/roleLimits";
+import type {PlatformRole} from "./lib/roleLimits";
 
 /**
  * Helper to get the current user ID or throw.
@@ -8,14 +9,14 @@ import { getRoleLimits, type PlatformRole } from "./lib/roleLimits";
 async function getUserId(ctx: any) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
-    throw new Error("Unauthenticated");
+    throw new ConvexError("Unauthenticated");
   }
   const user = await ctx.db
     .query("users")
     .withIndex("by_tokenIdentifier", (q: any) => q.eq("tokenIdentifier", identity.tokenIdentifier))
     .unique();
   if (!user) {
-    throw new Error("User not found in database");
+    throw new ConvexError("User not found in database");
   }
   return user._id;
 }
@@ -40,7 +41,7 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthenticated");
+      throw new ConvexError("Unauthenticated");
     }
 
     const user = await ctx.db
@@ -51,11 +52,11 @@ export const create = mutation({
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new ConvexError("User not found");
     }
 
     if (!user.masterKeyHash) {
-      throw new Error("Master key not configured. Please set it in Settings.");
+      throw new ConvexError("Master key not configured. Please set it in Settings.");
     }
 
     // Check role-based project limit
@@ -66,7 +67,7 @@ export const create = mutation({
       .collect();
 
     if (existingProjects.length >= limits.maxProjects) {
-      throw new Error(
+      throw new ConvexError(
         `Project limit reached (${limits.maxProjects}). Upgrade to Pro for more projects.`
       );
     }
@@ -156,12 +157,12 @@ export const get = query({
       .unique();
 
     if (!membership) {
-      throw new Error("Access denied: Not a member of this project");
+      throw new ConvexError("Access denied: Not a member of this project");
     }
 
     const project = await ctx.db.get(args.projectId);
     if (!project) {
-      throw new Error("Project not found");
+      throw new ConvexError("Project not found");
     }
 
     return {
@@ -227,7 +228,7 @@ export const batchUpdatePasscodes = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Unauthenticated");
+      throw new ConvexError("Unauthenticated");
     }
 
     const user = await ctx.db
@@ -238,7 +239,7 @@ export const batchUpdatePasscodes = mutation({
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new ConvexError("User not found");
     }
 
     const now = Date.now();
@@ -248,7 +249,7 @@ export const batchUpdatePasscodes = mutation({
     for (const update of args.updates) {
       const project = await ctx.db.get(update.projectId);
       if (!project || project.ownerId !== user._id) {
-        throw new Error(`Access denied: Not the owner of project ${update.projectId}`);
+        throw new ConvexError(`Access denied: Not the owner of project ${update.projectId}`);
       }
     }
 
@@ -292,7 +293,7 @@ export const listMembers = query({
       .unique();
 
     if (!membership) {
-      throw new Error("Access denied: Not a member of this project");
+      throw new ConvexError("Access denied: Not a member of this project");
     }
 
     // Get all members
@@ -333,7 +334,7 @@ export const addMember = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
+    if (!identity) throw new ConvexError("Unauthenticated");
 
     const currentUser = await ctx.db
       .query("users")
@@ -342,7 +343,7 @@ export const addMember = mutation({
       )
       .unique();
 
-    if (!currentUser) throw new Error("User not found");
+    if (!currentUser) throw new ConvexError("User not found");
 
     // Check if user has permission (owner or admin)
     const membership = await ctx.db
@@ -353,7 +354,7 @@ export const addMember = mutation({
       .unique();
 
     if (!membership || (membership.role !== "owner" && membership.role !== "admin")) {
-      throw new Error("Access denied: Only owners and admins can add members");
+      throw new ConvexError("Access denied: Only owners and admins can add members");
     }
 
     // Check role-based member limit
@@ -364,7 +365,7 @@ export const addMember = mutation({
       .collect();
 
     if (existingMembers.length >= limits.maxMembersPerProject) {
-      throw new Error(
+      throw new ConvexError(
         `Member limit reached (${limits.maxMembersPerProject}). Upgrade to Pro for more.`
       );
     }
@@ -376,7 +377,7 @@ export const addMember = mutation({
       .unique();
 
     if (!targetUser) {
-      throw new Error("User not found with that email address");
+      throw new ConvexError("User not found with that email address");
     }
 
     // Check if user is already a member
@@ -388,7 +389,7 @@ export const addMember = mutation({
       .unique();
 
     if (existingMembership) {
-      throw new Error("User is already a member of this project");
+      throw new ConvexError("User is already a member of this project");
     }
 
     // Add the member
@@ -422,24 +423,24 @@ export const removeMember = mutation({
       .unique();
 
     if (!myMembership || (myMembership.role !== "owner" && myMembership.role !== "admin")) {
-      throw new Error("Access denied: Only owners and admins can remove members");
+      throw new ConvexError("Access denied: Only owners and admins can remove members");
     }
 
     // Get the target membership
     const targetMembership = await ctx.db.get(args.memberId);
 
     if (!targetMembership || targetMembership.projectId !== args.projectId) {
-      throw new Error("Membership not found");
+      throw new ConvexError("Membership not found");
     }
 
     // Cannot remove the owner
     if (targetMembership.role === "owner") {
-      throw new Error("Cannot remove the project owner");
+      throw new ConvexError("Cannot remove the project owner");
     }
 
     // Admins can only remove members, not other admins
     if (myMembership.role === "admin" && targetMembership.role === "admin") {
-      throw new Error("Admins cannot remove other admins");
+      throw new ConvexError("Admins cannot remove other admins");
     }
 
     // Remove the membership
@@ -469,19 +470,19 @@ export const updateMemberRole = mutation({
       .unique();
 
     if (!myMembership || myMembership.role !== "owner") {
-      throw new Error("Access denied: Only owners can update member roles");
+      throw new ConvexError("Access denied: Only owners can update member roles");
     }
 
     // Get the target membership
     const targetMembership = await ctx.db.get(args.memberId);
 
     if (!targetMembership || targetMembership.projectId !== args.projectId) {
-      throw new Error("Membership not found");
+      throw new ConvexError("Membership not found");
     }
 
     // Cannot change owner's role
     if (targetMembership.role === "owner") {
-      throw new Error("Cannot change the owner's role");
+      throw new ConvexError("Cannot change the owner's role");
     }
 
     // Update the role
@@ -509,12 +510,12 @@ export const leaveProject = mutation({
       .unique();
 
     if (!membership) {
-      throw new Error("You are not a member of this project");
+      throw new ConvexError("You are not a member of this project");
     }
 
     // Owners cannot leave
     if (membership.role === "owner") {
-      throw new Error(
+      throw new ConvexError(
         "Owners cannot leave their own project. Transfer ownership or delete the project instead."
       );
     }
@@ -547,7 +548,7 @@ export const updateProject = mutation({
       .unique();
 
     if (!membership || membership.role !== "owner") {
-      throw new Error("Access denied: Only owners can update project details");
+      throw new ConvexError("Access denied: Only owners can update project details");
     }
 
     // Build update object
@@ -580,7 +581,7 @@ export const deleteProject = mutation({
       .unique();
 
     if (!membership || membership.role !== "owner") {
-      throw new Error("Access denied: Only owners can delete projects");
+      throw new ConvexError("Access denied: Only owners can delete projects");
     }
 
     // Delete all shared secrets

@@ -2,7 +2,7 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { ArrowRight, Clock, FolderKey, LayoutGrid, List, Plus } from 'lucide-react'
 import { useState } from 'react'
-import { api } from '../../convex/_generated/api'
+import { api } from "../../../convex/_generated/api";
 
 
 import { Button } from '@/components/ui/button'
@@ -63,7 +63,7 @@ function Dashboard() {
               <List className="h-4 w-4" />
             </Button>
           </div>
-          <Link to="/projects/new">
+          <Link to="/d/projects/new">
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
               New Project
@@ -77,7 +77,7 @@ function Dashboard() {
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold tracking-tight">Your Projects</h2>
           {projects && projects.length > 5 && (
-            <Link to="/projects" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+            <Link to="/d/projects" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
               View all {projects.length}
               <ArrowRight className="h-3 w-3" />
             </Link>
@@ -107,7 +107,7 @@ function Dashboard() {
                 Create your first project to start managing environment variables
                 securely.
               </p>
-              <Link to="/projects/new">
+              <Link to="/d/projects/new">
                 <Button className="gap-2">
                   <Plus className="h-4 w-4" />
                   Create Project
@@ -120,7 +120,7 @@ function Dashboard() {
             {sortedProjects?.map((project) => (
               <Link
                 key={project._id}
-                to="/projects/$projectId"
+                to="/d/project/$projectId"
                 params={{ projectId: project._id }}
               >
                 <Card className="hover:bg-accent/50 transition-colors cursor-pointer h-full border-zinc-200/50 dark:border-zinc-800/50">
@@ -166,9 +166,9 @@ function Dashboard() {
                   <TableRow key={project._id} className="cursor-pointer hover:bg-accent/50 group">
                     <TableCell className="font-medium h-14">
                       <Link 
-                        to="/projects/$projectId" 
+                        to="/d/project/$projectId" 
                         params={{ projectId: project._id }}
-                        className="flex items-center gap-2"
+                        className="text-primary font-medium hover:underline"
                       >
                         <FolderKey className="h-4 w-4 text-primary" />
                         {project.name}
@@ -201,6 +201,6 @@ function Dashboard() {
   )
 }
 
-export const Route = createFileRoute('/dashboard')({
+export const Route = createFileRoute('/d/dashboard')({
   component: Dashboard,
 })
