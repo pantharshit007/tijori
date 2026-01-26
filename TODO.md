@@ -1,4 +1,4 @@
-- [ ] haven't thought about how to add a new memeber to a project
+- [ ] move the dashboard to dedicated route `/dashboard`.
 - [ ] update the sidebar with the correct functionality, log out button, and settings button and profile, along with correct user info.
 - [ ] do we need a profile page? what is even the use case for it?
 - [ ] in `handleReveal` and `handleCopy` are we re-calculating the decrypted value every time? for each value? if yes, then we should cache it in state or fix it such that once we unlock the passcode, we don't need to decrypt the same value again.
@@ -15,3 +15,4 @@
 - [ ] add toast notifications for successful actions, ex: copy, delete, etc.
 - [ ] add a role attribute to user table, role is whole platform based, role: user, pro, pro_plus, super_admin
   - [ ] continuation of the above, this will limit few things, ex: number of projects creation 5 or 10, no. of environments 3 or 5, no. of members per project 2 or 5, etc.
+- [ ] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).

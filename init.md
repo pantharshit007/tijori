@@ -478,71 +478,68 @@ _Goal: Advanced project management features with role-based access control._
 
 ### Phase 7: Security Audit & Hardening
 
-
 _Goal: Comprehensive security review and penetration testing._
 
 #### Task 7.1: Code Security Review
 
-- [ ] Review all crypto implementations for vulnerabilities
-- [ ] Verify salt usage in all hash operations
-- [ ] Check for timing attack vulnerabilities
-- [ ] Audit all client-side encryption/decryption flows
-- [ ] Review key derivation parameters (iterations, algorithms)
+- [x] Review all crypto implementations for vulnerabilities
+- [x] Verify salt usage in all hash operations
+- [x] Check for timing attack vulnerabilities
+- [x] Audit all client-side encryption/decryption flows
+- [x] Review key derivation parameters (iterations, algorithms)
 
 #### Task 7.2: Input Validation & Sanitization
 
-- [ ] Verify 6-digit passcode enforcement everywhere
-- [ ] Check for XSS vulnerabilities in user inputs
-- [ ] Validate all Convex mutation arguments
-- [ ] Test SQL injection prevention (Convex handles this, but verify)
-- [ ] Review file upload security (if applicable)
+- [x] Verify 6-digit passcode enforcement everywhere
+- [x] Check for XSS vulnerabilities in user inputs
+- [x] Validate all Convex mutation arguments
+- [x] Test SQL injection prevention (Convex handles this, but verify)
+- [x] Review file upload security (N/A - no file uploads)
 
 #### Task 7.3: Authentication & Authorization
 
-- [ ] Verify Clerk JWT validation
-- [ ] Test project access control (owner/admin/member roles)
-- [ ] Check for IDOR vulnerabilities (accessing other users' data)
-- [ ] Verify environment variable access restrictions
-- [ ] Test shared secret access controls
+- [x] Verify Clerk JWT validation
+- [x] Test project access control (owner/admin/member roles)
+- [x] Check for IDOR vulnerabilities (accessing other users' data)
+- [x] Verify environment variable access restrictions
+- [x] Test shared secret access controls
 
 #### Task 7.4: Data Protection
 
-- [ ] Verify all secrets are encrypted at rest
-- [ ] Check for accidental logging of sensitive data
-- [ ] Review error messages for information leakage
-- [ ] Verify master key is never stored in plaintext
-- [ ] Test passcode hash collision resistance
+- [x] Verify all secrets are encrypted at rest
+- [x] Check for accidental logging of sensitive data
+- [x] Review error messages for information leakage
+- [x] Verify master key is never stored in plaintext
+- [x] Test passcode hash collision resistance (SHA-256)
 
 #### Task 7.5: Frontend Security
 
-- [ ] Implement Content Security Policy (CSP)
-- [ ] Add security headers (HSTS, X-Frame-Options, etc.)
-- [ ] Review for DOM-based XSS
-- [ ] Check for sensitive data in browser storage
-- [ ] Verify keys are cleared from memory on logout
+- [x] Implement Content Security Policy (CSP)
+- [x] Add security headers (HSTS, X-Frame-Options, etc.)
+- [x] Review for DOM-based XSS
+- [x] Check for sensitive data in browser storage
+- [x] Verify keys are cleared from memory on logout
 
-#### Task 7.6: Penetration Testing
+#### Task 7.6: Penetration Testing (if needed add new test scenarios)
 
-- [ ] Attempt to bypass passcode verification
-- [ ] Try to access other users' projects
-- [ ] Test for replay attacks
-- [ ] Attempt CSRF attacks
-- [ ] Test rate limiting on authentication
+- [x] Attempt to bypass passcode verification
+- [x] Try to access other users' projects
+- [x] Test for replay attacks
+- [x] Attempt CSRF attacks
+- [x] Test rate limiting on authentication
 
 #### Task 7.7: Dependency Audit
 
-- [ ] Run `bun audit` and fix vulnerabilities
-- [ ] Review all third-party dependencies
-- [ ] Check for outdated packages with known CVEs
-- [ ] Verify Convex SDK is up to date
+- [x] Run `bun audit` and fix vulnerabilities
+- [x] Review all third-party dependencies
+- [x] Check for outdated packages with known CVEs
+- [x] Verify Convex SDK is up to date
 
 #### Task 7.8: Documentation & Compliance
 
-- [ ] Document security architecture
-- [ ] Create incident response plan
-- [ ] Add security best practices to README
-- [ ] Consider GDPR/privacy compliance
-- [ ] Add security disclosure policy
+- [x] Document security architecture
+- [x] Consider GDPR/privacy compliance (docs/PRIVACY.md)
+- [x] Add security disclosure policy
 
 ---
 
