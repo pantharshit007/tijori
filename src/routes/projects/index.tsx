@@ -8,7 +8,7 @@ export const Route = createFileRoute("/projects/")({
     return (
       <div className="max-w-4xl mx-auto space-y-8 py-10 px-4">
         <div className="flex items-center gap-4">
-          <Link to="/">
+          <Link to="/dashboard">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/projects/")({
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center py-10 space-y-6">
             <div className="text-sm text-center text-muted-foreground bg-accent/20 px-4 py-2 rounded-full border">
-               For now, you can access and manage all your projects from the <Link to="/" className="text-primary font-medium hover:underline">Dashboard</Link>.
+               For now, you can access and manage all your projects from the <Link to="/dashboard" className="text-primary font-medium hover:underline">Dashboard</Link>.
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-lg">
@@ -61,7 +61,7 @@ export const Route = createFileRoute("/projects/")({
         </Card>
 
         <div className="flex justify-center">
-          <Link to="/">
+          <Link to="/dashboard">
             <Button variant="default" className="px-8">
               Back to Dashboard
             </Button>

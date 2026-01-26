@@ -1,6 +1,6 @@
-- [ ] move the dashboard to dedicated route `/dashboard`.
-- [ ] update the sidebar with the correct functionality, log out button, and settings button and profile, along with correct user info.
-- [ ] do we need a profile page? what is even the use case for it?
+- [x] move the dashboard to dedicated route `/dashboard`.
+- [x] update the sidebar with the correct functionality, log out button, and settings button and profile, along with correct user info.
+- [x] do we need a profile page? what is even the use case for it? (Created at /profile)
 - [ ] in `handleReveal` and `handleCopy` are we re-calculating the decrypted value every time? for each value? if yes, then we should cache it in state or fix it such that once we unlock the passcode, we don't need to decrypt the same value again.
 - [ ] **Project Passcode Rotation**: Currently, changing a project's 6-digit passcode is not allowed.
   - **Reasoning**: It is a high-cost operation. Changing the passcode changes the PBKDF2 derived key, which would require re-encrypting EVERY variable in EVERY environment for that project, as well as re-encrypting all shared passcodes in the `sharedSecrets` table.
@@ -16,3 +16,7 @@
 - [ ] add a role attribute to user table, role is whole platform based, role: user, pro, pro_plus, super_admin
   - [ ] continuation of the above, this will limit few things, ex: number of projects creation 5 or 10, no. of environments 3 or 5, no. of members per project 2 or 5, etc.
 - [ ] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
+
+---
+
+- [ ] before going prod, do this [here](https://clerk.com/docs/guides/configure/auth-strategies/social-connections/google)

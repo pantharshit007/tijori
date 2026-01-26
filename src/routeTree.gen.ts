@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SharedRouteImport } from './routes/shared'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CryptoTestRouteImport } from './routes/crypto-test'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
@@ -33,6 +35,16 @@ const SharedRoute = SharedRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CryptoTestRoute = CryptoTestRouteImport.update({
@@ -104,6 +116,8 @@ const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/crypto-test': typeof CryptoTestRoute
+  '/dashboard': typeof DashboardRoute
+  '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/shared': typeof SharedRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
@@ -121,6 +135,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/crypto-test': typeof CryptoTestRoute
+  '/dashboard': typeof DashboardRoute
+  '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/shared': typeof SharedRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
@@ -139,6 +155,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/crypto-test': typeof CryptoTestRoute
+  '/dashboard': typeof DashboardRoute
+  '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/shared': typeof SharedRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
@@ -158,6 +176,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/crypto-test'
+    | '/dashboard'
+    | '/profile'
     | '/settings'
     | '/shared'
     | '/projects/$projectId'
@@ -175,6 +195,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/crypto-test'
+    | '/dashboard'
+    | '/profile'
     | '/settings'
     | '/shared'
     | '/projects/$projectId'
@@ -192,6 +214,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/crypto-test'
+    | '/dashboard'
+    | '/profile'
     | '/settings'
     | '/shared'
     | '/projects/$projectId'
@@ -210,6 +234,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CryptoTestRoute: typeof CryptoTestRoute
+  DashboardRoute: typeof DashboardRoute
+  ProfileRoute: typeof ProfileRoute
   SettingsRoute: typeof SettingsRoute
   SharedRoute: typeof SharedRoute
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
@@ -239,6 +265,20 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/crypto-test': {
@@ -338,6 +378,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CryptoTestRoute: CryptoTestRoute,
+  DashboardRoute: DashboardRoute,
+  ProfileRoute: ProfileRoute,
   SettingsRoute: SettingsRoute,
   SharedRoute: SharedRoute,
   ProjectsProjectIdRoute: ProjectsProjectIdRoute,

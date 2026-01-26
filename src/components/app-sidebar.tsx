@@ -1,14 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useClerk, useUser } from "@clerk/tanstack-react-start";
-import {
-  FolderKey,
-  Home,
-  KeyRound,
-  LogOut,
-  Settings,
-  Share2,
-  User,
-} from "lucide-react";
+import { FolderKey, Home, KeyRound, LogOut, Settings, Share2, User } from "lucide-react";
 import { keyStore } from "@/lib/key-store";
 import { SidebarThemeToggle } from "@/components/sidebar-theme-toggle";
 import {
@@ -22,6 +14,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -32,11 +25,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 const mainNavItems = [
   {
     title: "Dashboard",
-    url: "/",
+    url: "/dashboard",
     icon: Home,
   },
   {
@@ -62,6 +56,7 @@ const settingsNavItems = [
 export function AppSidebar() {
   const { user: clerkUser, isLoaded } = useUser();
   const { signOut } = useClerk();
+  const { state } = useSidebar();
 
   const user = clerkUser
     ? {
@@ -77,20 +72,22 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar variant="inset" collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border">
+    <Sidebar
+      variant="inset"
+      collapsible="icon"
+      className={cn(state === "expanded" ? "pt-0" : "pt-[14px]")}
+    >
+      <SidebarHeader className="border-b border-sidebar-border ">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link to="/">
+              <Link to="/dashboard">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <KeyRound className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Tijori</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    Secure Vault
-                  </span>
+                  <span className="truncate text-xs text-muted-foreground">Secure Vault</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -166,9 +163,7 @@ export function AppSidebar() {
                       </Avatar>
                       <div className="grid flex-1 text-left text-sm leading-tight">
                         <span className="truncate font-semibold">{user.name}</span>
-                        <span className="truncate text-xs text-muted-foreground">
-                          {user.email}
-                        </span>
+                        <span className="truncate text-xs text-muted-foreground">{user.email}</span>
                       </div>
                     </>
                   )}
@@ -180,9 +175,11 @@ export function AppSidebar() {
                 align="end"
                 sideOffset={4}
               >
-                <DropdownMenuItem disabled>
-                  <User className="mr-2 size-4" />
-                  Profile
+                <DropdownMenuItem asChild>
+                  <Link to="/profile">
+                    <User className="mr-2 size-4" />
+                    Profile
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/settings">

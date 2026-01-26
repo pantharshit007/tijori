@@ -73,7 +73,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   const location = useLocation()
 
   // Public routes that don't require authentication
-  const isPublicRoute = location.pathname.startsWith('/share/')
+  const isPublicRoute = location.pathname === '/' || location.pathname.startsWith('/share/')
 
   return (
     <ClerkProvider>
