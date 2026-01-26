@@ -44,12 +44,13 @@ export const store = mutation({
       return user._id;
     }
 
-    // If it's a new identity, create a new User.
+    // If it's a new identity, create a new User with default 'user' role.
     return await ctx.db.insert("users", {
       tokenIdentifier: identity.tokenIdentifier,
       name,
       email: args.email.toLowerCase(),
       image: args.image,
+      platformRole: "user", // Default free tier
     });
   },
 });

@@ -9,6 +9,15 @@ export default defineSchema({
     image: v.optional(v.string()),
     masterKeyHash: v.optional(v.string()),
     masterKeySalt: v.optional(v.string()),
+    // Platform-wide user role for feature gating
+    platformRole: v.optional(
+      v.union(
+        v.literal("user"),
+        v.literal("pro"),
+        v.literal("pro_plus"),
+        v.literal("super_admin")
+      )
+    ),
   })
     .index("by_tokenIdentifier", ["tokenIdentifier"])
     .index("by_email", ["email"]),

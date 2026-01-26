@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { getRoleLimits, type PlatformRole } from "./lib/roleLimits";
 
 /**
  * Helper to get the current user ID or throw.
@@ -23,6 +24,7 @@ async function getUserId(ctx: any) {
  * Create a new project.
  * This also creates a default "Development" environment.
  * Requires user to have master key set (checked on frontend).
+ * Enforces role-based project limits.
  */
 export const create = mutation({
   args: {
@@ -54,6 +56,19 @@ export const create = mutation({
 
     if (!user.masterKeyHash) {
       throw new Error("Master key not configured. Please set it in Settings.");
+    }
+
+    // Check role-based project limit
+    const limits = getRoleLimits(user.platformRole as PlatformRole | undefined);
+    const existingProjects = await ctx.db
+      .query("projects")
+      .withIndex("by_ownerId", (q) => q.eq("ownerId", user._id))
+      .collect();
+
+    if (existingProjects.length >= limits.maxProjects) {
+      throw new Error(
+        `Project limit reached (${limits.maxProjects}). Upgrade to Pro for more projects.`
+      );
     }
 
     const now = Date.now();
@@ -308,6 +323,7 @@ export const listMembers = query({
 /**
  * Add a member to a project by email.
  * Only owners and admins can add members.
+ * Enforces role-based member limits.
  */
 export const addMember = mutation({
   args: {
@@ -316,16 +332,41 @@ export const addMember = mutation({
     role: v.union(v.literal("admin"), v.literal("member")),
   },
   handler: async (ctx, args) => {
-    const userId = await getUserId(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+
+    const currentUser = await ctx.db
+      .query("users")
+      .withIndex("by_tokenIdentifier", (q: any) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier)
+      )
+      .unique();
+
+    if (!currentUser) throw new Error("User not found");
 
     // Check if user has permission (owner or admin)
     const membership = await ctx.db
       .query("projectMembers")
-      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
+      .withIndex("by_project_user", (q) =>
+        q.eq("projectId", args.projectId).eq("userId", currentUser._id)
+      )
       .unique();
 
     if (!membership || (membership.role !== "owner" && membership.role !== "admin")) {
       throw new Error("Access denied: Only owners and admins can add members");
+    }
+
+    // Check role-based member limit
+    const limits = getRoleLimits(currentUser.platformRole as PlatformRole | undefined);
+    const existingMembers = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+      .collect();
+
+    if (existingMembers.length >= limits.maxMembersPerProject) {
+      throw new Error(
+        `Member limit reached (${limits.maxMembersPerProject}). Upgrade to Pro for more.`
+      );
     }
 
     const normalizedEmail = args.email.toLowerCase();

@@ -19,6 +19,7 @@ import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as ShareShareIdRouteImport } from './routes/share/$shareId'
 import { Route as ProjectsNewRouteImport } from './routes/projects/new'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
+import { Route as DocsSecurityRouteImport } from './routes/docs/security'
 import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
 import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
 import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
@@ -77,6 +78,11 @@ const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
   path: '/projects/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsSecurityRoute = DocsSecurityRouteImport.update({
+  id: '/docs/security',
+  path: '/docs/security',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemoStartServerFuncsRoute = DemoStartServerFuncsRouteImport.update({
   id: '/demo/start/server-funcs',
   path: '/demo/start/server-funcs',
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/shared': typeof SharedRoute
+  '/docs/security': typeof DocsSecurityRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
   '/share/$shareId': typeof ShareShareIdRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/shared': typeof SharedRoute
+  '/docs/security': typeof DocsSecurityRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
   '/share/$shareId': typeof ShareShareIdRoute
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/shared': typeof SharedRoute
+  '/docs/security': typeof DocsSecurityRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/new': typeof ProjectsNewRoute
   '/share/$shareId': typeof ShareShareIdRoute
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/settings'
     | '/shared'
+    | '/docs/security'
     | '/projects/$projectId'
     | '/projects/new'
     | '/share/$shareId'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/settings'
     | '/shared'
+    | '/docs/security'
     | '/projects/$projectId'
     | '/projects/new'
     | '/share/$shareId'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/settings'
     | '/shared'
+    | '/docs/security'
     | '/projects/$projectId'
     | '/projects/new'
     | '/share/$shareId'
@@ -238,6 +250,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   SettingsRoute: typeof SettingsRoute
   SharedRoute: typeof SharedRoute
+  DocsSecurityRoute: typeof DocsSecurityRoute
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
   ProjectsNewRoute: typeof ProjectsNewRoute
   ShareShareIdRoute: typeof ShareShareIdRoute
@@ -323,6 +336,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs/security': {
+      id: '/docs/security'
+      path: '/docs/security'
+      fullPath: '/docs/security'
+      preLoaderRoute: typeof DocsSecurityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demo/start/server-funcs': {
       id: '/demo/start/server-funcs'
       path: '/demo/start/server-funcs'
@@ -382,6 +402,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   SettingsRoute: SettingsRoute,
   SharedRoute: SharedRoute,
+  DocsSecurityRoute: DocsSecurityRoute,
   ProjectsProjectIdRoute: ProjectsProjectIdRoute,
   ProjectsNewRoute: ProjectsNewRoute,
   ShareShareIdRoute: ShareShareIdRoute,

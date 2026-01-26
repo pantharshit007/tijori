@@ -13,8 +13,7 @@
 - [ ] Transfer ownership of project, pending.
 - [ ] more options like select all, select none, and select few in shared section in dashboard to perform bulk actions, disable, expire, delete.
 - [ ] add toast notifications for successful actions, ex: copy, delete, etc.
-- [ ] add a role attribute to user table, role is whole platform based, role: user, pro, pro_plus, super_admin
-  - [ ] continuation of the above, this will limit few things, ex: number of projects creation 5 or 10, no. of environments 3 or 5, no. of members per project 2 or 5, etc.
+- [x] Implement user roles (e.g., `user`, `pro`, `pro_plus`, `super_admin`) in the user table to control feature access, such as limiting project creation (5 or 10), environment count (3 or 5), and members per project (2 or 5). (Implemented in `convex/lib/roleLimits.ts`)
 - [ ] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
 
 ---
