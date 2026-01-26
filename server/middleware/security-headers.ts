@@ -11,28 +11,23 @@ export default defineEventHandler((event) => {
   const path = event.path || "";
 
   // Skip middleware for static assets (they're handled by CDN/bundler)
-  if (
-    path.startsWith("/_build/") ||
-    path.startsWith("/assets/") ||
-    path.endsWith(".js") ||
-    path.endsWith(".css") ||
-    path.endsWith(".map")
-  ) {
+  if (path.startsWith("/_build/") || path.startsWith("/assets/")) {
     return;
   }
 
+  const isProduction = process.env.NODE_ENV === "production";
+
   // Define Content Security Policy
-  // Note: 'unsafe-inline' is needed for CSS-in-JS and inline styles from Radix UI
-  // In production, consider using nonces for stricter CSP
+  // Note: 'unsafe-inline' is often needed in dev for CSS-in-JS and HMR
   const cspDirectives = [
     // Default to self
     "default-src 'self'",
 
-    // Scripts: self + Clerk auth
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.accounts.dev https://*.clerk.accounts.dev",
+    // Scripts: self + Clerk auth (only add unsafe tokens in dev)
+    `script-src 'self' ${isProduction ? "" : "'unsafe-inline' 'unsafe-eval' "}https://clerk.accounts.dev https://*.clerk.accounts.dev`,
 
-    // Styles: self + inline (for Tailwind/Radix) + Google Fonts + JSDelivr
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+    // Styles: self + Google Fonts + JSDelivr (only add unsafe-inline in dev)
+    `style-src 'self' ${isProduction ? "" : "'unsafe-inline' "}https://fonts.googleapis.com https://cdn.jsdelivr.net`,
 
     // Images: self + Clerk avatars + data URIs
     "img-src 'self' data: blob: https://*.clerk.com https://*.clerk.accounts.dev https://img.clerk.com",
@@ -54,10 +49,13 @@ export default defineEventHandler((event) => {
 
     // Object/embed: none
     "object-src 'none'",
-
-    // Upgrade insecure requests in production
-    "upgrade-insecure-requests",
   ];
+
+  // Upgrade insecure requests only in production
+  if (isProduction) {
+    cspDirectives.push("upgrade-insecure-requests");
+  }
+
 
   const csp = cspDirectives.join("; ");
 
@@ -79,8 +77,7 @@ export default defineEventHandler((event) => {
     "Referrer-Policy": "strict-origin-when-cross-origin",
 
     // Permissions Policy (formerly Feature-Policy)
-    "Permissions-Policy":
-      "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), interest-cohort=()",
 
     // HSTS - enforce HTTPS (only in production)
     // Uncomment in production after verifying HTTPS setup

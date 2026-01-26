@@ -538,7 +538,7 @@ _Goal: Comprehensive security review and penetration testing._
 #### Task 7.8: Documentation & Compliance
 
 - [x] Document security architecture
-- [ ] Consider GDPR/privacy compliance
+- [x] Consider GDPR/privacy compliance (docs/PRIVACY.md)
 - [x] Add security disclosure policy
 
 ---
