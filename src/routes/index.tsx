@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { SignInButton, SignedIn, SignedOut } from "@clerk/tanstack-react-start";
+import { ArrowRight, Github, KeyRound, Lock, Share2, Shield, Users, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { KeyRound, Shield, Zap, Lock, Users, Share2, ArrowRight, Github } from "lucide-react";
 import { META_DATA } from "@/lib/constants";
 
 export const Route = createFileRoute("/")({

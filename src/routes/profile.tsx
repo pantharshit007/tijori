@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useUser } from "@clerk/tanstack-react-start";
+import { Calendar, Mail, Shield, Trash2, User } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Shield, Calendar, Trash2 } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/time";
 
 export const Route = createFileRoute("/profile")({
@@ -80,7 +80,7 @@ function ProfilePage() {
                 <span>Last Sign In</span>
                 <span className="text-muted-foreground">
                   {user.lastSignInAt
-                    ? formatDateTime(new Date(user.lastSignInAt as Date).getTime())
+                    ? formatDateTime(new Date(user.lastSignInAt).getTime())
                     : "Unknown"}
                 </span>
               </div>
