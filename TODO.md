@@ -20,6 +20,7 @@
 - [ ] update the toast ui.
 - [ ] if a user created more that 3 projects, while he was on pro plan, and later on he degrades to free plan, he will still have those extra privileges, how to fix that?
 - [ ] re-check save mutation throughly in @convex/variable.ts, seems something is wrong there.
+- [ ] update platformRole to tier in the user table, and update the UI accordingly.
 
 ---
 
