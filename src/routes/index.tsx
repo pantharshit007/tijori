@@ -209,7 +209,7 @@ function LandingPage() {
               />
               <FeatureCard
                 icon={<Users className="size-6 text-primary" />}
-                title="Team Collaboraton"
+                title="Team Collaboration"
                 description="Role-based access control allows you to share variables with team members without exposing them."
               />
               <FeatureCard

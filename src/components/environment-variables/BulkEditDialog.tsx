@@ -24,7 +24,10 @@ export interface BulkEditDialogProps {
   onOpenChange: (open: boolean) => void;
   variables: Variable[];
   derivedKey: CryptoKey;
-  onSave: (updates: { name: string; value: string; originalName?: string }[], deletes: string[]) => Promise<void>;
+  onSave: (
+    updates: { id?: string; name: string; value: string; originalName?: string }[],
+    deletes: string[]
+  ) => Promise<void>;
   isSaving: boolean;
 }
 
@@ -128,13 +131,18 @@ export function BulkEditDialog({ open, onOpenChange, variables, derivedKey, onSa
 
   async function handleSave() {
     const updates = editVars
-      .filter(v => !v.toDelete && v.name.trim() && v.value.trim())
-      .map(v => ({ name: v.name, value: v.value, originalName: v.originalName || undefined }));
-    
+      .filter((v) => !v.toDelete && v.name.trim() && v.value.trim())
+      .map((v) => ({
+        id: v.isNew ? undefined : v.id,
+        name: v.name,
+        value: v.value,
+        originalName: v.originalName || undefined,
+      }));
+
     const deletes = editVars
-      .filter(v => v.toDelete && v.originalName)
-      .map(v => v.originalName);
-    
+      .filter((v) => v.toDelete && v.originalName && !v.isNew)
+      .map((v) => v.id);
+
     await onSave(updates, deletes);
     onOpenChange(false);
   }

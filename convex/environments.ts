@@ -1,12 +1,13 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getProjectOwnerLimits } from "./lib/roleLimits";
+import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
 /**
  * Access check helper - returns user id and role.
  */
-async function checkProjectAccess(ctx: any, projectId: Id<"projects">) {
+async function checkProjectAccess(ctx: QueryCtx, projectId: Id<"projects">) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw new ConvexError("Unauthenticated");
 
@@ -16,6 +17,9 @@ async function checkProjectAccess(ctx: any, projectId: Id<"projects">) {
     .unique();
 
   if (!user) throw new ConvexError("User not found");
+  if (user.isDeactivated) {
+    throw new ConvexError("User account is deactivated");
+  }
 
   const membership = await ctx.db
     .query("projectMembers")
@@ -45,7 +49,7 @@ export const list = query({
 /**
  * Create a new environment in a project.
  * Only owners and admins can create environments.
- * Enforces role-based environment limits.
+ * Uses atomic quota document pattern for concurrent-safe limit enforcement.
  */
 export const create = mutation({
   args: {
@@ -60,25 +64,55 @@ export const create = mutation({
       throw new ConvexError("Access denied: Only owners and admins can create environments");
     }
 
-    // Check environment limit based on PROJECT OWNER's role
-    const limits = await getProjectOwnerLimits(ctx, args.projectId);
-    const existingEnvs = await ctx.db
-      .query("environments")
-      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
-      .collect();
+    // Fetch quota document for environments
+    const quota = await ctx.db
+      .query("quotas")
+      .withIndex("by_project_resource", (q) =>
+        q.eq("projectId", args.projectId).eq("resourceType", "environments")
+      )
+      .unique();
 
-    if (existingEnvs.length >= limits.maxEnvironmentsPerProject) {
-      throw new ConvexError(
-        `Environment limit reached (${limits.maxEnvironmentsPerProject}). Project owner needs to upgrade for more.`
-      );
+    if (quota) {
+      // Use atomic quota pattern
+      if (quota.used >= quota.limit) {
+        throw new ConvexError(
+          `Environment limit reached (${quota.limit}). Project owner needs to upgrade for more.`
+        );
+      }
+
+      // Create the environment
+      const envId = await ctx.db.insert("environments", {
+        projectId: args.projectId,
+        name: args.name,
+        description: args.description,
+        updatedAt: Date.now(),
+      });
+
+      // Atomically increment used count (concurrent inserts will conflict and serialize)
+      await ctx.db.patch(quota._id, { used: quota.used + 1 });
+
+      return envId;
+    } else {
+      // Fallback to count-based check if quota doc doesn't exist (pre-migration)
+      const limits = await getProjectOwnerLimits(ctx, args.projectId);
+      const existingEnvs = await ctx.db
+        .query("environments")
+        .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+        .collect();
+
+      if (existingEnvs.length >= limits.maxEnvironmentsPerProject) {
+        throw new ConvexError(
+          `Environment limit reached (${limits.maxEnvironmentsPerProject}). Project owner needs to upgrade for more.`
+        );
+      }
+
+      return await ctx.db.insert("environments", {
+        projectId: args.projectId,
+        name: args.name,
+        description: args.description,
+        updatedAt: Date.now(),
+      });
     }
-
-    return await ctx.db.insert("environments", {
-      projectId: args.projectId,
-      name: args.name,
-      description: args.description,
-      updatedAt: Date.now(),
-    });
   },
 });
 
@@ -116,6 +150,7 @@ export const updateEnvironment = mutation({
 /**
  * Delete an environment and all its variables.
  * Only owners and admins can delete environments.
+ * Decrements the quota if using atomic quota pattern.
  */
 export const deleteEnvironment = mutation({
   args: {
@@ -145,12 +180,40 @@ export const deleteEnvironment = mutation({
       .query("sharedSecrets")
       .filter((q) => q.eq(q.field("environmentId"), args.environmentId))
       .collect();
+    const deletedSecretsCount = sharedSecrets.length;
     for (const secret of sharedSecrets) {
       await ctx.db.delete(secret._id);
     }
 
     // Delete the environment
     await ctx.db.delete(args.environmentId);
+
+    // Decrement quota if using atomic quota pattern
+    const quota = await ctx.db
+      .query("quotas")
+      .withIndex("by_project_resource", (q) =>
+        q.eq("projectId", environment.projectId).eq("resourceType", "environments")
+      )
+      .unique();
+
+    if (quota && quota.used > 0) {
+      await ctx.db.patch(quota._id, { used: Math.max(0, quota.used - 1) });
+    }
+
+    // Also decrement sharedSecrets quota by the number of secrets deleted
+    if (deletedSecretsCount > 0) {
+      const secretsQuota = await ctx.db
+        .query("quotas")
+        .withIndex("by_project_resource", (q) =>
+          q.eq("projectId", environment.projectId).eq("resourceType", "sharedSecrets")
+        )
+        .unique();
+      if (secretsQuota) {
+        await ctx.db.patch(secretsQuota._id, {
+          used: Math.max(0, secretsQuota.used - deletedSecretsCount),
+        });
+      }
+    }
 
     return { success: true };
   },

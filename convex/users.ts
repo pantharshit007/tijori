@@ -41,6 +41,9 @@ export const store = mutation({
           platformRole: user.platformRole || "user",
         });
       }
+      if (user.isDeactivated) {
+        throw new ConvexError("User account is deactivated");
+      }
       return user._id;
     }
 
@@ -97,6 +100,10 @@ export const setMasterKey = mutation({
       throw new ConvexError("User not found");
     }
 
+    if (user.isDeactivated) {
+      throw new ConvexError("User account is deactivated");
+    }
+
     await ctx.db.patch(user._id, {
       masterKeyHash: args.masterKeyHash,
       masterKeySalt: args.masterKeySalt,
@@ -121,6 +128,10 @@ export const getUsageStats = query({
       .unique();
 
     if (!user) return null;
+
+    if (user.isDeactivated) {
+      throw new ConvexError("User account is deactivated");
+    }
 
     // Count owned projects
     const projects = await ctx.db

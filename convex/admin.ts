@@ -1,11 +1,12 @@
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
 
 /**
  * Helper to verify that the current user is a super_admin.
  */
-async function checkSuperAdmin(ctx: any) {
+async function checkSuperAdmin(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw new ConvexError("Unauthenticated");
 
@@ -16,6 +17,10 @@ async function checkSuperAdmin(ctx: any) {
 
   if (!user || user.platformRole !== "super_admin") {
     throw new ConvexError("Access denied: Admin privileges required");
+  }
+
+  if (user.isDeactivated) {
+    throw new ConvexError("User account is deactivated");
   }
 
   return user;
@@ -31,7 +36,7 @@ export const getPlatformMetrics = query({
 
     const usersCount = (await ctx.db.query("users").collect()).length;
     const projectsCount = (await ctx.db.query("projects").collect()).length;
-    
+
     let environmentsCount = 0;
     let variablesCount = 0;
     let sharedSecretsCount = 0;
@@ -79,9 +84,14 @@ export const listUsers = query({
  * Update a user's platform role.
  */
 export const updateUserRole = mutation({
-  args: { 
-    userId: v.id("users"), 
-    role: v.union(v.literal("user"), v.literal("pro"), v.literal("pro_plus"), v.literal("super_admin"))
+  args: {
+    userId: v.id("users"),
+    role: v.union(
+      v.literal("user"),
+      v.literal("pro"),
+      v.literal("pro_plus"),
+      v.literal("super_admin")
+    ),
   },
   handler: async (ctx, args) => {
     await checkSuperAdmin(ctx);

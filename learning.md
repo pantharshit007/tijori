@@ -361,7 +361,61 @@ In Tijori, `passcodeSalt` is used for **two purposes**:
 
 ---
 
-## 2026-01-21 - Phase 6
+## 2026-01-28 - Quota Document Pattern
+
+### Why Quota Documents?
+
+Count-based limit checks (e.g., `Collection.length >= limit`) are susceptible to race conditions. Two concurrent requests may both see `used = 4`, pass the `< 5` check, and both insert—resulting in 6 items instead of the max 5.
+
+### The Quota Document Pattern
+
+Instead of counting documents on every mutation, we maintain a `quotas` table with pre-computed usage:
+
+```typescript
+// Schema
+quotas: defineTable({
+  projectId: v.id("projects"),
+  resourceType: v.union(v.literal("environments"), v.literal("members"), v.literal("sharedSecrets")),
+  used: v.number(),
+  limit: v.number(),
+}).index("by_project_resource", ["projectId", "resourceType"])
+```
+
+### Atomic Operations
+
+1. **Before insert**: Read quota doc, check `used < limit`
+2. **After insert**: Patch the same doc to increment `used`
+3. **Convex's OCC**: If two mutations read the same version, the second `patch` will conflict and retry
+
+```typescript
+const quota = await ctx.db.query("quotas")
+  .withIndex("by_project_resource", (q) => 
+    q.eq("projectId", args.projectId).eq("resourceType", "environments")
+  ).unique();
+
+if (quota.used >= quota.limit) {
+  throw new ConvexError("Limit reached");
+}
+
+await ctx.db.insert("environments", { ... });
+await ctx.db.patch(quota._id, { used: quota.used + 1 }); // Atomic increment
+```
+
+### Migration Strategy
+
+- **New projects**: Create quota docs on project creation
+- **Existing projects**: Run admin migration mutation to backfill
+- **Fallback**: Keep count-based check as fallback if quota doc doesn't exist
+
+### Tradeoffs
+
+| Approach | Pros | Cons |
+|----------|------|------|
+| Count-based | Simple, always accurate | Race conditions, N+1 queries |
+| Quota docs | Concurrent-safe, single read | Requires sync on delete/add |
+
+---
+
 
 ### Role-Based Access Control (RBAC) Implementation
 

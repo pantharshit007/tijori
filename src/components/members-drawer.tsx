@@ -83,7 +83,7 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
     try {
       await removeMember({ projectId, memberId });
     } catch (err: any) {
-      const message = err?.message || "Failed to remove member";
+      const message = err?.data || "Failed to remove member";
       alert(message);
       console.error("Failed to remove member:", err);
     }
@@ -93,7 +93,7 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
     try {
       await updateMemberRole({ projectId, memberId, role: newRole });
     } catch (err: any) {
-      const message = err?.message || "Failed to update role";
+      const message = err?.data || "Failed to update role";
       alert(message);
       console.error("Failed to update role:", err);
     }
@@ -187,30 +187,30 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
                       <div className="flex items-center gap-2">
                         <p className="font-medium truncate">{getDisplayName(member)}</p>
 
-                        <Badge
-                          variant={getRoleBadgeVariant(member.role)}
-                          className="gap-1 text-xs"
-                        >
+                        <Badge variant={getRoleBadgeVariant(member.role)} className="gap-1 text-xs">
                           {getRoleIcon(member.role)}
                           {member.role}
                         </Badge>
                       </div>
-                      <p className="text-xs pt-0.5 text-muted-foreground truncate">{member.email}</p>
+                      <p className="text-xs pt-0.5 text-muted-foreground truncate">
+                        {member.email}
+                      </p>
                     </div>
 
                     {/* Actions - Only show if:
                         - Member is not owner (can never act on owners)
                         - Current user can manage members
                         - If member is admin, only owner can act on them */}
-                    {member.role !== "owner" && canManageMembers && 
-                     (member.role !== "admin" || userRole === "owner") && (
-                      <MemberActions
-                        canUpdateRoles={canUpdateRoles}
-                        memberRole={member.role}
-                        onUpdateRole={(role) => handleUpdateRole(member._id, role)}
-                        onRemove={() => handleRemoveMember(member._id)}
-                      />
-                    )}
+                    {member.role !== "owner" &&
+                      canManageMembers &&
+                      (member.role !== "admin" || userRole === "owner") && (
+                        <MemberActions
+                          canUpdateRoles={canUpdateRoles}
+                          memberRole={member.role}
+                          onUpdateRole={(role) => handleUpdateRole(member._id, role)}
+                          onRemove={() => handleRemoveMember(member._id)}
+                        />
+                      )}
                   </div>
                 ))
               ) : (

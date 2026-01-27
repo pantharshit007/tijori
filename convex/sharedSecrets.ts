@@ -45,6 +45,10 @@ export const create = mutation({
       throw new ConvexError("User not found");
     }
 
+    if (user.isDeactivated) {
+      throw new ConvexError("User account is deactivated");
+    }
+
     // Verify user has access to the project
     const membership = await ctx.db
       .query("projectMembers")
@@ -67,15 +71,33 @@ export const create = mutation({
 
     // Check shared secrets limit based on PROJECT OWNER's role
     const limits = await getProjectOwnerLimits(ctx, args.projectId);
-    const existingShares = await ctx.db
-      .query("sharedSecrets")
-      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
-      .collect();
 
-    if (existingShares.length >= limits.maxSharedSecretsPerProject) {
-      throw new ConvexError(
-        `Shared secrets limit reached (${limits.maxSharedSecretsPerProject}). Project owner needs to upgrade for more.`
-      );
+    // Check shared secrets limit using atomic quota pattern
+    const quota = await ctx.db
+      .query("quotas")
+      .withIndex("by_project_resource", (q) =>
+        q.eq("projectId", args.projectId).eq("resourceType", "sharedSecrets")
+      )
+      .unique();
+
+    if (quota) {
+      if (quota.used >= quota.limit) {
+        throw new ConvexError(
+          `Shared secrets limit reached (${quota.limit}). Project owner needs to upgrade for more.`
+        );
+      }
+    } else {
+      // Fallback to count-based check if quota doc doesn't exist (pre-migration)
+      const existingShares = await ctx.db
+        .query("sharedSecrets")
+        .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+        .collect();
+
+      if (existingShares.length >= limits.maxSharedSecretsPerProject) {
+        throw new ConvexError(
+          `Shared secrets limit reached (${limits.maxSharedSecretsPerProject}). Project owner needs to upgrade for more.`
+        );
+      }
     }
 
     if (args.isIndefinite && !limits.canCreateIndefiniteShares) {
@@ -105,6 +127,11 @@ export const create = mutation({
       isDisabled: false,
       views: 0,
     });
+
+    // Increment quota if using atomic quota pattern
+    if (quota) {
+      await ctx.db.patch(quota._id, { used: quota.used + 1 });
+    }
 
     return sharedSecretId;
   },
@@ -194,6 +221,10 @@ export const listByUser = query({
       return [];
     }
 
+    if (user.isDeactivated) {
+      throw new ConvexError("User account is deactivated");
+    }
+
     // Get ALL memberships for the user (to check roles)
     const allMemberships = await ctx.db
       .query("projectMembers")
@@ -244,12 +275,8 @@ export const listByUser = query({
     ]);
 
     // Build lookup maps
-    const projectMap = Object.fromEntries(
-      projects.filter(Boolean).map((p) => [p!._id, p!.name])
-    );
-    const envMap = Object.fromEntries(
-      environments.filter(Boolean).map((e) => [e!._id, e!.name])
-    );
+    const projectMap = Object.fromEntries(projects.filter(Boolean).map((p) => [p!._id, p!.name]));
+    const envMap = Object.fromEntries(environments.filter(Boolean).map((e) => [e!._id, e!.name]));
     const creatorMap = Object.fromEntries(
       creators.filter(Boolean).map((c) => [c!._id, { name: c!.name, image: c!.image }])
     );
@@ -286,7 +313,6 @@ export const listByUser = query({
   },
 });
 
-
 /**
  * List shared secrets for a project.
  */
@@ -307,6 +333,10 @@ export const listByProject = query({
 
     if (!user) {
       return [];
+    }
+
+    if (user.isDeactivated) {
+      throw new ConvexError("User account is deactivated");
     }
 
     const membership = await ctx.db
@@ -371,6 +401,10 @@ export const toggleDisabled = mutation({
 
     if (!user) {
       throw new ConvexError("User not found");
+    }
+
+    if (user.isDeactivated) {
+      throw new ConvexError("User account is deactivated");
     }
 
     const sharedSecret = await ctx.db.get(args.id);
@@ -438,6 +472,10 @@ export const updateExpiry = mutation({
       throw new ConvexError("User not found");
     }
 
+    if (user.isDeactivated) {
+      throw new ConvexError("User account is deactivated");
+    }
+
     const sharedSecret = await ctx.db.get(args.id);
     if (!sharedSecret) {
       throw new ConvexError("Shared secret not found");
@@ -493,7 +531,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new Error("Not authenticated");
+      throw new ConvexError("Not authenticated");
     }
 
     const user = await ctx.db
@@ -502,12 +540,16 @@ export const remove = mutation({
       .unique();
 
     if (!user) {
-      throw new Error("User not found");
+      throw new ConvexError("User not found");
+    }
+
+    if (user.isDeactivated) {
+      throw new ConvexError("User account is deactivated");
     }
 
     const sharedSecret = await ctx.db.get(args.id);
     if (!sharedSecret) {
-      throw new Error("Shared secret not found");
+      throw new ConvexError("Shared secret not found");
     }
 
     // Check user's current role in the project
@@ -519,7 +561,7 @@ export const remove = mutation({
       .unique();
 
     if (!membership) {
-      throw new Error("Access denied - not a project member");
+      throw new ConvexError("Access denied - not a project member");
     }
 
     // Allow if: owner of project, OR creator who is still admin/owner
@@ -529,11 +571,23 @@ export const remove = mutation({
       (membership.role === "owner" || membership.role === "admin");
 
     if (!isOwner && !isCreatorWithAdminAccess) {
-      throw new Error(
+      throw new ConvexError(
         "Access denied - only project owner or the creator (with admin rights) can delete"
       );
     }
 
     await ctx.db.delete(args.id);
+
+    // Decrement quota if using atomic quota pattern
+    const quota = await ctx.db
+      .query("quotas")
+      .withIndex("by_project_resource", (q) =>
+        q.eq("projectId", sharedSecret.projectId).eq("resourceType", "sharedSecrets")
+      )
+      .unique();
+
+    if (quota && quota.used > 0) {
+      await ctx.db.patch(quota._id, { used: quota.used - 1 });
+    }
   },
 });

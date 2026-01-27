@@ -17,6 +17,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
+import { getErrorMessage } from "@/lib/errors";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,12 +33,12 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/time";
 import { UserAvatar } from "@/components/user-avatar";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/d/admin")({
@@ -78,8 +79,8 @@ function AdminDashboard() {
       setCursor(null);
       setHistory([]);
       toast.success(`User role updated to ${role}`);
-    } catch (err: any) {
-      toast.error(err.data || "Failed to update role");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to update role"));
     }
   };
 
@@ -87,8 +88,8 @@ function AdminDashboard() {
     try {
       await toggleUserStatus({ userId, isDeactivated });
       toast.success(`User ${isDeactivated ? "deactivated" : "reactivated"}`);
-    } catch (err: any) {
-      toast.error(err.data || "Failed to toggle status");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to toggle status"));
     }
   };
 
@@ -113,9 +114,9 @@ function AdminDashboard() {
           <h1 className="text-3xl font-bold tracking-tight">Admin Control Panel</h1>
           <p className="text-muted-foreground">Platform-wide metrics and user management.</p>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => setShowMetrics(!showMetrics)}
           className="gap-2"
         >
@@ -130,7 +131,9 @@ function AdminDashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium uppercase font-bold tracking-tighter opacity-70">Total Users</CardTitle>
+                <CardTitle className="text-sm  uppercase font-bold tracking-tighter opacity-70">
+                  Total Users
+                </CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -139,7 +142,9 @@ function AdminDashboard() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium uppercase font-bold tracking-tighter opacity-70">Projects</CardTitle>
+                <CardTitle className="text-sm  uppercase font-bold tracking-tighter opacity-70">
+                  Projects
+                </CardTitle>
                 <FolderKey className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -151,7 +156,9 @@ function AdminDashboard() {
               <>
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium uppercase font-bold tracking-tighter opacity-70">Environments</CardTitle>
+                    <CardTitle className="text-sm  uppercase font-bold tracking-tighter opacity-70">
+                      Environments
+                    </CardTitle>
                     <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
@@ -160,7 +167,9 @@ function AdminDashboard() {
                 </Card>
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium uppercase font-bold tracking-tighter opacity-70">Secrets</CardTitle>
+                    <CardTitle className="text-sm  uppercase font-bold tracking-tighter opacity-70">
+                      Secrets
+                    </CardTitle>
                     <Database className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
@@ -169,7 +178,9 @@ function AdminDashboard() {
                 </Card>
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium uppercase font-bold tracking-tighter opacity-70">Shares</CardTitle>
+                    <CardTitle className="text-sm  uppercase font-bold tracking-tighter opacity-70">
+                      Shares
+                    </CardTitle>
                     <Share2 className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
@@ -179,9 +190,9 @@ function AdminDashboard() {
               </>
             ) : (
               <Card className="col-span-3 border-dashed flex items-center justify-center p-6 bg-muted/20">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setShowExtraMetrics(true)}
                   className="gap-2"
                 >
@@ -224,14 +235,19 @@ function AdminDashboard() {
       {/* User Management Table */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <div>
+          <div className="space-y-1">
             <CardTitle>User Management</CardTitle>
             <CardDescription>A list of all users registered on the platform.</CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input type="search" placeholder="Search users..." className="pl-8 w-[250px]" />
+              <Input
+                type="search"
+                placeholder="Search coming soon..."
+                className="pl-8 w-[250px]"
+                disabled
+              />
             </div>
           </div>
         </CardHeader>
@@ -311,11 +327,13 @@ function AdminDashboard() {
                         <DropdownMenuItem onSelect={() => handleUpdateRole(user._id, "pro_plus")}>
                           Make Pro+
                         </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => handleUpdateRole(user._id, "super_admin")}>
+                        <DropdownMenuItem
+                          onSelect={() => handleUpdateRole(user._id, "super_admin")}
+                        >
                           Make Super Admin
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className={user.isDeactivated ? "text-green-600" : "text-destructive"}
                           onSelect={() => handleToggleStatus(user._id, !user.isDeactivated)}
                         >
@@ -331,18 +349,18 @@ function AdminDashboard() {
 
           {/* Pagination Footer */}
           <div className="flex items-center justify-end space-x-2 py-4">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handlePrevPage}
               disabled={history.length === 0}
             >
               <ChevronLeft className="h-4 w-4" />
               Previous
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleNextPage}
               disabled={usersPaginated.isDone}
             >

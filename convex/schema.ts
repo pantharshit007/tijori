@@ -82,4 +82,22 @@ export default defineSchema({
     .index("by_projectId", ["projectId"])
     .index("by_createdBy", ["createdBy"])
     .index("by_expiry", ["expiresAt"]),
+
+  /**
+   * Quotas table for atomic resource limit tracking.
+   * Each project has one quota document per resource type.
+   * Used for concurrent-safe limit enforcement.
+   */
+  quotas: defineTable({
+    projectId: v.id("projects"),
+    resourceType: v.union(
+      v.literal("environments"),
+      v.literal("members"),
+      v.literal("sharedSecrets")
+    ),
+    used: v.number(),
+    limit: v.number(),
+  })
+    .index("by_projectId", ["projectId"])
+    .index("by_project_resource", ["projectId", "resourceType"]),
 });

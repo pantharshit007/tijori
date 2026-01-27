@@ -16,7 +16,11 @@
 - [x] Implement user roles (e.g., `user`, `pro`, `pro_plus`, `super_admin`) in the user table to control feature access, such as limiting project creation (5 or 10), environment count (3 or 5), and members per project (2 or 5). (Implemented in `convex/lib/roleLimits.ts`)
 - [ ] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
 - [ ] when the / loads, initially there is no sign in , get started and get started free button, they appear after a delay most probably network call to the clerk server, instead of waiting for the response and showing nothing add a suspense component to show get started, sign in until we get the response if we get user is logged in, we will just update the component in place else it will stay the same, just not via the suspense component.
+- [ ] there is a bug in variable naming in the dashboard, it always show the name of the var in CAPITAL, whether the actual name is small or capital.
+- [ ] update the toast ui.
+- [ ] if a user created more that 3 projects, while he was on pro plan, and later on he degrades to free plan, he will still have those extra privileges, how to fix that?
+- [ ] re-check save mutation throughly in @convex/variable.ts, seems something is wrong there.
 
 ---
 
-- [ ] before going prod, do this [here](https://clerk.com/docs/guides/configure/auth-strategies/social-connections/google)
+- [ ] before going prod, [configure Google social connection in Clerk](https://clerk.com/docs/guides/configure/auth-strategies/social-connections/google)

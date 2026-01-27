@@ -131,11 +131,11 @@ function ProfilePage() {
             <div className="grid gap-4 sm:grid-cols-2 mt-4">
               <div className="flex items-center justify-between p-3 rounded-lg border bg-secondary/20">
                 <span className="text-sm">Variables per environment</span>
-                <span className="font-semibold">{limits?.maxVariablesPerEnvironment || "∞"}</span>
+                <span className="font-semibold">{displayLimit(limits?.maxVariablesPerEnvironment)}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg border bg-secondary/20">
                 <span className="text-sm">Shared secret links</span>
-                <span className="font-semibold">{limits?.maxSharedSecretsPerProject || "∞"}</span>
+                <span className="font-semibold">{displayLimit(limits?.maxSharedSecretsPerProject)}</span>
               </div>
             </div>
           </div>

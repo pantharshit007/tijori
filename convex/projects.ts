@@ -1,12 +1,13 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getProjectOwnerLimits, getRoleLimits } from "./lib/roleLimits";
+import type { QueryCtx } from "./_generated/server";
 import type { PlatformRole } from "./lib/roleLimits";
 
 /**
  * Helper to get the current user ID or throw.
  */
-async function getUserId(ctx: any) {
+async function getUserId(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     throw new ConvexError("Unauthenticated");
@@ -17,6 +18,9 @@ async function getUserId(ctx: any) {
     .unique();
   if (!user) {
     throw new ConvexError("User not found in database");
+  }
+  if (user.isDeactivated) {
+    throw new ConvexError("User account is deactivated");
   }
   return user._id;
 }
@@ -100,6 +104,22 @@ export const create = mutation({
       description: "Default environment for development",
       updatedAt: now,
     });
+
+    // Create quota documents for atomic limit enforcement
+    const quotaTypes = [
+      { type: "environments" as const, used: 1, limit: limits.maxEnvironmentsPerProject },
+      { type: "members" as const, used: 1, limit: limits.maxMembersPerProject },
+      { type: "sharedSecrets" as const, used: 0, limit: limits.maxSharedSecretsPerProject },
+    ];
+
+    for (const { type, used, limit } of quotaTypes) {
+      await ctx.db.insert("quotas", {
+        projectId,
+        resourceType: type,
+        used,
+        limit: limit === Infinity ? 999999 : limit,
+      });
+    }
 
     return projectId;
   },
@@ -246,6 +266,10 @@ export const batchUpdatePasscodes = mutation({
       throw new ConvexError("User not found");
     }
 
+    if (user.isDeactivated) {
+      throw new ConvexError("User account is deactivated");
+    }
+
     const now = Date.now();
     let updatedCount = 0;
 
@@ -348,6 +372,9 @@ export const addMember = mutation({
       .unique();
 
     if (!currentUser) throw new ConvexError("User not found");
+    if (currentUser.isDeactivated) {
+      throw new ConvexError("User account is deactivated");
+    }
 
     // Check if user has permission (owner or admin)
     const membership = await ctx.db
@@ -361,17 +388,33 @@ export const addMember = mutation({
       throw new ConvexError("Access denied: Only owners and admins can add members");
     }
 
-    // Check member limit based on PROJECT OWNER's role
-    const limits = await getProjectOwnerLimits(ctx, args.projectId);
-    const existingMembers = await ctx.db
-      .query("projectMembers")
-      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
-      .collect();
+    // Check member limit using atomic quota pattern
+    const quota = await ctx.db
+      .query("quotas")
+      .withIndex("by_project_resource", (q) =>
+        q.eq("projectId", args.projectId).eq("resourceType", "members")
+      )
+      .unique();
 
-    if (existingMembers.length >= limits.maxMembersPerProject) {
-      throw new ConvexError(
-        `Member limit reached (${limits.maxMembersPerProject}). Project owner needs to upgrade for more.`
-      );
+    if (quota) {
+      if (quota.used >= quota.limit) {
+        throw new ConvexError(
+          `Member limit reached (${quota.limit}). Project owner needs to upgrade for more.`
+        );
+      }
+    } else {
+      // Fallback to count-based check if quota doc doesn't exist (pre-migration)
+      const limits = await getProjectOwnerLimits(ctx, args.projectId);
+      const existingMembers = await ctx.db
+        .query("projectMembers")
+        .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+        .collect();
+
+      if (existingMembers.length >= limits.maxMembersPerProject) {
+        throw new ConvexError(
+          `Member limit reached (${limits.maxMembersPerProject}). Project owner needs to upgrade for more.`
+        );
+      }
     }
 
     const normalizedEmail = args.email.toLowerCase();
@@ -402,6 +445,11 @@ export const addMember = mutation({
       userId: targetUser._id,
       role: args.role,
     });
+
+    // Increment quota if using atomic quota pattern
+    if (quota) {
+      await ctx.db.patch(quota._id, { used: quota.used + 1 });
+    }
 
     return { success: true };
   },
@@ -449,6 +497,18 @@ export const removeMember = mutation({
 
     // Remove the membership
     await ctx.db.delete(args.memberId);
+
+    // Decrement quota if using atomic quota pattern
+    const quota = await ctx.db
+      .query("quotas")
+      .withIndex("by_project_resource", (q) =>
+        q.eq("projectId", args.projectId).eq("resourceType", "members")
+      )
+      .unique();
+
+    if (quota && quota.used > 0) {
+      await ctx.db.patch(quota._id, { used: quota.used - 1 });
+    }
 
     return { success: true };
   },
@@ -526,6 +586,18 @@ export const leaveProject = mutation({
 
     // Remove the membership
     await ctx.db.delete(membership._id);
+
+    // Decrement quota if using atomic quota pattern
+    const quota = await ctx.db
+      .query("quotas")
+      .withIndex("by_project_resource", (q) =>
+        q.eq("projectId", args.projectId).eq("resourceType", "members")
+      )
+      .unique();
+
+    if (quota && quota.used > 0) {
+      await ctx.db.patch(quota._id, { used: quota.used - 1 });
+    }
 
     return { success: true };
   },
@@ -620,6 +692,15 @@ export const deleteProject = mutation({
       .collect();
     for (const member of members) {
       await ctx.db.delete(member._id);
+    }
+
+    // Delete all quota documents
+    const quotas = await ctx.db
+      .query("quotas")
+      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+      .collect();
+    for (const quota of quotas) {
+      await ctx.db.delete(quota._id);
     }
 
     // Delete the project

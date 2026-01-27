@@ -14,6 +14,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { getErrorMessage } from "@/lib/errors";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -187,8 +188,8 @@ export function ProjectSettings({
       await deleteProject({ projectId: project._id });
       setOpen(false);
       navigate({ to: "/" });
-    } catch (err: any) {
-      setDeleteError(err.data || "Failed to delete project");
+    } catch (err: unknown) {
+      setDeleteError(getErrorMessage(err, "Failed to delete project"));
     } finally {
       setIsDeleting(false);
     }
