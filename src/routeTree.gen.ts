@@ -9,30 +9,30 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SharedRouteImport } from './routes/shared'
-import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as DRouteImport } from './routes/d'
 import { Route as CryptoTestRouteImport } from './routes/crypto-test'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProjectsIndexRouteImport } from './routes/projects/index'
 import { Route as ShareShareIdRouteImport } from './routes/share/$shareId'
-import { Route as ProjectsNewRouteImport } from './routes/projects/new'
-import { Route as ProjectsProjectIdRouteImport } from './routes/projects/$projectId'
+import { Route as DocsSecurityRouteImport } from './routes/docs/security'
+import { Route as DSharedRouteImport } from './routes/d/shared'
+import { Route as DSettingsRouteImport } from './routes/d/settings'
+import { Route as DProfileRouteImport } from './routes/d/profile'
+import { Route as DDashboardRouteImport } from './routes/d/dashboard'
+import { Route as DAdminRouteImport } from './routes/d/admin'
+import { Route as DProjectsIndexRouteImport } from './routes/d/projects/index'
 import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
 import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
 import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
+import { Route as DProjectsNewRouteImport } from './routes/d/projects/new'
+import { Route as DProjectProjectIdRouteImport } from './routes/d/project/$projectId'
 import { Route as DemoStartSsrIndexRouteImport } from './routes/demo/start.ssr.index'
 import { Route as DemoStartSsrSpaModeRouteImport } from './routes/demo/start.ssr.spa-mode'
 import { Route as DemoStartSsrFullSsrRouteImport } from './routes/demo/start.ssr.full-ssr'
 import { Route as DemoStartSsrDataOnlyRouteImport } from './routes/demo/start.ssr.data-only'
 
-const SharedRoute = SharedRouteImport.update({
-  id: '/shared',
-  path: '/shared',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+const DRoute = DRouteImport.update({
+  id: '/d',
+  path: '/d',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CryptoTestRoute = CryptoTestRouteImport.update({
@@ -45,25 +45,45 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
-  id: '/projects/',
-  path: '/projects/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ShareShareIdRoute = ShareShareIdRouteImport.update({
   id: '/share/$shareId',
   path: '/share/$shareId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProjectsNewRoute = ProjectsNewRouteImport.update({
-  id: '/projects/new',
-  path: '/projects/new',
+const DocsSecurityRoute = DocsSecurityRouteImport.update({
+  id: '/docs/security',
+  path: '/docs/security',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
-  id: '/projects/$projectId',
-  path: '/projects/$projectId',
-  getParentRoute: () => rootRouteImport,
+const DSharedRoute = DSharedRouteImport.update({
+  id: '/shared',
+  path: '/shared',
+  getParentRoute: () => DRoute,
+} as any)
+const DSettingsRoute = DSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => DRoute,
+} as any)
+const DProfileRoute = DProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => DRoute,
+} as any)
+const DDashboardRoute = DDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => DRoute,
+} as any)
+const DAdminRoute = DAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => DRoute,
+} as any)
+const DProjectsIndexRoute = DProjectsIndexRouteImport.update({
+  id: '/projects/',
+  path: '/projects/',
+  getParentRoute: () => DRoute,
 } as any)
 const DemoStartServerFuncsRoute = DemoStartServerFuncsRouteImport.update({
   id: '/demo/start/server-funcs',
@@ -79,6 +99,16 @@ const DemoApiNamesRoute = DemoApiNamesRouteImport.update({
   id: '/demo/api/names',
   path: '/demo/api/names',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DProjectsNewRoute = DProjectsNewRouteImport.update({
+  id: '/projects/new',
+  path: '/projects/new',
+  getParentRoute: () => DRoute,
+} as any)
+const DProjectProjectIdRoute = DProjectProjectIdRouteImport.update({
+  id: '/project/$projectId',
+  path: '/project/$projectId',
+  getParentRoute: () => DRoute,
 } as any)
 const DemoStartSsrIndexRoute = DemoStartSsrIndexRouteImport.update({
   id: '/demo/start/ssr/',
@@ -104,15 +134,20 @@ const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/crypto-test': typeof CryptoTestRoute
-  '/settings': typeof SettingsRoute
-  '/shared': typeof SharedRoute
-  '/projects/$projectId': typeof ProjectsProjectIdRoute
-  '/projects/new': typeof ProjectsNewRoute
+  '/d': typeof DRouteWithChildren
+  '/d/admin': typeof DAdminRoute
+  '/d/dashboard': typeof DDashboardRoute
+  '/d/profile': typeof DProfileRoute
+  '/d/settings': typeof DSettingsRoute
+  '/d/shared': typeof DSharedRoute
+  '/docs/security': typeof DocsSecurityRoute
   '/share/$shareId': typeof ShareShareIdRoute
-  '/projects': typeof ProjectsIndexRoute
+  '/d/project/$projectId': typeof DProjectProjectIdRoute
+  '/d/projects/new': typeof DProjectsNewRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
+  '/d/projects': typeof DProjectsIndexRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
@@ -121,15 +156,20 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/crypto-test': typeof CryptoTestRoute
-  '/settings': typeof SettingsRoute
-  '/shared': typeof SharedRoute
-  '/projects/$projectId': typeof ProjectsProjectIdRoute
-  '/projects/new': typeof ProjectsNewRoute
+  '/d': typeof DRouteWithChildren
+  '/d/admin': typeof DAdminRoute
+  '/d/dashboard': typeof DDashboardRoute
+  '/d/profile': typeof DProfileRoute
+  '/d/settings': typeof DSettingsRoute
+  '/d/shared': typeof DSharedRoute
+  '/docs/security': typeof DocsSecurityRoute
   '/share/$shareId': typeof ShareShareIdRoute
-  '/projects': typeof ProjectsIndexRoute
+  '/d/project/$projectId': typeof DProjectProjectIdRoute
+  '/d/projects/new': typeof DProjectsNewRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
+  '/d/projects': typeof DProjectsIndexRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
@@ -139,15 +179,20 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/crypto-test': typeof CryptoTestRoute
-  '/settings': typeof SettingsRoute
-  '/shared': typeof SharedRoute
-  '/projects/$projectId': typeof ProjectsProjectIdRoute
-  '/projects/new': typeof ProjectsNewRoute
+  '/d': typeof DRouteWithChildren
+  '/d/admin': typeof DAdminRoute
+  '/d/dashboard': typeof DDashboardRoute
+  '/d/profile': typeof DProfileRoute
+  '/d/settings': typeof DSettingsRoute
+  '/d/shared': typeof DSharedRoute
+  '/docs/security': typeof DocsSecurityRoute
   '/share/$shareId': typeof ShareShareIdRoute
-  '/projects/': typeof ProjectsIndexRoute
+  '/d/project/$projectId': typeof DProjectProjectIdRoute
+  '/d/projects/new': typeof DProjectsNewRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
+  '/d/projects/': typeof DProjectsIndexRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
@@ -158,15 +203,20 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/crypto-test'
-    | '/settings'
-    | '/shared'
-    | '/projects/$projectId'
-    | '/projects/new'
+    | '/d'
+    | '/d/admin'
+    | '/d/dashboard'
+    | '/d/profile'
+    | '/d/settings'
+    | '/d/shared'
+    | '/docs/security'
     | '/share/$shareId'
-    | '/projects'
+    | '/d/project/$projectId'
+    | '/d/projects/new'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
+    | '/d/projects'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
@@ -175,15 +225,20 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/crypto-test'
-    | '/settings'
-    | '/shared'
-    | '/projects/$projectId'
-    | '/projects/new'
+    | '/d'
+    | '/d/admin'
+    | '/d/dashboard'
+    | '/d/profile'
+    | '/d/settings'
+    | '/d/shared'
+    | '/docs/security'
     | '/share/$shareId'
-    | '/projects'
+    | '/d/project/$projectId'
+    | '/d/projects/new'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
+    | '/d/projects'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
@@ -192,15 +247,20 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/crypto-test'
-    | '/settings'
-    | '/shared'
-    | '/projects/$projectId'
-    | '/projects/new'
+    | '/d'
+    | '/d/admin'
+    | '/d/dashboard'
+    | '/d/profile'
+    | '/d/settings'
+    | '/d/shared'
+    | '/docs/security'
     | '/share/$shareId'
-    | '/projects/'
+    | '/d/project/$projectId'
+    | '/d/projects/new'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
+    | '/d/projects/'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
@@ -210,12 +270,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CryptoTestRoute: typeof CryptoTestRoute
-  SettingsRoute: typeof SettingsRoute
-  SharedRoute: typeof SharedRoute
-  ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
-  ProjectsNewRoute: typeof ProjectsNewRoute
+  DRoute: typeof DRouteWithChildren
+  DocsSecurityRoute: typeof DocsSecurityRoute
   ShareShareIdRoute: typeof ShareShareIdRoute
-  ProjectsIndexRoute: typeof ProjectsIndexRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
   DemoStartApiRequestRoute: typeof DemoStartApiRequestRoute
   DemoStartServerFuncsRoute: typeof DemoStartServerFuncsRoute
@@ -227,18 +284,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/shared': {
-      id: '/shared'
-      path: '/shared'
-      fullPath: '/shared'
-      preLoaderRoute: typeof SharedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
+    '/d': {
+      id: '/d'
+      path: '/d'
+      fullPath: '/d'
+      preLoaderRoute: typeof DRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/crypto-test': {
@@ -255,13 +305,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/projects/': {
-      id: '/projects/'
-      path: '/projects'
-      fullPath: '/projects'
-      preLoaderRoute: typeof ProjectsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/share/$shareId': {
       id: '/share/$shareId'
       path: '/share/$shareId'
@@ -269,19 +312,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShareShareIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/projects/new': {
-      id: '/projects/new'
-      path: '/projects/new'
-      fullPath: '/projects/new'
-      preLoaderRoute: typeof ProjectsNewRouteImport
+    '/docs/security': {
+      id: '/docs/security'
+      path: '/docs/security'
+      fullPath: '/docs/security'
+      preLoaderRoute: typeof DocsSecurityRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/projects/$projectId': {
-      id: '/projects/$projectId'
-      path: '/projects/$projectId'
-      fullPath: '/projects/$projectId'
-      preLoaderRoute: typeof ProjectsProjectIdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/d/shared': {
+      id: '/d/shared'
+      path: '/shared'
+      fullPath: '/d/shared'
+      preLoaderRoute: typeof DSharedRouteImport
+      parentRoute: typeof DRoute
+    }
+    '/d/settings': {
+      id: '/d/settings'
+      path: '/settings'
+      fullPath: '/d/settings'
+      preLoaderRoute: typeof DSettingsRouteImport
+      parentRoute: typeof DRoute
+    }
+    '/d/profile': {
+      id: '/d/profile'
+      path: '/profile'
+      fullPath: '/d/profile'
+      preLoaderRoute: typeof DProfileRouteImport
+      parentRoute: typeof DRoute
+    }
+    '/d/dashboard': {
+      id: '/d/dashboard'
+      path: '/dashboard'
+      fullPath: '/d/dashboard'
+      preLoaderRoute: typeof DDashboardRouteImport
+      parentRoute: typeof DRoute
+    }
+    '/d/admin': {
+      id: '/d/admin'
+      path: '/admin'
+      fullPath: '/d/admin'
+      preLoaderRoute: typeof DAdminRouteImport
+      parentRoute: typeof DRoute
+    }
+    '/d/projects/': {
+      id: '/d/projects/'
+      path: '/projects'
+      fullPath: '/d/projects'
+      preLoaderRoute: typeof DProjectsIndexRouteImport
+      parentRoute: typeof DRoute
     }
     '/demo/start/server-funcs': {
       id: '/demo/start/server-funcs'
@@ -303,6 +381,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/demo/api/names'
       preLoaderRoute: typeof DemoApiNamesRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/d/projects/new': {
+      id: '/d/projects/new'
+      path: '/projects/new'
+      fullPath: '/d/projects/new'
+      preLoaderRoute: typeof DProjectsNewRouteImport
+      parentRoute: typeof DRoute
+    }
+    '/d/project/$projectId': {
+      id: '/d/project/$projectId'
+      path: '/project/$projectId'
+      fullPath: '/d/project/$projectId'
+      preLoaderRoute: typeof DProjectProjectIdRouteImport
+      parentRoute: typeof DRoute
     }
     '/demo/start/ssr/': {
       id: '/demo/start/ssr/'
@@ -335,15 +427,36 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface DRouteChildren {
+  DAdminRoute: typeof DAdminRoute
+  DDashboardRoute: typeof DDashboardRoute
+  DProfileRoute: typeof DProfileRoute
+  DSettingsRoute: typeof DSettingsRoute
+  DSharedRoute: typeof DSharedRoute
+  DProjectProjectIdRoute: typeof DProjectProjectIdRoute
+  DProjectsNewRoute: typeof DProjectsNewRoute
+  DProjectsIndexRoute: typeof DProjectsIndexRoute
+}
+
+const DRouteChildren: DRouteChildren = {
+  DAdminRoute: DAdminRoute,
+  DDashboardRoute: DDashboardRoute,
+  DProfileRoute: DProfileRoute,
+  DSettingsRoute: DSettingsRoute,
+  DSharedRoute: DSharedRoute,
+  DProjectProjectIdRoute: DProjectProjectIdRoute,
+  DProjectsNewRoute: DProjectsNewRoute,
+  DProjectsIndexRoute: DProjectsIndexRoute,
+}
+
+const DRouteWithChildren = DRoute._addFileChildren(DRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CryptoTestRoute: CryptoTestRoute,
-  SettingsRoute: SettingsRoute,
-  SharedRoute: SharedRoute,
-  ProjectsProjectIdRoute: ProjectsProjectIdRoute,
-  ProjectsNewRoute: ProjectsNewRoute,
+  DRoute: DRouteWithChildren,
+  DocsSecurityRoute: DocsSecurityRoute,
   ShareShareIdRoute: ShareShareIdRoute,
-  ProjectsIndexRoute: ProjectsIndexRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,
   DemoStartApiRequestRoute: DemoStartApiRequestRoute,
   DemoStartServerFuncsRoute: DemoStartServerFuncsRoute,
