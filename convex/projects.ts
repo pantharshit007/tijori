@@ -59,6 +59,10 @@ export const create = mutation({
       throw new ConvexError("User not found");
     }
 
+    if (user.isDeactivated) {
+      throw new ConvexError("User account is deactivated");
+    }
+
     if (!user.masterKeyHash) {
       throw new ConvexError("Master key not configured. Please set it in Settings.");
     }

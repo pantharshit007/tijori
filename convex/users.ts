@@ -27,18 +27,15 @@ export const store = mutation({
 
     if (user !== null) {
       // If we've seen this user before but their name or picture has changed, update them.
-      // Also ensure platformRole is set if missing (backtracking).
       if (
         user.name !== name ||
         user.email !== args.email.toLowerCase() ||
-        user.image !== args.image ||
-        !user.platformRole
+        user.image !== args.image
       ) {
         await ctx.db.patch(user._id, {
           name,
           email: args.email.toLowerCase(),
           image: args.image,
-          platformRole: user.platformRole || "user",
         });
       }
       if (user.isDeactivated) {

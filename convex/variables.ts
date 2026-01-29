@@ -100,15 +100,17 @@ export const save = mutation({
         throw new ConvexError("Variable does not belong to this environment");
       }
 
-      // Check for name collisions if name is changing
-      if (existing.name !== args.name) {
-        const collision = await ctx.db
+      // Check for name collisions if name is changing (case-insensitive)
+      if (existing.name.toUpperCase() !== args.name.toUpperCase()) {
+        const allVars = await ctx.db
           .query("variables")
           .withIndex("by_environmentId", (q) => q.eq("environmentId", args.environmentId))
-          .filter((q) => q.eq(q.field("name"), args.name))
-          .unique();
+          .collect();
+        const collision = allVars.find(
+          (v) => v._id !== args.variableId && v.name.toUpperCase() === args.name.toUpperCase()
+        );
         if (collision) {
-          throw new ConvexError(`A variable named "${args.name}" already exists`);
+          throw new ConvexError(`A variable named "${args.name}" already exists (names are case-insensitive)`);
         }
       }
 
@@ -123,22 +125,18 @@ export const save = mutation({
     }
 
     // Otherwise, we are INSERTING a new variable.
-    // 1. Check for name uniqueness using environmentId index + filter
-    const existingByName = await ctx.db
+    // 1. Check for name uniqueness - case-insensitive
+    const allVars = await ctx.db
       .query("variables")
       .withIndex("by_environmentId", (q) => q.eq("environmentId", args.environmentId))
-      .filter((q) => q.eq(q.field("name"), args.name))
-      .unique();
+      .collect();
+
+    const existingByName = allVars.find(
+      (v) => v.name.toUpperCase() === args.name.toUpperCase()
+    );
 
     if (existingByName) {
-      // Upsert behavior: update if name matches (legacy support/UX)
-      await ctx.db.patch(existingByName._id, {
-        encryptedValue: args.encryptedValue,
-        iv: args.iv,
-        authTag: args.authTag,
-        updatedAt: now,
-      });
-      return existingByName._id;
+      throw new ConvexError(`A variable named "${args.name}" already exists (names are case-insensitive)`);
     }
 
     // 2. Check variable limit based on PROJECT OWNER's role

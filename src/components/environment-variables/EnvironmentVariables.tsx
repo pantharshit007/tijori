@@ -410,18 +410,20 @@ export function EnvironmentVariables({
                       </DropdownMenuItem>
                     )}
 
-                    <ShareDialog
-                      variables={variables}
-                      environment={environment}
-                      derivedKey={derivedKey}
-                      createShare={createShare}
-                      trigger={
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2">
-                          <Share2 className="h-4 w-4 text-primary" />
-                          Share Secrets
-                        </DropdownMenuItem>
-                      }
-                    />
+                    {variables.length > 0 && (
+                      <ShareDialog
+                        variables={variables}
+                        environment={environment}
+                        derivedKey={derivedKey}
+                        createShare={createShare}
+                        trigger={
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2">
+                            <Share2 className="h-4 w-4 text-primary" />
+                            Share Secrets
+                          </DropdownMenuItem>
+                        }
+                      />
+                    )}
                   </>
                 )}
               </DropdownMenuContent>

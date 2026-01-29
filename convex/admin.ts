@@ -82,6 +82,7 @@ export const listUsers = query({
 
 /**
  * Update a user's platform role.
+ * NOTE: Super-admins cannot be demoted by anyone - this is a hard rule.
  */
 export const updateUserRole = mutation({
   args: {
@@ -95,17 +96,42 @@ export const updateUserRole = mutation({
   },
   handler: async (ctx, args) => {
     await checkSuperAdmin(ctx);
+
+    // Check if target user is a super_admin
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser) {
+      throw new ConvexError("User not found");
+    }
+
+    // Prevent demotion of any super_admin
+    if (targetUser.platformRole === "super_admin" && args.role !== "super_admin") {
+      throw new ConvexError("Super-admins cannot be demoted. This is a protected role.");
+    }
+
     await ctx.db.patch(args.userId, { platformRole: args.role });
   },
 });
 
 /**
  * Deactivate or reactivate a user.
+ * NOTE: Super-admins cannot be deactivated by anyone - this is a hard rule.
  */
 export const toggleUserStatus = mutation({
   args: { userId: v.id("users"), isDeactivated: v.boolean() },
   handler: async (ctx, args) => {
     await checkSuperAdmin(ctx);
+
+    // Check if target user is a super_admin
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser) {
+      throw new ConvexError("User not found");
+    }
+
+    // Prevent deactivation of any super_admin
+    if (targetUser.platformRole === "super_admin" && args.isDeactivated) {
+      throw new ConvexError("Super-admins cannot be deactivated. This is a protected role.");
+    }
+
     await ctx.db.patch(args.userId, { isDeactivated: args.isDeactivated });
   },
 });

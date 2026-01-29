@@ -21,6 +21,9 @@
 - [ ] if a user created more that 3 projects, while he was on pro plan, and later on he degrades to free plan, he will still have those extra privileges, how to fix that?
 - [ ] re-check save mutation throughly in @convex/variable.ts, seems something is wrong there.
 - [ ] update platformRole to tier in the user table, and update the UI accordingly.
+- [ ] update the field in per environment so that it shows in UI the last updated by User (who updated the env vars last)
+- [ ] check if Bulk add dialog and Bulk edit dialog can use a common logic instead of duplicating the code.
+- [ ] raw text edit mode should be on left side ![alt text](./temp/image.png)
 
 ---
 
