@@ -380,7 +380,7 @@ _Goal: Advanced project management features with role-based access control._
 - [x] Members drawer with search, add, role update, and remove functionality
 - [x] `/projects` route implements an "All Projects" placeholder (Coming Soon)
 - [x] Dashboard (`/`) currently displays all projects (until `/projects` is finalized)
-- [ ] Grid/table view for project (future enhancement)
+- [x] Grid/table view for project list in dashboard
 
 #### Task 6.4: Bulk Add/Edit Variable Values ✅
 

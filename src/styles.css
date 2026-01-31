@@ -197,8 +197,17 @@ code {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
   }
+}
+
+@utility profile-card {
+  @apply p-4 rounded-lg border [background:var(--card-resource-bg)] backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow place-items-center;
+}
+
+@utility profile-card-name {
+  @apply text-xs text-muted-foreground uppercase mb-1 tracking-wider font-semibold
 }

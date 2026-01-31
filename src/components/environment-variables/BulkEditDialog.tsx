@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 
 import type { BulkEditVariable, Variable } from "@/lib/types";
-import { parseBulkInput, variablesToExport } from "@/lib/utils";
+import { cn, parseBulkInput, variablesToExport } from "@/lib/utils";
 import { decrypt } from "@/lib/crypto";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,7 +14,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -24,7 +23,10 @@ export interface BulkEditDialogProps {
   onOpenChange: (open: boolean) => void;
   variables: Variable[];
   derivedKey: CryptoKey;
-  onSave: (updates: { name: string; value: string; originalName?: string }[], deletes: string[]) => Promise<void>;
+  onSave: (
+    updates: { id?: string; name: string; value: string; originalName?: string }[],
+    deletes: string[]
+  ) => Promise<void>;
   isSaving: boolean;
 }
 
@@ -77,7 +79,10 @@ export function BulkEditDialog({ open, onOpenChange, variables, derivedKey, onSa
     const newEditVars: BulkEditVariable[] = parsed
       .filter(p => !p.error && (p.name.trim() || p.value.trim()))
       .map((p, i) => {
-        const existingIdx = currentVars.findIndex(e => e.name === p.name && !e.toDelete);
+        // Case-insensitive matching for existing variables
+        const existingIdx = currentVars.findIndex(
+          e => e.name.toUpperCase() === p.name.toUpperCase() && !e.toDelete
+        );
         if (existingIdx !== -1) {
           const existing = currentVars[existingIdx];
           currentVars.splice(existingIdx, 1);
@@ -94,7 +99,9 @@ export function BulkEditDialog({ open, onOpenChange, variables, derivedKey, onSa
       });
     
     const deletedVars = editVars
-      .filter(e => e.originalName && !newEditVars.some(n => n.originalName === e.originalName))
+      .filter(e => e.originalName && !newEditVars.some(
+        n => n.originalName?.toUpperCase() === e.originalName?.toUpperCase()
+      ))
       .map(e => ({ ...e, toDelete: true }));
     
     setEditVars([...newEditVars, ...deletedVars]);
@@ -127,19 +134,46 @@ export function BulkEditDialog({ open, onOpenChange, variables, derivedKey, onSa
   }
 
   async function handleSave() {
-    const updates = editVars
-      .filter(v => !v.toDelete && v.name.trim() && v.value.trim())
-      .map(v => ({ name: v.name, value: v.value, originalName: v.originalName || undefined }));
+    // Filter to valid entries and deduplicate by name (last occurrence wins)
+    const validVars = editVars.filter((v) => !v.toDelete && v.name.trim() && v.value.trim());
     
+    // Deduplicate: keep only the last occurrence of each name
+    const seenNames = new Map<string, typeof validVars[0]>();
+    for (const v of validVars) {
+      seenNames.set(v.name.trim().toUpperCase(), v);
+    }
+    
+    const updates = Array.from(seenNames.values()).map((v) => ({
+      id: v.isNew ? undefined : v.id,
+      name: v.name.trim(),
+      value: v.value,
+      originalName: v.originalName || undefined,
+    }));
+
     const deletes = editVars
-      .filter(v => v.toDelete && v.originalName)
-      .map(v => v.originalName);
-    
+      .filter((v) => v.toDelete && v.originalName && !v.isNew)
+      .map((v) => v.id);
+
     await onSave(updates, deletes);
     onOpenChange(false);
   }
 
   const activeVars = editVars.filter(v => !v.toDelete);
+  
+  // Detect duplicate names for visual feedback
+  const nameCounts = activeVars.reduce((acc, v) => {
+    const name = v.name.trim().toUpperCase();
+    if (name) {
+      acc.set(name, (acc.get(name) || 0) + 1);
+    }
+    return acc;
+  }, new Map<string, number>());
+  
+  const duplicateNames = new Set(
+    Array.from(nameCounts.entries())
+      .filter(([, count]) => count > 1)
+      .map(([name]) => name)
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -168,28 +202,41 @@ export function BulkEditDialog({ open, onOpenChange, variables, derivedKey, onSa
             </div>
           ) : (
             <div className="space-y-2">
-              {activeVars.map((v) => (
-                <div key={v.id} className="flex items-center gap-3 p-3 rounded-lg border bg-card">
-                  <div className="flex-1 grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Name</Label>
-                      <Input
-                        value={v.name}
-                        onChange={(e) => updateVar(editVars.indexOf(v), "name", e.target.value)}
-                        className="font-mono text-sm"
-                        placeholder="VARIABLE_NAME"
-                      />
+              {activeVars.map((v) => {
+                const isDuplicate = duplicateNames.has(v.name.trim().toUpperCase());
+                return (
+                  <div key={v.id} className={cn(
+                    "flex items-center gap-3 p-3 rounded-lg border bg-card",
+                    isDuplicate && "border-yellow-500/50 bg-yellow-500/5"
+                  )}>
+                    <div className="flex-1 grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className={cn(
+                          "text-xs",
+                          isDuplicate ? "text-yellow-600" : "text-muted-foreground"
+                        )}>
+                          Name {isDuplicate && '(duplicate)'}
+                        </Label>
+                        <Input
+                          value={v.name}
+                          onChange={(e) => updateVar(editVars.indexOf(v), "name", e.target.value)}
+                          className={cn(
+                            "font-mono text-sm",
+                            isDuplicate && "border-yellow-500/50"
+                          )}
+                          placeholder="VARIABLE_NAME"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Value</Label>
+                        <Input
+                          value={v.value}
+                          onChange={(e) => updateVar(editVars.indexOf(v), "value", e.target.value)}
+                          className="font-mono text-sm"
+                          placeholder="value"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Value</Label>
-                      <Input
-                        value={v.value}
-                        onChange={(e) => updateVar(editVars.indexOf(v), "value", e.target.value)}
-                        className="font-mono text-sm"
-                        placeholder="value"
-                      />
-                    </div>
-                  </div>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -199,7 +246,8 @@ export function BulkEditDialog({ open, onOpenChange, variables, derivedKey, onSa
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              ))}
+                );
+              })}
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -213,7 +261,7 @@ export function BulkEditDialog({ open, onOpenChange, variables, derivedKey, onSa
           )}
         </div>
 
-        <DialogFooter className="flex items-center justify-between pt-4 border-t">
+        <div className="flex items-center justify-between pt-4 border-t gap-4">
           <div className="flex items-center gap-2">
             <Checkbox 
               id="rawMode" 
@@ -232,7 +280,7 @@ export function BulkEditDialog({ open, onOpenChange, variables, derivedKey, onSa
               Save All
             </Button>
           </div>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

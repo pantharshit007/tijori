@@ -14,8 +14,8 @@ import {
   Trash2,
   Unlock,
 } from "lucide-react";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 import type { ShareExpiryValue } from "@/lib/constants";
 import type { SharedSecret } from "@/lib/types";
@@ -57,7 +57,7 @@ type SharedSearchParams = {
   p?: string;
 };
 
-export const Route = createFileRoute("/shared")({
+export const Route = createFileRoute("/d/shared")({
   validateSearch: (search: Record<string, unknown>): SharedSearchParams => {
     return {
       p: typeof search.p === "string" ? search.p : undefined,
@@ -67,7 +67,7 @@ export const Route = createFileRoute("/shared")({
 });
 
 function SharedDashboard() {
-  const { p: initialProjectFilter } = useSearch({ from: "/shared" });
+  const { p: initialProjectFilter } = useSearch({ from: "/d/shared" });
   const sharedSecrets = useQuery(api.sharedSecrets.listByUser);
   const toggleDisabled = useMutation(api.sharedSecrets.toggleDisabled);
   const removeShare = useMutation(api.sharedSecrets.remove);

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useRef, useState  } from "react";
 import { AlertTriangle, Check, KeyRound, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
-import { api } from "../../convex/_generated/api";
+import { api } from "../../../convex/_generated/api";
 
 import type { MasterKeyRotationStep } from "@/lib/constants";
 import type { ProjectPasscodeUpdate } from "@/lib/types";
@@ -104,7 +104,7 @@ function Settings() {
       setMasterKeyInput("");
       setConfirmMasterKey("");
     } catch (err: any) {
-      setError(err.message || "Failed to set master key");
+      setError(err.data || "Failed to set master key");
     } finally {
       setIsLoading(false);
     }
@@ -139,7 +139,7 @@ function Settings() {
       // Verification passed - proceed to update step
       setRotationStep("update");
     } catch (err: any) {
-      setRotationError(err.message || "Verification failed");
+      setRotationError(err.data || "Verification failed");
     } finally {
       setRotationLoading(false);
     }
@@ -263,7 +263,7 @@ function Settings() {
       }, 1500);
     } catch (err: any) {
       setRotationStep("update"); // Go back to update step on error
-      setRotationError(err.message || "Failed to rotate master key");
+      setRotationError(err.data || "Failed to rotate master key");
     }
   }
 
@@ -304,7 +304,6 @@ function Settings() {
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground">Manage your account and security</p>
       </div>
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -319,12 +318,11 @@ function Settings() {
         <CardContent>
           {hasMasterKey ? (
             // === User HAS a master key: Show rotation option ===
-            <div className="space-y-4">
+            (<div className="space-y-4">
               <div className="flex items-center gap-2 text-sm text-green-500">
                 <ShieldCheck className="h-4 w-4" />
                 Master key is configured
               </div>
-
               <div className="p-4 rounded-lg border border-border bg-card">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
@@ -344,7 +342,7 @@ function Settings() {
                     <DialogContent className="sm:max-w-md">
                       {rotationStep === "verify" ? (
                         // Step 1: Verify current master key
-                        <form onSubmit={handleVerifyCurrentKey} className="space-y-4">
+                        (<form onSubmit={handleVerifyCurrentKey} className="space-y-4">
                           <DialogHeader>
                             <DialogTitle>Verify Current Master Key</DialogTitle>
                             <DialogDescription>
@@ -386,10 +384,10 @@ function Settings() {
                               Verify & Continue
                             </Button>
                           </DialogFooter>
-                        </form>
+                        </form>)
                       ) : rotationStep === "update" ? (
                         // Step 2: Enter new master key
-                        <form
+                        (<form
                           onSubmit={(e) => {
                             e.preventDefault();
                             handleUpdateMasterKey();
@@ -473,10 +471,10 @@ function Settings() {
                               Update Master Key
                             </Button>
                           </DialogFooter>
-                        </form>
+                        </form>)
                       ) : (
                         // Step 3: Processing - Re-encrypting projects
-                        <>
+                        (<>
                           <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
                               <RefreshCw className="h-5 w-5 animate-spin" />
@@ -498,28 +496,26 @@ function Settings() {
                               </div>
                             )}
                           </div>
-                        </>
+                        </>)
                       )}
                     </DialogContent>
                   </Dialog>
                 </div>
               </div>
-
               {success && (
                 <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-500 text-sm flex items-center gap-2">
                   <Check className="h-4 w-4" />
                   Master key updated successfully!
                 </div>
               )}
-            </div>
+            </div>)
           ) : (
             // === User does NOT have a master key: First-time setup ===
-            <>
+            (<>
               <div className="flex items-center gap-2 text-sm text-amber-500 mb-4">
                 <AlertTriangle className="h-4 w-4" />
                 No master key set. You'll need to set one before creating projects.
               </div>
-
               <form onSubmit={handleSetMasterKey} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="masterKey">Master Key</Label>
@@ -562,7 +558,7 @@ function Settings() {
                   Set Master Key
                 </Button>
               </form>
-            </>
+            </>)
           )}
 
           <div className="mt-6 p-4 rounded-lg bg-muted text-sm">
@@ -579,9 +575,9 @@ function Settings() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
 
-export const Route = createFileRoute("/settings")({
+export const Route = createFileRoute("/d/settings")({
   component: Settings,
 });

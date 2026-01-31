@@ -9,6 +9,15 @@ export default defineSchema({
     image: v.optional(v.string()),
     masterKeyHash: v.optional(v.string()),
     masterKeySalt: v.optional(v.string()),
+    platformRole: v.union(
+      v.literal("user"),
+      v.literal("pro"),
+      v.literal("pro_plus"),
+      v.literal("super_admin")
+    ),
+    isDeactivated: v.optional(v.boolean()),
+    exceedsPlanLimits: v.optional(v.boolean()),
+    planEnforcementDeadline: v.optional(v.number()), // Unix timestamp
   })
     .index("by_tokenIdentifier", ["tokenIdentifier"])
     .index("by_email", ["email"]),
@@ -56,7 +65,7 @@ export default defineSchema({
     projectId: v.id("projects"),
     environmentId: v.id("environments"),
     createdBy: v.id("users"),
-    name: v.optional(v.string()), 
+    name: v.optional(v.string()),
     encryptedPasscode: v.string(), // Passcode encrypted with Project Key
     passcodeIv: v.string(),
     passcodeAuthTag: v.string(),
@@ -75,5 +84,22 @@ export default defineSchema({
     .index("by_projectId", ["projectId"])
     .index("by_createdBy", ["createdBy"])
     .index("by_expiry", ["expiresAt"]),
-});
 
+  /**
+   * Quotas table for atomic resource limit tracking.
+   * Each project has one quota document per resource type.
+   * Used for concurrent-safe limit enforcement.
+   */
+  quotas: defineTable({
+    projectId: v.id("projects"),
+    resourceType: v.union(
+      v.literal("environments"),
+      v.literal("members"),
+      v.literal("sharedSecrets")
+    ),
+    used: v.number(),
+    limit: v.number(),
+  })
+    .index("by_projectId", ["projectId"])
+    .index("by_project_resource", ["projectId", "resourceType"]),
+});

@@ -39,3 +39,8 @@ export const SHARE_EXPIRY_OPTIONS = [
 ] as const;
 
 export type ShareExpiryValue = (typeof SHARE_EXPIRY_OPTIONS)[number]["value"];
+
+export const META_DATA = {
+  github: "https://github.com/pantharshit007/tijori",
+  twitter: "https://x.com/pantharshit007",
+};

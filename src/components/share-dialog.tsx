@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Check, Clock, Copy, ExternalLink, Loader2, Share2 } from "lucide-react";
+import { toast } from "sonner";
 import type { Id } from "../../convex/_generated/dataModel";
 
 import type { ShareExpiryValue } from "@/lib/constants";
@@ -194,8 +195,10 @@ export function ShareDialog({
       // 10. Generate share URL
       const url = `${window.location.origin}/share/${shareId}`;
       setShareUrl(url);
-    } catch (err) {
+      toast.success("Share link created");
+    } catch (err: any) {
       console.error("Failed to create share:", err);
+      toast.error(err.data || "Failed to create share");
     } finally {
       setIsCreating(false);
     }
