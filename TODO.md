@@ -14,7 +14,21 @@
 - [ ] when the / loads, initially there is no sign in , get started and get started free button, they appear after a delay most probably network call to the clerk server, instead of waiting for the response and showing nothing add a suspense component to show get started, sign in until we get the response if we get user is logged in, we will just update the component in place else it will stay the same, just not via the suspense component.
 - [ ] there is a bug in variable naming in the dashboard, it always show the name of the var in CAPITAL, whether the actual name is small or capital.
 - [ ] update the toast ui.
-- [ ] if a user created more that 3 projects, while he was on pro plan, and later on he degrades to free plan, he will still have those extra privileges, how to fix that?
+- [x] **Plan Downgrade Enforcement**: Users who downgrade keep paid privileges — need to implement enforcement:
+  - [x] **On downgrade**: Check if user's current usage exceeds the new tier's limits:
+    - Compare `User.projectCount` against new tier's `maxProjects` limit, along with other limits such as environment count, members count, shared secret count, etc.
+    - **Only if usage > new limit**: Set `User.exceedsPlanLimits = true` and `User.planEnforcementDeadline = now + 7 days`
+    - If usage is within limits, no flag needed — user can continue normally
+  - [x] **Dashboard Warning**: Show prominent warning banner on dashboard when `exceedsPlanLimits === true`, informing user:
+    - Current tier limits (e.g., "Pro plan allows 30 projects, you have 31")
+    - Days remaining before enforcement (countdown from `planEnforcementDeadline`)
+    - Action required: "Please delete excess projects/secrets to stay within your plan limits"
+  - [ ] **After 7-day grace period**: Cron job runs and deletes excess projects based on criteria:
+    - Least recently used (by `updatedAt` timestamp)
+    - OR oldest created (`createdAt`)
+    - Emit `AuditLog` entries for each deleted project
+    - Send email notification to user about enforcement action
+  - **TODO (Future)**: Implement cron job `enforcePlanLimits` to run daily and reconcile excess after deadline passes
 - [ ] re-check save mutation throughly in @convex/variable.ts, seems something is wrong there.
 - [ ] update `platformRole` to `tier` in the user table, and update the UI accordingly.
 - [ ] update the field in per environment so that it shows in UI the last updated by User (who updated the env vars last)

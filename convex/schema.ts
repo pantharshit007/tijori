@@ -16,6 +16,8 @@ export default defineSchema({
       v.literal("super_admin")
     ),
     isDeactivated: v.optional(v.boolean()),
+    exceedsPlanLimits: v.optional(v.boolean()),
+    planEnforcementDeadline: v.optional(v.number()), // Unix timestamp
   })
     .index("by_tokenIdentifier", ["tokenIdentifier"])
     .index("by_email", ["email"]),

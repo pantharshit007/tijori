@@ -8,6 +8,7 @@ import { AppSidebar } from '@/components/app-sidebar'
 import { AuthenticatedLayout } from '@/components/authenticated-layout'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
+import { PlanEnforcementBanner } from '@/components/PlanEnforcementBanner'
 
 export const Route = createFileRoute('/d')({
   beforeLoad: ({ context, location }: { context: any, location: any }) => {
@@ -89,6 +90,7 @@ function DashboardLayout() {
                   />
                 </header>
                 <main className="flex flex-1 flex-col p-4">
+                  <PlanEnforcementBanner />
                   <Outlet />
                 </main>
               </SidebarInset>

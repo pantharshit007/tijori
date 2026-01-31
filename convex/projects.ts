@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getProjectOwnerLimits, getRoleLimits } from "./lib/roleLimits";
+import { getProjectOwnerLimits, getRoleLimits, checkAndClearPlanEnforcementFlag } from "./lib/roleLimits";
 import type { QueryCtx } from "./_generated/server";
 import type { PlatformRole } from "./lib/roleLimits";
 
@@ -514,6 +514,12 @@ export const removeMember = mutation({
       await ctx.db.patch(quota._id, { used: quota.used - 1 });
     }
 
+    // Check if project owner still exceeds plan limits after this removal
+    const project = await ctx.db.get(args.projectId);
+    if (project) {
+      await checkAndClearPlanEnforcementFlag(ctx, project.ownerId);
+    }
+
     return { success: true };
   },
 });
@@ -709,6 +715,9 @@ export const deleteProject = mutation({
 
     // Delete the project
     await ctx.db.delete(args.projectId);
+
+    // Check if user still exceeds plan limits after this deletion
+    await checkAndClearPlanEnforcementFlag(ctx, userId);
 
     return { success: true };
   },

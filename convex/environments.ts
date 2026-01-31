@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getProjectOwnerLimits } from "./lib/roleLimits";
+import { getProjectOwnerLimits, checkAndClearPlanEnforcementFlag } from "./lib/roleLimits";
 import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
@@ -213,6 +213,12 @@ export const deleteEnvironment = mutation({
           used: Math.max(0, secretsQuota.used - deletedSecretsCount),
         });
       }
+    }
+
+    // Check if project owner still exceeds plan limits after this deletion
+    const project = await ctx.db.get(environment.projectId);
+    if (project) {
+      await checkAndClearPlanEnforcementFlag(ctx, project.ownerId);
     }
 
     return { success: true };

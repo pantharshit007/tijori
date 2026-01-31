@@ -103,3 +103,62 @@ export async function getProjectOwnerLimits(
 
   return getRoleLimits(owner.platformRole as PlatformRole | undefined);
 }
+
+/**
+ * Check if a user still exceeds plan limits after a resource deletion.
+ * If no longer exceeding, clears the exceedsPlanLimits flag.
+ * Should be called after deleting environments, members, shared secrets, or projects.
+ */
+export async function checkAndClearPlanEnforcementFlag(
+  ctx: { db: any },
+  userId: Id<"users">
+): Promise<boolean> {
+  const user = await ctx.db.get(userId);
+  if (!user || !user.exceedsPlanLimits) {
+    return false;
+  }
+
+  const role = (user.platformRole || "user") as PlatformRole;
+  const limits = ROLE_LIMITS[role];
+
+  const projects = await ctx.db
+    .query("projects")
+    .withIndex("by_ownerId", (q: any) => q.eq("ownerId", userId))
+    .collect();
+
+  // Check if still exceeding project limit
+  if (projects.length > limits.maxProjects) {
+    return false; // Still exceeding
+  }
+
+  // Check quotas for each project
+  for (const project of projects) {
+    const quotas = await ctx.db
+      .query("quotas")
+      .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
+      .collect();
+
+    for (const quota of quotas) {
+      if (quota.resourceType === "environments" && quota.used > limits.maxEnvironmentsPerProject) {
+        return false; // Still exceeding
+      }
+      if (quota.resourceType === "members" && quota.used > limits.maxMembersPerProject) {
+        return false; // Still exceeding
+      }
+      if (
+        quota.resourceType === "sharedSecrets" &&
+        quota.used > limits.maxSharedSecretsPerProject
+      ) {
+        return false; // Still exceeding
+      }
+    }
+  }
+
+  // No longer exceeding - clear the flag
+  await ctx.db.patch(userId, {
+    exceedsPlanLimits: undefined,
+    planEnforcementDeadline: undefined,
+  });
+
+  return true; // Flag was cleared
+}

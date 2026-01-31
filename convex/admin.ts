@@ -2,6 +2,7 @@ import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
+import { ROLE_LIMITS } from "./lib/roleLimits";
 
 /**
  * Helper to verify that the current user is a super_admin.
@@ -83,6 +84,7 @@ export const listUsers = query({
 /**
  * Update a user's platform role.
  * NOTE: Super-admins cannot be demoted by anyone - this is a hard rule.
+ * When downgrading, checks if user exceeds new tier limits and sets enforcement flag.
  */
 export const updateUserRole = mutation({
   args: {
@@ -108,7 +110,114 @@ export const updateUserRole = mutation({
       throw new ConvexError("Super-admins cannot be demoted. This is a protected role.");
     }
 
-    await ctx.db.patch(args.userId, { platformRole: args.role });
+    const currentRole = targetUser.platformRole;
+    const newRole = args.role;
+
+    // Check if this is a downgrade
+    const roleHierarchy: Record<string, number> = {
+      user: 0,
+      pro: 1,
+      pro_plus: 2,
+      super_admin: 3,
+    };
+
+    const isDowngrade = roleHierarchy[newRole] < roleHierarchy[currentRole];
+
+    let exceedsPlanLimits = false;
+    let planEnforcementDeadline: number | undefined = undefined;
+
+    if (isDowngrade) {
+      // Check if user's current usage exceeds the new tier's limits
+      const newLimits = ROLE_LIMITS[newRole];
+
+      // Count user's owned projects
+      const ownedProjects = await ctx.db
+        .query("projects")
+        .withIndex("by_ownerId", (q: any) => q.eq("ownerId", args.userId))
+        .collect();
+      const projectCount = ownedProjects.length;
+
+      // Use quotas table for efficient counting
+      let hasEnvViolation = false;
+      let hasMemberViolation = false;
+      let hasSecretViolation = false;
+
+      for (const project of ownedProjects) {
+        const quotas = await ctx.db
+          .query("quotas")
+          .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
+          .collect();
+
+        for (const quota of quotas) {
+          if (quota.resourceType === "environments" && quota.used > newLimits.maxEnvironmentsPerProject) {
+            hasEnvViolation = true;
+          }
+          if (quota.resourceType === "members" && quota.used > newLimits.maxMembersPerProject) {
+            hasMemberViolation = true;
+          }
+          if (quota.resourceType === "sharedSecrets" && quota.used > newLimits.maxSharedSecretsPerProject) {
+            hasSecretViolation = true;
+          }
+        }
+      }
+
+      // Determine if any limit is exceeded
+      exceedsPlanLimits =
+        projectCount > newLimits.maxProjects ||
+        hasEnvViolation ||
+        hasMemberViolation ||
+        hasSecretViolation;
+
+      if (exceedsPlanLimits) {
+        // Set 7-day grace period
+        planEnforcementDeadline = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      }
+    }
+
+    // Update user with new role and enforcement flags
+    await ctx.db.patch(args.userId, {
+      platformRole: args.role,
+      exceedsPlanLimits: exceedsPlanLimits || undefined,
+      planEnforcementDeadline: planEnforcementDeadline,
+    });
+
+    // Update quota limits for all owned projects to reflect the new tier's limits
+    const newLimits = ROLE_LIMITS[args.role];
+    const ownedProjects = await ctx.db
+      .query("projects")
+      .withIndex("by_ownerId", (q: any) => q.eq("ownerId", args.userId))
+      .collect();
+
+    for (const project of ownedProjects) {
+      // Get all quotas for this project
+      const quotas = await ctx.db
+        .query("quotas")
+        .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
+        .collect();
+
+      // Update each quota's limit based on new role
+      for (const quota of quotas) {
+        let newLimit: number;
+        switch (quota.resourceType) {
+          case "environments":
+            newLimit = newLimits.maxEnvironmentsPerProject;
+            break;
+          case "members":
+            newLimit = newLimits.maxMembersPerProject;
+            break;
+          case "sharedSecrets":
+            newLimit = newLimits.maxSharedSecretsPerProject;
+            break;
+          default:
+            continue;
+        }
+        await ctx.db.patch(quota._id, {
+          limit: newLimit === Infinity ? 999999 : newLimit,
+        });
+      }
+    }
+
+    return { exceedsPlanLimits, planEnforcementDeadline };
   },
 });
 
