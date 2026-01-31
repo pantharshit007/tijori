@@ -90,6 +90,7 @@ export function EnvironmentVariables({
   const [showBulkAdd, setShowBulkAdd] = useState(false);
   const [isBulkSaving, setIsBulkSaving] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(0);
+  const [bulkPasteText, setBulkPasteText] = useState("");
 
   // Bulk edit
   const [showBulkEdit, setShowBulkEdit] = useState(false);
@@ -458,6 +459,13 @@ export function EnvironmentVariables({
             }}
             isSaving={isSaving}
             isNew
+            onBulkPaste={(text) => {
+              setShowNewVar(false);
+              setNewName("");
+              setNewValue("");
+              setShowBulkAdd(true);
+              setBulkPasteText(text);
+            }}
           />
         )}
         {(filteredVariables ?? []).map((variable) =>
@@ -510,6 +518,8 @@ export function EnvironmentVariables({
         onAdd={handleBulkAdd}
         isSaving={isBulkSaving}
         progress={bulkProgress}
+        initialText={bulkPasteText}
+        onClearInitialText={() => setBulkPasteText("")}
       />
 
       {/* Bulk Edit Dialog */}

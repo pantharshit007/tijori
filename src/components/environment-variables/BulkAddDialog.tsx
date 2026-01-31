@@ -21,13 +21,23 @@ export interface BulkAddDialogProps {
   onAdd: (variables: ParsedVariable[]) => Promise<void>;
   isSaving: boolean;
   progress: number;
+  initialText?: string;
+  onClearInitialText?: () => void;
 }
 
 /**
  * Bulk Add Dialog Component.
  * Allows pasting multiple environment variables at once.
  */
-export function BulkAddDialog({ open, onOpenChange, onAdd, isSaving, progress }: BulkAddDialogProps) {
+export function BulkAddDialog({
+  open,
+  onOpenChange,
+  onAdd,
+  isSaving,
+  progress,
+  initialText,
+  onClearInitialText,
+}: BulkAddDialogProps) {
   const [bulkInput, setBulkInput] = useState("");
   const [parsedVars, setParsedVars] = useState<ParsedVariable[]>([]);
 
@@ -39,6 +49,14 @@ export function BulkAddDialog({ open, onOpenChange, onAdd, isSaving, progress }:
     }
   }, [bulkInput]);
 
+  // Handle initial text from paste detection
+  useEffect(() => {
+    if (open && initialText) {
+      setBulkInput(initialText);
+      onClearInitialText?.();
+    }
+  }, [open, initialText, onClearInitialText]);
+
   useEffect(() => {
     if (!open) {
       setBulkInput("");
@@ -46,8 +64,8 @@ export function BulkAddDialog({ open, onOpenChange, onAdd, isSaving, progress }:
     }
   }, [open]);
 
-  const validVars = parsedVars.filter(v => !v.error && v.value);
-  
+  const validVars = parsedVars.filter((v) => !v.error && v.value);
+
   // Detect duplicate names (case-insensitive)
   const nameCounts = validVars.reduce((acc, v) => {
     const name = v.name.trim().toUpperCase();
@@ -56,13 +74,13 @@ export function BulkAddDialog({ open, onOpenChange, onAdd, isSaving, progress }:
     }
     return acc;
   }, new Map<string, number>());
-  
+
   const duplicateNames = new Set(
     Array.from(nameCounts.entries())
       .filter(([, count]) => count > 1)
       .map(([name]) => name)
   );
-  
+
   // Deduplicate: keep only the last occurrence of each name
   const deduplicatedVars = (() => {
     const seen = new Map<string, ParsedVariable>();
@@ -76,14 +94,15 @@ export function BulkAddDialog({ open, onOpenChange, onAdd, isSaving, progress }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Bulk Add Variables</DialogTitle>
           <DialogDescription>
-            Paste multiple environment variables. Supports <code>KEY=VALUE</code>, <code>export KEY=VALUE</code>, or quoted values.
+            Paste multiple environment variables. Supports <code>KEY=VALUE</code>,{" "}
+            <code>export KEY=VALUE</code>, or quoted values.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="flex-1 overflow-y-auto space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="bulkInput">Variables</Label>
             <Textarea
@@ -97,12 +116,13 @@ export SECRET_TOKEN=my_secret_value`}
               className="font-mono text-sm"
             />
           </div>
-          
+
           {parsedVars.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>
-                  Preview ({validVars.length} valid{hasDuplicates ? `, ${deduplicatedVars.length} unique` : ""})
+                  Preview ({validVars.length} valid
+                  {hasDuplicates ? `, ${deduplicatedVars.length} unique` : ""})
                 </Label>
                 {hasDuplicates && (
                   <span className="text-xs text-yellow-600 flex items-center gap-1">
@@ -115,13 +135,13 @@ export SECRET_TOKEN=my_secret_value`}
                 {parsedVars.map((v, i) => {
                   const isDuplicate = !v.error && duplicateNames.has(v.name.trim().toUpperCase());
                   return (
-                    <div 
-                      key={i} 
+                    <div
+                      key={i}
                       className={cn(
                         "text-xs font-mono flex items-center gap-2 py-1 px-2 rounded",
-                        v.error 
-                          ? "bg-destructive/10 text-destructive" 
-                          : isDuplicate 
+                        v.error
+                          ? "bg-destructive/10 text-destructive"
+                          : isDuplicate
                             ? "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400"
                             : "bg-green-500/10 text-green-700 dark:text-green-400"
                       )}
@@ -146,16 +166,26 @@ export SECRET_TOKEN=my_secret_value`}
 
           {isSaving && (
             <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">Adding variables... {Math.round(progress)}%</div>
+              <div className="text-xs text-muted-foreground">
+                Adding variables... {Math.round(progress)}%
+              </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden">
-                <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
+                <div
+                  className="h-full bg-primary transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
               </div>
             </div>
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => onAdd(deduplicatedVars)} disabled={isSaving || deduplicatedVars.length === 0}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => onAdd(deduplicatedVars)}
+            disabled={isSaving || deduplicatedVars.length === 0}
+          >
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Add {deduplicatedVars.length} Variable{deduplicatedVars.length !== 1 ? "s" : ""}
           </Button>

@@ -1,6 +1,3 @@
-- [x] move the dashboard to dedicated route `/dashboard`.
-- [x] update the sidebar with the correct functionality, log out button, and settings button and profile, along with correct user info.
-- [x] do we need a profile page? what is even the use case for it? (Created at /profile)
 - [ ] in `handleReveal` and `handleCopy` are we re-calculating the decrypted value every time? for each value? if yes, then we should cache it in state or fix it such that once we unlock the passcode, we don't need to decrypt the same value again.
 - [ ] **Project Passcode Rotation**: Currently, changing a project's 6-digit passcode is not allowed.
   - **Reasoning**: It is a high-cost operation. Changing the passcode changes the PBKDF2 derived key, which would require re-encrypting EVERY variable in EVERY environment for that project, as well as re-encrypting all shared passcodes in the `sharedSecrets` table.
@@ -13,17 +10,15 @@
 - [ ] Transfer ownership of project, pending.
 - [ ] more options like select all, select none, and select few in shared section in dashboard to perform bulk actions, disable, expire, delete.
 - [ ] add toast notifications for successful actions, ex: copy, delete, etc.
-- [x] Implement user roles (e.g., `user`, `pro`, `pro_plus`, `super_admin`) in the user table to control feature access, such as limiting project creation (5 or 10), environment count (3 or 5), and members per project (2 or 5). (Implemented in `convex/lib/roleLimits.ts`)
 - [ ] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
 - [ ] when the / loads, initially there is no sign in , get started and get started free button, they appear after a delay most probably network call to the clerk server, instead of waiting for the response and showing nothing add a suspense component to show get started, sign in until we get the response if we get user is logged in, we will just update the component in place else it will stay the same, just not via the suspense component.
 - [ ] there is a bug in variable naming in the dashboard, it always show the name of the var in CAPITAL, whether the actual name is small or capital.
 - [ ] update the toast ui.
 - [ ] if a user created more that 3 projects, while he was on pro plan, and later on he degrades to free plan, he will still have those extra privileges, how to fix that?
 - [ ] re-check save mutation throughly in @convex/variable.ts, seems something is wrong there.
-- [ ] update platformRole to tier in the user table, and update the UI accordingly.
+- [ ] update `platformRole` to `tier` in the user table, and update the UI accordingly.
 - [ ] update the field in per environment so that it shows in UI the last updated by User (who updated the env vars last)
 - [ ] check if Bulk add dialog and Bulk edit dialog can use a common logic instead of duplicating the code.
-- [ ] raw text edit mode should be on left side ![alt text](./temp/image.png)
 
 ---
 

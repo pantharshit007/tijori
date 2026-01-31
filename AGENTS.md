@@ -20,21 +20,21 @@
 
 ## Build/Lint/Test Commands
 
-| Command | Description |
-|---------|-------------|
-| `bun install` | Install dependencies |
-| `bun run dev` | Start Vite dev server (frontend) |
-| `bun cvx:dev` | Start Convex dev server (backend) |
-| `bun test` | Run all tests |
-| `bun test <file>` | Run a single test file, e.g., `bun test test/crypto.test.ts` |
-| `bun test --watch` | Run tests in watch mode |
-| `bun run lint` | Run ESLint |
-| `bun run lint:fix` | Fix ESLint errors |
-| `bun run format` | Run Prettier |
-| `bun run check` | Run Prettier + ESLint together |
-| `bun run tsc` | TypeScript type-checking (no emit) |
-| `bun run build` | Production build |
-| `bun cvx:deploy` | Deploy Convex to production |
+| Command            | Description                                                  |
+| ------------------ | ------------------------------------------------------------ |
+| `bun install`      | Install dependencies                                         |
+| `bun run dev`      | Start Vite dev server (frontend)                             |
+| `bun cvx:dev`      | Start Convex dev server (backend)                            |
+| `bun test`         | Run all tests                                                |
+| `bun test <file>`  | Run a single test file, e.g., `bun test test/crypto.test.ts` |
+| `bun test --watch` | Run tests in watch mode                                      |
+| `bun run lint`     | Run ESLint                                                   |
+| `bun run lint:fix` | Fix ESLint errors                                            |
+| `bun run format`   | Run Prettier                                                 |
+| `bun run check`    | Run Prettier + ESLint together                               |
+| `bun run tsc`      | TypeScript type-checking (no emit)                           |
+| `bun run build`    | Production build                                             |
+| `bun cvx:deploy`   | Deploy Convex to production                                  |
 
 ### Running a Single Test
 
@@ -102,15 +102,15 @@ import type { Variable } from "../../convex/_generated/dataModel";
 
 ### Naming Conventions
 
-| Type | Convention | Example |
-|------|------------|---------|
-| Components | PascalCase | `VariableEditRow.tsx` |
-| Hooks | camelCase with `use` prefix | `useTheme.ts` |
-| Utilities | camelCase | `deriveKey`, `arrayBufferToBase64` |
-| Constants | SCREAMING_SNAKE_CASE | `CRYPTO`, `SHARE_EXPIRY_OPTIONS` |
-| Types/Interfaces | PascalCase | `Environment`, `SharedSecret` |
-| Convex functions | camelCase | `listMembers`, `updateProject` |
-| Files | kebab-case or PascalCase for components | `key-store.ts`, `ShareDialog.tsx` |
+| Type             | Convention                              | Example                            |
+| ---------------- | --------------------------------------- | ---------------------------------- |
+| Components       | PascalCase                              | `VariableEditRow.tsx`              |
+| Hooks            | camelCase with `use` prefix             | `useTheme.ts`                      |
+| Utilities        | camelCase                               | `deriveKey`, `arrayBufferToBase64` |
+| Constants        | SCREAMING_SNAKE_CASE                    | `CRYPTO`, `SHARE_EXPIRY_OPTIONS`   |
+| Types/Interfaces | PascalCase                              | `Environment`, `SharedSecret`      |
+| Convex functions | camelCase                               | `listMembers`, `updateProject`     |
+| Files            | kebab-case or PascalCase for components | `key-store.ts`, `ShareDialog.tsx`  |
 
 ### Component Structure
 
@@ -120,6 +120,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 // 2. Types/Interfaces
+// If there are multiple connected types across files, define them in a shared file, e.g., src/lib/types.ts
 export interface ComponentProps {
   name: string;
   onSave?: () => void;
@@ -129,14 +130,16 @@ export interface ComponentProps {
 export function ComponentName({ name, onSave }: ComponentProps) {
   // Hooks first
   const [state, setState] = useState("");
-  
+
   // Event handlers
   const handleClick = useCallback(() => {}, []);
-  
+
   // Render
   return <div>...</div>;
 }
 ```
+
+If you are using <Button /> from `@/components/ui/button`, add title attribute to the button.
 
 ### Error Handling
 
@@ -208,13 +211,13 @@ tijori/
 
 ## Critical Files
 
-| File | Importance | Notes |
-|------|------------|-------|
-| `src/lib/crypto.ts` | 🔴 CRITICAL | All encryption logic. Changes require security review. |
-| `convex/schema.ts` | 🔴 CRITICAL | Database schema. Migrations needed for changes. |
-| `src/lib/key-store.ts` | 🟠 HIGH | In-memory key storage. Security-sensitive. |
-| `init.md` | 🟢 REFERENCE | Architecture & implementation plan. |
-| `learning.md` | 🟢 REFERENCE | Design decisions & gotchas. |
+| File                   | Importance   | Notes                                                  |
+| ---------------------- | ------------ | ------------------------------------------------------ |
+| `src/lib/crypto.ts`    | 🔴 CRITICAL  | All encryption logic. Changes require security review. |
+| `convex/schema.ts`     | 🔴 CRITICAL  | Database schema. Migrations needed for changes.        |
+| `src/lib/key-store.ts` | 🟠 HIGH      | In-memory key storage. Security-sensitive.             |
+| `init.md`              | 🟢 REFERENCE | Architecture & implementation plan.                    |
+| `learning.md`          | 🟢 REFERENCE | Design decisions & gotchas.                            |
 
 ---
 
@@ -236,13 +239,13 @@ tijori/
 async function getUserId(ctx: any) {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw new Error("Unauthenticated");
-  
+
   const user = await ctx.db
     .query("users")
     .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
     .unique();
   if (!user) throw new Error("User not found");
-  
+
   return user._id;
 }
 ```

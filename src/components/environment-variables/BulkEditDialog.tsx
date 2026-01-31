@@ -14,7 +14,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -262,7 +261,7 @@ export function BulkEditDialog({ open, onOpenChange, variables, derivedKey, onSa
           )}
         </div>
 
-        <DialogFooter className="flex items-center justify-between pt-4 border-t">
+        <div className="flex items-center justify-between pt-4 border-t gap-4">
           <div className="flex items-center gap-2">
             <Checkbox 
               id="rawMode" 
@@ -281,7 +280,7 @@ export function BulkEditDialog({ open, onOpenChange, variables, derivedKey, onSa
               Save All
             </Button>
           </div>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

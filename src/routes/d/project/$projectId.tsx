@@ -228,7 +228,7 @@ function ProjectView() {
               }}
             >
               <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2 relative">
+                <Button variant="outline" className="gap-2 relative" title="Unlock the keys">
                   <KeyRound className="h-4 w-4" />
                   Unlock
                   <kbd className="hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
