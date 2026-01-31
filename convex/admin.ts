@@ -29,14 +29,19 @@ async function checkSuperAdmin(ctx: QueryCtx) {
 
 /**
  * Get high-level platform metrics for the admin dashboard.
+ *
+ * TODO (Performance): For large-scale platforms, consider using denormalized
+ * counters (e.g., a `platformMetrics` table with auto-incrementing counts)
+ * instead of .collect() which loads entire tables into memory.
  */
 export const getPlatformMetrics = query({
   args: { includeExtra: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
     await checkSuperAdmin(ctx);
 
-    const usersCount = (await ctx.db.query("users").collect()).length;
-    const projectsCount = (await ctx.db.query("projects").collect()).length;
+    // Fetch users once and reuse for count + role distribution
+    const users = await ctx.db.query("users").collect();
+    const projects = await ctx.db.query("projects").collect();
 
     let environmentsCount = 0;
     let variablesCount = 0;
@@ -48,8 +53,7 @@ export const getPlatformMetrics = query({
       sharedSecretsCount = (await ctx.db.query("sharedSecrets").collect()).length;
     }
 
-    // Get role distribution
-    const users = await ctx.db.query("users").collect();
+    // Calculate role distribution from already-fetched users
     const roleDistribution = users.reduce((acc: Record<string, number>, user) => {
       const role = user.platformRole || "user";
       acc[role] = (acc[role] || 0) + 1;
@@ -58,8 +62,8 @@ export const getPlatformMetrics = query({
 
     return {
       counts: {
-        users: usersCount,
-        projects: projectsCount,
+        users: users.length,
+        projects: projects.length,
         environments: environmentsCount,
         variables: variablesCount,
         sharedSecrets: sharedSecretsCount,

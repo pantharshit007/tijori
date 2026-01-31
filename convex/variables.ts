@@ -145,12 +145,7 @@ export const save = mutation({
 
     const limits = await getProjectOwnerLimits(ctx, env.projectId);
 
-    const existingVars = await ctx.db
-      .query("variables")
-      .withIndex("by_environmentId", (q) => q.eq("environmentId", args.environmentId))
-      .collect();
-
-    if (existingVars.length >= limits.maxVariablesPerEnvironment) {
+    if (allVars.length >= limits.maxVariablesPerEnvironment) {
       throw new ConvexError(
         `Variable limit reached (${limits.maxVariablesPerEnvironment}). Project owner needs to upgrade for more.`
       );

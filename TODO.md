@@ -29,7 +29,7 @@
     - Emit `AuditLog` entries for each deleted project
     - Send email notification to user about enforcement action
   - **TODO (Future)**: Implement cron job `enforcePlanLimits` to run daily and reconcile excess after deadline passes
-- [ ] re-check save mutation throughly in @convex/variable.ts, seems something is wrong there.
+- [ ] re-check save mutation thoroughly in @convex/variable.ts, seems something is wrong there.
 - [ ] update `platformRole` to `tier` in the user table, and update the UI accordingly.
 - [ ] update the field in per environment so that it shows in UI the last updated by User (who updated the env vars last)
 - [ ] check if Bulk add dialog and Bulk edit dialog can use a common logic instead of duplicating the code.
