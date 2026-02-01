@@ -27,6 +27,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { decrypt, deriveKey, encrypt, generateSalt } from "@/lib/crypto";
 import { SHARE_EXPIRY_OPTIONS } from "@/lib/constants";
+import { getErrorMessage } from "@/lib/errors";
 
 export interface ShareDialogProps {
   variables: Array<Variable>;
@@ -198,7 +199,7 @@ export function ShareDialog({
       toast.success("Share link created");
     } catch (err: any) {
       console.error("Failed to create share:", err);
-      toast.error(err.data || "Failed to create share");
+      toast.error(getErrorMessage(err, "Failed to create share"));
     } finally {
       setIsCreating(false);
     }

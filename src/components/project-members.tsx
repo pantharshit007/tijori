@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { Loader2, MoreHorizontal, Shield, ShieldCheck, Trash2, User, UserPlus } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { getErrorMessage } from "@/lib/errors";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,7 +80,7 @@ export function ProjectMembers({ projectId, userRole }: ProjectMembersProps) {
       setRole("member");
       setShowAddDialog(false);
     } catch (err: any) {
-      setAddError(err.data || "Failed to add member");
+      setAddError(getErrorMessage(err, "Failed to add member"));
     } finally {
       setIsAdding(false);
     }
@@ -90,6 +91,7 @@ export function ProjectMembers({ projectId, userRole }: ProjectMembersProps) {
       await removeMember({ projectId, memberId });
     } catch (err: any) {
       console.error("Failed to remove member:", err);
+      alert(getErrorMessage(err, "Failed to remove member"));
     }
   }
 
@@ -98,6 +100,7 @@ export function ProjectMembers({ projectId, userRole }: ProjectMembersProps) {
       await updateMemberRole({ projectId, memberId, role: newRole });
     } catch (err: any) {
       console.error("Failed to update role:", err);
+      alert(getErrorMessage(err, "Failed to update role"));
     }
   }
 

@@ -1,7 +1,8 @@
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { checkAndClearPlanEnforcementFlag, getProjectOwnerLimits } from "./lib/roleLimits";
 import type { Id } from "./_generated/dataModel";
+import { throwError } from "./lib/errors";
 
 /**
  * Create a shared secret link.
@@ -27,13 +28,13 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     if (!args.isIndefinite && !args.expiresAt) {
-      throw new ConvexError("expiresAt is required for non-indefinite shares");
+      throwError("expiresAt is required for non-indefinite shares", "BAD_REQUEST", 400);
     }
     const normalizedExpiresAt = args.isIndefinite ? undefined : args.expiresAt;
 
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError("Not authenticated");
+      throwError("Not authenticated", "UNAUTHENTICATED", 401);
     }
 
     const user = await ctx.db
@@ -42,11 +43,11 @@ export const create = mutation({
       .unique();
 
     if (!user) {
-      throw new ConvexError("User not found");
+      throwError("User not found", "NOT_FOUND", 404);
     }
 
     if (user.isDeactivated) {
-      throw new ConvexError("User account is deactivated");
+      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
     // Verify user has access to the project
@@ -56,17 +57,17 @@ export const create = mutation({
       .unique();
 
     if (!membership) {
-      throw new ConvexError("Access denied");
+      throwError("Access denied", "FORBIDDEN", 403, { user_id: user._id, project_id: args.projectId });
     }
 
     if (membership.role !== "owner" && membership.role !== "admin") {
-      throw new ConvexError("Access denied - only owners and admins can share variables");
+      throwError("Access denied - only owners and admins can share variables", "FORBIDDEN", 403, { user_id: user._id, project_id: args.projectId });
     }
 
     // Verify environment belongs to the project
     const environment = await ctx.db.get(args.environmentId);
     if (!environment || environment.projectId !== args.projectId) {
-      throw new ConvexError("Invalid environment for this project");
+      throwError("Invalid environment for this project", "BAD_REQUEST", 400, { user_id: user._id, project_id: args.projectId, environment_id: args.environmentId });
     }
 
     // Check shared secrets limit based on PROJECT OWNER's role
@@ -82,8 +83,11 @@ export const create = mutation({
 
     if (quota) {
       if (quota.used >= quota.limit) {
-        throw new ConvexError(
-          `Shared secrets limit reached (${quota.limit}). Project owner needs to upgrade for more.`
+        throwError(
+          `Shared secrets limit reached (${quota.limit}). Project owner needs to upgrade for more.`,
+          "LIMIT_REACHED",
+          403,
+          { user_id: user._id, project_id: args.projectId }
         );
       }
     } else {
@@ -94,15 +98,21 @@ export const create = mutation({
         .collect();
 
       if (existingShares.length >= limits.maxSharedSecretsPerProject) {
-        throw new ConvexError(
-          `Shared secrets limit reached (${limits.maxSharedSecretsPerProject}). Project owner needs to upgrade for more.`
+        throwError(
+          `Shared secrets limit reached (${limits.maxSharedSecretsPerProject}). Project owner needs to upgrade for more.`,
+          "LIMIT_REACHED",
+          403,
+          { user_id: user._id, project_id: args.projectId }
         );
       }
     }
 
     if (args.isIndefinite && !limits.canCreateIndefiniteShares) {
-      throw new ConvexError(
-        "Indefinite shares are only available on Pro plans. Project owner needs to upgrade."
+      throwError(
+        "Indefinite shares are only available on Pro plans. Project owner needs to upgrade.",
+        "LIMIT_REACHED",
+        403,
+        { user_id: user._id, project_id: args.projectId }
       );
     }
 
@@ -190,7 +200,7 @@ export const recordView = mutation({
     const sharedSecret = await ctx.db.get(args.id);
 
     if (!sharedSecret) {
-      throw new ConvexError("Shared secret not found");
+      throwError("Shared secret not found", "NOT_FOUND", 404);
     }
 
     await ctx.db.patch(args.id, {
@@ -222,7 +232,7 @@ export const listByUser = query({
     }
 
     if (user.isDeactivated) {
-      throw new ConvexError("User account is deactivated");
+      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
     // Get ALL memberships for the user (to check roles)
@@ -336,7 +346,7 @@ export const listByProject = query({
     }
 
     if (user.isDeactivated) {
-      throw new ConvexError("User account is deactivated");
+      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
     const membership = await ctx.db
@@ -391,7 +401,7 @@ export const toggleDisabled = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError("Not authenticated");
+      throwError("Not authenticated", "UNAUTHENTICATED", 401);
     }
 
     const user = await ctx.db
@@ -400,16 +410,16 @@ export const toggleDisabled = mutation({
       .unique();
 
     if (!user) {
-      throw new ConvexError("User not found");
+      throwError("User not found", "NOT_FOUND", 404);
     }
 
     if (user.isDeactivated) {
-      throw new ConvexError("User account is deactivated");
+      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
     const sharedSecret = await ctx.db.get(args.id);
     if (!sharedSecret) {
-      throw new ConvexError("Shared secret not found");
+      throwError("Shared secret not found", "NOT_FOUND", 404);
     }
 
     // Check user's current role in the project
@@ -421,7 +431,7 @@ export const toggleDisabled = mutation({
       .unique();
 
     if (!membership) {
-      throw new ConvexError("Access denied - not a project member");
+      throwError("Access denied - not a project member", "FORBIDDEN", 403, { user_id: user._id, project_id: sharedSecret.projectId });
     }
 
     // Allow if: owner of project, OR creator who is still admin/owner
@@ -431,8 +441,11 @@ export const toggleDisabled = mutation({
       (membership.role === "owner" || membership.role === "admin");
 
     if (!isOwner && !isCreatorWithAdminAccess) {
-      throw new ConvexError(
-        "Access denied - only project owner or the creator (with admin rights) can modify"
+      throwError(
+        "Access denied - only project owner or the creator (with admin rights) can modify",
+        "FORBIDDEN",
+        403,
+        { user_id: user._id, project_id: sharedSecret.projectId }
       );
     }
 
@@ -454,13 +467,13 @@ export const updateExpiry = mutation({
   },
   handler: async (ctx, args) => {
     if (!args.isIndefinite && !args.expiresAt) {
-      throw new ConvexError("expiresAt is required for non-indefinite shares");
+      throwError("expiresAt is required for non-indefinite shares", "BAD_REQUEST", 400);
     }
     const normalizedExpiresAt = args.isIndefinite ? undefined : args.expiresAt;
 
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError("Not authenticated");
+      throwError("Not authenticated", "UNAUTHENTICATED", 401);
     }
 
     const user = await ctx.db
@@ -469,16 +482,16 @@ export const updateExpiry = mutation({
       .unique();
 
     if (!user) {
-      throw new ConvexError("User not found");
+      throwError("User not found", "NOT_FOUND", 404);
     }
 
     if (user.isDeactivated) {
-      throw new ConvexError("User account is deactivated");
+      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
     const sharedSecret = await ctx.db.get(args.id);
     if (!sharedSecret) {
-      throw new ConvexError("Shared secret not found");
+      throwError("Shared secret not found", "NOT_FOUND", 404);
     }
 
     // Check user's current role in the project
@@ -490,7 +503,7 @@ export const updateExpiry = mutation({
       .unique();
 
     if (!membership) {
-      throw new ConvexError("Access denied - not a project member");
+      throwError("Access denied - not a project member", "FORBIDDEN", 403, { user_id: user._id, project_id: sharedSecret.projectId });
     }
 
     // Allow if: owner of project, OR creator who is still admin/owner
@@ -500,16 +513,22 @@ export const updateExpiry = mutation({
       (membership.role === "owner" || membership.role === "admin");
 
     if (!isOwner && !isCreatorWithAdminAccess) {
-      throw new ConvexError(
-        "Access denied - only project owner or the creator (with admin rights) can modify"
+      throwError(
+        "Access denied - only project owner or the creator (with admin rights) can modify",
+        "FORBIDDEN",
+        403,
+        { user_id: user._id, project_id: sharedSecret.projectId }
       );
     }
 
     // Check shared secrets limit based on PROJECT OWNER's role
     const limits = await getProjectOwnerLimits(ctx, sharedSecret.projectId);
     if (args.isIndefinite && !limits.canCreateIndefiniteShares) {
-      throw new ConvexError(
-        "Indefinite shares are only available on Pro plans. Project owner needs to upgrade."
+      throwError(
+        "Indefinite shares are only available on Pro plans. Project owner needs to upgrade.",
+        "LIMIT_REACHED",
+        403,
+        { user_id: user._id, project_id: sharedSecret.projectId }
       );
     }
 
@@ -531,7 +550,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError("Not authenticated");
+      throwError("Not authenticated", "UNAUTHENTICATED", 401);
     }
 
     const user = await ctx.db
@@ -540,16 +559,16 @@ export const remove = mutation({
       .unique();
 
     if (!user) {
-      throw new ConvexError("User not found");
+      throwError("User not found", "NOT_FOUND", 404);
     }
 
     if (user.isDeactivated) {
-      throw new ConvexError("User account is deactivated");
+      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
     const sharedSecret = await ctx.db.get(args.id);
     if (!sharedSecret) {
-      throw new ConvexError("Shared secret not found");
+      throwError("Shared secret not found", "NOT_FOUND", 404);
     }
 
     // Check user's current role in the project
@@ -561,7 +580,7 @@ export const remove = mutation({
       .unique();
 
     if (!membership) {
-      throw new ConvexError("Access denied - not a project member");
+      throwError("Access denied - not a project member", "FORBIDDEN", 403, { user_id: user._id, project_id: sharedSecret.projectId });
     }
 
     // Allow if: owner of project, OR creator who is still admin/owner
@@ -571,8 +590,11 @@ export const remove = mutation({
       (membership.role === "owner" || membership.role === "admin");
 
     if (!isOwner && !isCreatorWithAdminAccess) {
-      throw new ConvexError(
-        "Access denied - only project owner or the creator (with admin rights) can delete"
+      throwError(
+        "Access denied - only project owner or the creator (with admin rights) can delete",
+        "FORBIDDEN",
+        403,
+        { user_id: user._id, project_id: sharedSecret.projectId }
       );
     }
 

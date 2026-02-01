@@ -52,6 +52,7 @@ import { SHARE_EXPIRY_OPTIONS } from "@/lib/constants";
 import { keyStore } from "@/lib/key-store";
 import { decrypt } from "@/lib/crypto";
 import { UserAvatar } from "@/components/user-avatar";
+import { getErrorMessage } from "@/lib/errors";
 
 type SharedSearchParams = {
   p?: string;
@@ -159,7 +160,7 @@ function SharedDashboard() {
         setRevealedPasscodes((prev) => new Set(prev).add(id));
       } catch (err) {
         console.error("Failed to decrypt passcode:", err);
-        alert("Failed to decrypt passcode. Is the project key correct?");
+        alert(getErrorMessage(err, "Failed to decrypt passcode. Is the project key correct?"));
       }
     }
   }

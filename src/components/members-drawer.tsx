@@ -88,7 +88,7 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
     try {
       await removeMember({ projectId, memberId });
     } catch (err: any) {
-      const message = err?.data || "Failed to remove member";
+      const message = getErrorMessage(err, "Failed to remove member");
       alert(message);
       console.error("Failed to remove member:", err);
     }
@@ -98,7 +98,7 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
     try {
       await updateMemberRole({ projectId, memberId, role: newRole });
     } catch (err: any) {
-      const message = err?.data || "Failed to update role";
+      const message = getErrorMessage(err, "Failed to update role");
       alert(message);
       console.error("Failed to update role:", err);
     }

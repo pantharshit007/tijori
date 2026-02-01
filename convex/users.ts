@@ -1,7 +1,8 @@
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import {  ROLE_LIMITS } from "./lib/roleLimits";
-import type {PlatformRole} from "./lib/roleLimits";
+import { ROLE_LIMITS } from "./lib/roleLimits";
+import type { PlatformRole } from "./lib/roleLimits";
+import { throwError } from "./lib/errors";
 
 /**
  * Sync or create a user profile from Clerk.
@@ -16,7 +17,7 @@ export const store = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError("Called storeUser without authentication identity");
+      throwError("Called storeUser without authentication identity", "UNAUTHENTICATED", 401);
     }
 
     // Check if the user already exists
@@ -41,7 +42,7 @@ export const store = mutation({
         });
       }
       if (user.isDeactivated) {
-        throw new ConvexError("User account is deactivated");
+        throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
       }
       return user._id;
     }
@@ -87,7 +88,7 @@ export const setMasterKey = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError("Unauthenticated");
+      throwError("Unauthenticated", "UNAUTHENTICATED", 401);
     }
 
     const user = await ctx.db
@@ -96,11 +97,11 @@ export const setMasterKey = mutation({
       .unique();
 
     if (!user) {
-      throw new ConvexError("User not found");
+      throwError("User not found", "NOT_FOUND", 404);
     }
 
     if (user.isDeactivated) {
-      throw new ConvexError("User account is deactivated");
+      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
     await ctx.db.patch(user._id, {
@@ -129,7 +130,7 @@ export const getUsageStats = query({
     if (!user) return null;
 
     if (user.isDeactivated) {
-      throw new ConvexError("User account is deactivated");
+      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
     // Count owned projects
@@ -248,18 +249,18 @@ export const checkAndClearExceedsPlanLimits = mutation({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError("Unauthenticated");
+    if (!identity) throwError("Unauthenticated", "UNAUTHENTICATED", 401);
 
     const user = await ctx.db
       .query("users")
       .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
 
-    if (!user) throw new ConvexError("User not found");
+    if (!user) throwError("User not found", "NOT_FOUND", 404);
 
     // Deactivated users cannot perform this action
     if (user.isDeactivated) {
-      throw new ConvexError("Account is deactivated");
+      throwError("Account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
     // If not exceeding limits, nothing to do

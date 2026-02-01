@@ -22,6 +22,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 
 import { decrypt, deriveKey, encrypt, generateSalt, hash } from "@/lib/crypto";
+import { getErrorMessage } from "@/lib/errors";
 
 /**
  * Master Key Rotation Steps:
@@ -104,7 +105,7 @@ function Settings() {
       setMasterKeyInput("");
       setConfirmMasterKey("");
     } catch (err: any) {
-      setError(err.data || "Failed to set master key");
+      setError(getErrorMessage(err, "Failed to set master key"));
     } finally {
       setIsLoading(false);
     }
@@ -139,7 +140,7 @@ function Settings() {
       // Verification passed - proceed to update step
       setRotationStep("update");
     } catch (err: any) {
-      setRotationError(err.data || "Verification failed");
+      setRotationError(getErrorMessage(err, "Verification failed"));
     } finally {
       setRotationLoading(false);
     }
@@ -263,7 +264,7 @@ function Settings() {
       }, 1500);
     } catch (err: any) {
       setRotationStep("update"); // Go back to update step on error
-      setRotationError(err.data || "Failed to rotate master key");
+      setRotationError(getErrorMessage(err, "Failed to rotate master key"));
     }
   }
 

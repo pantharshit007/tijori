@@ -29,6 +29,7 @@ import type { EnvironmentVariablesProps, ParsedVariable } from "@/lib/types";
 import { variablesToExport } from "@/lib/utils";
 import { decrypt, encrypt } from "@/lib/crypto";
 import { formatRelativeTime } from "@/lib/time";
+import { getErrorMessage } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -168,7 +169,7 @@ export function EnvironmentVariables({
       toast.success("Variable saved successfully");
     } catch (err: any) {
       console.error("Failed to save:", err);
-      toast.error(err.data || "Failed to save variable");
+      toast.error(getErrorMessage(err, "Failed to save variable"));
     } finally {
       setIsSaving(false);
     }
@@ -220,7 +221,7 @@ export function EnvironmentVariables({
       toast.success("Variable updated successfully");
     } catch (err: any) {
       console.error("Failed to update:", err);
-      toast.error(err.data || "Failed to update variable");
+      toast.error(getErrorMessage(err, "Failed to update variable"));
     } finally {
       setIsEditSaving(false);
     }
@@ -239,7 +240,7 @@ export function EnvironmentVariables({
       toast.success("Variable deleted");
     } catch (err: any) {
       console.error("Failed to delete variable:", err?.data);
-      toast.error("Failed to delete variable");
+      toast.error(getErrorMessage(err, "Failed to delete variable"));
     }
   }
 
@@ -298,7 +299,7 @@ export function EnvironmentVariables({
       }
     } catch (err) {
       console.error("Failed to bulk edit:", err);
-      toast.error("Failed to save changes. Some variables may not have been updated.");
+      toast.error(getErrorMessage(err, "Failed to save changes. Some variables may not have been updated."));
     } finally {
       setIsBulkEditSaving(false);
     }

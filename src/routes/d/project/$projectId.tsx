@@ -48,6 +48,7 @@ import { ProjectSettings } from "@/components/project-settings";
 import { UserAvatar } from "@/components/user-avatar";
 import { hash as cryptoHash, deriveKey } from "@/lib/crypto";
 import { keyStore } from "@/lib/key-store";
+import { getErrorMessage } from "@/lib/errors";
 
 function ProjectView() {
   const { projectId } = useParams({ from: "/d/project/$projectId" });
@@ -149,7 +150,7 @@ function ProjectView() {
       toast.success("Environment created successfully");
     } catch (err: any) {
       console.error("Failed to create environment:", { err });
-      toast.error(err.data || "Failed to create environment");
+      toast.error(getErrorMessage(err, "Failed to create environment"));
     } finally {
       setIsCreatingEnv(false);
     }
@@ -509,7 +510,7 @@ function PasscodeUnlock({
     } catch (err: any) {
       console.error("Unlock failed:", err);
       setUnlockError("Failed to unlock. Please check your passcode.");
-      toast.error(err.data || "Failed to unlock");
+      toast.error(getErrorMessage(err, "Failed to unlock"));
     } finally {
       setIsUnlocking(false);
     }

@@ -1,24 +1,25 @@
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { checkAndClearPlanEnforcementFlag, getProjectOwnerLimits } from "./lib/roleLimits";
 import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { throwError } from "./lib/errors";
 
 /**
  * Access check helper - returns user id and role.
  */
 async function checkProjectAccess(ctx: QueryCtx, projectId: Id<"projects">) {
   const identity = await ctx.auth.getUserIdentity();
-  if (!identity) throw new ConvexError("Unauthenticated");
+  if (!identity) throwError("Unauthenticated", "UNAUTHENTICATED", 401);
 
   const user = await ctx.db
     .query("users")
     .withIndex("by_tokenIdentifier", (q: any) => q.eq("tokenIdentifier", identity.tokenIdentifier))
     .unique();
 
-  if (!user) throw new ConvexError("User not found");
+  if (!user) throwError("User not found", "NOT_FOUND", 404);
   if (user.isDeactivated) {
-    throw new ConvexError("User account is deactivated");
+    throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
   }
 
   const membership = await ctx.db
@@ -26,7 +27,7 @@ async function checkProjectAccess(ctx: QueryCtx, projectId: Id<"projects">) {
     .withIndex("by_project_user", (q: any) => q.eq("projectId", projectId).eq("userId", user._id))
     .unique();
 
-  if (!membership) throw new ConvexError("Access denied");
+  if (!membership) throwError("Access denied", "FORBIDDEN", 403, { user_id: user._id, project_id: projectId });
 
   return { userId: user._id, role: membership.role, user };
 }
@@ -58,10 +59,10 @@ export const create = mutation({
     description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { role } = await checkProjectAccess(ctx, args.projectId);
+    const { userId, role } = await checkProjectAccess(ctx, args.projectId);
 
     if (role !== "owner" && role !== "admin") {
-      throw new ConvexError("Access denied: Only owners and admins can create environments");
+      throwError("Access denied: Only owners and admins can create environments", "FORBIDDEN", 403, { user_id: userId, project_id: args.projectId });
     }
 
     // Fetch quota document for environments
@@ -75,8 +76,11 @@ export const create = mutation({
     if (quota) {
       // Use atomic quota pattern
       if (quota.used >= quota.limit) {
-        throw new ConvexError(
-          `Environment limit reached (${quota.limit}). Project owner needs to upgrade for more.`
+        throwError(
+          `Environment limit reached (${quota.limit}). Project owner needs to upgrade for more.`,
+          "LIMIT_REACHED",
+          403,
+          { user_id: userId, project_id: args.projectId }
         );
       }
 
@@ -101,8 +105,11 @@ export const create = mutation({
         .collect();
 
       if (existingEnvs.length >= limits.maxEnvironmentsPerProject) {
-        throw new ConvexError(
-          `Environment limit reached (${limits.maxEnvironmentsPerProject}). Project owner needs to upgrade for more.`
+        throwError(
+          `Environment limit reached (${limits.maxEnvironmentsPerProject}). Project owner needs to upgrade for more.`,
+          "LIMIT_REACHED",
+          403,
+          { user_id: userId, project_id: args.projectId }
         );
       }
 
@@ -128,12 +135,12 @@ export const updateEnvironment = mutation({
   },
   handler: async (ctx, args) => {
     const environment = await ctx.db.get(args.environmentId);
-    if (!environment) throw new ConvexError("Environment not found");
+    if (!environment) throwError("Environment not found", "NOT_FOUND", 404, { environment_id: args.environmentId });
 
-    const { role } = await checkProjectAccess(ctx, environment.projectId);
+    const { userId, role } = await checkProjectAccess(ctx, environment.projectId);
 
     if (role !== "owner" && role !== "admin") {
-      throw new ConvexError("Access denied: Only owners and admins can update environments");
+      throwError("Access denied: Only owners and admins can update environments", "FORBIDDEN", 403, { user_id: userId, project_id: environment.projectId, environment_id: args.environmentId });
     }
 
     // Build update object
@@ -158,12 +165,12 @@ export const deleteEnvironment = mutation({
   },
   handler: async (ctx, args) => {
     const environment = await ctx.db.get(args.environmentId);
-    if (!environment) throw new ConvexError("Environment not found");
+    if (!environment) throwError("Environment not found", "NOT_FOUND", 404, { environment_id: args.environmentId });
 
-    const { role } = await checkProjectAccess(ctx, environment.projectId);
+    const { userId, role } = await checkProjectAccess(ctx, environment.projectId);
 
     if (role !== "owner" && role !== "admin") {
-      throw new ConvexError("Access denied: Only owners and admins can delete environments");
+      throwError("Access denied: Only owners and admins can delete environments", "FORBIDDEN", 403, { user_id: userId, project_id: environment.projectId, environment_id: args.environmentId });
     }
 
     // Delete all variables in this environment

@@ -24,6 +24,7 @@
     - Days remaining before enforcement (countdown from `planEnforcementDeadline`)
     - Action required: "Please delete excess projects/secrets to stay within your plan limits"
   - [ ] **After 7-day grace period**: Cron job runs and deletes excess projects based on criteria:
+    - we can create a table, which will store all the exceedsPlanLimits projects + userId + timestamp, and we can process them directly from this table in a cron job
     - Least recently used (by `updatedAt` timestamp)
     - OR oldest created (`createdAt`)
     - Emit `AuditLog` entries for each deleted project

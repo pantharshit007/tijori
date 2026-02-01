@@ -1,15 +1,16 @@
 import { paginationOptsValidator } from "convex/server";
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { ROLE_LIMITS } from "./lib/roleLimits";
 import type { QueryCtx } from "./_generated/server";
+import { throwError } from "./lib/errors";
 
 /**
  * Helper to verify that the current user is a super_admin.
  */
 async function checkSuperAdmin(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity();
-  if (!identity) throw new ConvexError("Unauthenticated");
+  if (!identity) throwError("Unauthenticated", "UNAUTHENTICATED", 401);
 
   const user = await ctx.db
     .query("users")
@@ -17,11 +18,11 @@ async function checkSuperAdmin(ctx: QueryCtx) {
     .unique();
 
   if (!user || user.platformRole !== "super_admin") {
-    throw new ConvexError("Access denied: Admin privileges required");
+    throwError("Access denied: Admin privileges required", "FORBIDDEN", 403, { user_id: user?._id });
   }
 
   if (user.isDeactivated) {
-    throw new ConvexError("User account is deactivated");
+    throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
   }
 
   return user;
@@ -106,12 +107,12 @@ export const updateUserRole = mutation({
     // Check if target user is a super_admin
     const targetUser = await ctx.db.get(args.userId);
     if (!targetUser) {
-      throw new ConvexError("User not found");
+      throwError("User not found", "NOT_FOUND", 404);
     }
 
     // Prevent demotion of any super_admin
     if (targetUser.platformRole === "super_admin" && args.role !== "super_admin") {
-      throw new ConvexError("Super-admins cannot be demoted. This is a protected role.");
+      throwError("Super-admins cannot be demoted. This is a protected role.", "FORBIDDEN", 403, { user_id: targetUser._id });
     }
 
     const currentRole = targetUser.platformRole;
@@ -237,12 +238,12 @@ export const toggleUserStatus = mutation({
     // Check if target user is a super_admin
     const targetUser = await ctx.db.get(args.userId);
     if (!targetUser) {
-      throw new ConvexError("User not found");
+      throwError("User not found", "NOT_FOUND", 404);
     }
 
     // Prevent deactivation of any super_admin
     if (targetUser.platformRole === "super_admin" && args.isDeactivated) {
-      throw new ConvexError("Super-admins cannot be deactivated. This is a protected role.");
+      throwError("Super-admins cannot be deactivated. This is a protected role.", "FORBIDDEN", 403, { user_id: targetUser._id });
     }
 
     await ctx.db.patch(args.userId, { isDeactivated: args.isDeactivated });

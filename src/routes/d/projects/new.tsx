@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 
 import { hash as cryptoHash, deriveKey, encrypt, generateSalt } from "@/lib/crypto";
+import { getErrorMessage } from "@/lib/errors";
 
 function NewProject() {
   const navigate = useNavigate();
@@ -92,7 +93,7 @@ function NewProject() {
       // Navigate to the new project
       navigate({ to: "/d/project/$projectId", params: { projectId } });
     } catch (err: any) {
-      setError(err.data || "Failed to create project");
+      setError(getErrorMessage(err, "Failed to create project"));
       setIsLoading(false);
     }
   }
