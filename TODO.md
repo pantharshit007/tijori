@@ -11,6 +11,7 @@
 - [ ] more options like select all, select none, and select few in shared section in dashboard to perform bulk actions, disable, expire, delete.
 - [ ] add toast notifications for successful actions, ex: copy, delete, etc.
 - [ ] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
+- [x] Standardized error handling using `throwError` utility with numeric status codes and contextual server-side logging. (Implemented via `ConvexError` for frontend compatibility).
 - [ ] when the / loads, initially there is no sign in , get started and get started free button, they appear after a delay most probably network call to the clerk server, instead of waiting for the response and showing nothing add a suspense component to show get started, sign in until we get the response if we get user is logged in, we will just update the component in place else it will stay the same, just not via the suspense component.
 - [ ] there is a bug in variable naming in the dashboard, it always show the name of the var in CAPITAL, whether the actual name is small or capital.
 - [ ] update the toast ui.
@@ -31,10 +32,9 @@
     - Send email notification to user about enforcement action
   - **TODO (Future)**: Implement cron job `enforcePlanLimits` to run daily and reconcile excess after deadline passes
 - [ ] re-check save mutation thoroughly in @convex/variable.ts, seems something is wrong there.
-- [ ] update `platformRole` to `tier` in the user table, and update the UI accordingly.
 - [ ] update the field in per environment so that it shows in UI the last updated by User (who updated the env vars last)
 - [ ] check if Bulk add dialog and Bulk edit dialog can use a common logic instead of duplicating the code.
-- [ ] instead of throwing convex error, return a custom error object with a message and a code, and use it in the UI, this will make error logs more readable, use `@/lib/errors.ts` to extract the error message from the error object and use it in the UI, everywhere.
+- [ ] update `platformRole` to `tier` in the user table, and update the UI and everyother place that uses it accordingly, do proper migration and cross-check, no issue regarding existing user since this is not on prod yet (dev only). [here user role -> free tier]
 
 ---
 
