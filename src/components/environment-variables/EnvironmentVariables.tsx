@@ -299,7 +299,9 @@ export function EnvironmentVariables({
       }
     } catch (err) {
       console.error("Failed to bulk edit:", err);
-      toast.error(getErrorMessage(err, "Failed to save changes. Some variables may not have been updated."));
+      toast.error(
+        getErrorMessage(err, "Failed to save changes. Some variables may not have been updated.")
+      );
     } finally {
       setIsBulkEditSaving(false);
     }
@@ -349,12 +351,23 @@ export function EnvironmentVariables({
         <div className="flex items-center gap-4">
           <p className="text-sm text-muted-foreground">
             {filteredVariables?.length ?? 0} /{" "}
-            {TIER_LIMITS[(ownerTier as Tier) || "free"]?.maxVariablesPerEnvironment ||
-              "∞"}{" "}
+            {TIER_LIMITS[(ownerTier as Tier) || "free"]?.maxVariablesPerEnvironment || "∞"}{" "}
             variables
             {searchQuery && ` (filtered from ${variables.length})`}
           </p>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="relative group">
+              <img
+                src={environment.updaterImage}
+                alt={environment.updaterName}
+                className="h-5 w-5 rounded-full border border-muted"
+              />
+
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                {environment.updaterName}
+              </div>
+            </div>
+
             <Clock className="h-3 w-3" />
             <span>
               {environment.updatedAt === environment._creationTime

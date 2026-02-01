@@ -34,16 +34,37 @@ async function checkProjectAccess(ctx: QueryCtx, projectId: Id<"projects">) {
 
 /**
  * List all environments for a specific project.
+ * Includes updatedBy user info for avatar display.
  */
 export const list = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
     await checkProjectAccess(ctx, args.projectId);
 
-    return await ctx.db
+    const environments = await ctx.db
       .query("environments")
       .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
       .collect();
+
+    // Join user data for updatedBy
+    const environmentsWithUpdater = await Promise.all(
+      environments.map(async (env) => {
+        let updaterName: string | undefined;
+        let updaterImage: string | undefined;
+        if (env.updatedBy) {
+          const updater = await ctx.db.get(env.updatedBy);
+          updaterName = updater?.name;
+          updaterImage = updater?.image;
+        }
+        return {
+          ...env,
+          updaterName,
+          updaterImage,
+        };
+      })
+    );
+
+    return environmentsWithUpdater;
   },
 });
 
@@ -90,6 +111,7 @@ export const create = mutation({
         name: args.name,
         description: args.description,
         updatedAt: Date.now(),
+        updatedBy: userId,
       });
 
       // Atomically increment used count (concurrent inserts will conflict and serialize)
@@ -118,6 +140,7 @@ export const create = mutation({
         name: args.name,
         description: args.description,
         updatedAt: Date.now(),
+        updatedBy: userId,
       });
     }
   },
@@ -144,7 +167,7 @@ export const updateEnvironment = mutation({
     }
 
     // Build update object
-    const updates: Record<string, any> = { updatedAt: Date.now() };
+    const updates: Record<string, any> = { updatedAt: Date.now(), updatedBy: userId };
     if (args.name !== undefined) updates.name = args.name;
     if (args.description !== undefined) updates.description = args.description;
 
@@ -156,7 +179,7 @@ export const updateEnvironment = mutation({
 
 /**
  * Delete an environment and all its variables.
- * Only owners and admins can delete environments.
+ * Only OWNERS can delete environments (admins can create but not delete).
  * Decrements the quota if using atomic quota pattern.
  */
 export const deleteEnvironment = mutation({
@@ -169,8 +192,9 @@ export const deleteEnvironment = mutation({
 
     const { userId, role } = await checkProjectAccess(ctx, environment.projectId);
 
-    if (role !== "owner" && role !== "admin") {
-      throwError("Access denied: Only owners and admins can delete environments", "FORBIDDEN", 403, { user_id: userId, project_id: environment.projectId, environment_id: args.environmentId });
+    // Only owners can delete environments
+    if (role !== "owner") {
+      throwError("Access denied: Only project owners can delete environments", "FORBIDDEN", 403, { user_id: userId, project_id: environment.projectId, environment_id: args.environmentId });
     }
 
     // Delete all variables in this environment

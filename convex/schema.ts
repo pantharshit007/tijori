@@ -49,6 +49,7 @@ export default defineSchema({
     name: v.string(),
     description: v.optional(v.string()),
     updatedAt: v.number(),
+    updatedBy: v.id("users"),
   }).index("by_projectId", ["projectId"]),
 
   variables: defineTable({

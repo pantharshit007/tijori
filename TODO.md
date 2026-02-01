@@ -2,7 +2,6 @@
 - [ ] **Project Passcode Rotation**: Currently, changing a project's 6-digit passcode is not allowed.
   - **Reasoning**: It is a high-cost operation. Changing the passcode changes the PBKDF2 derived key, which would require re-encrypting EVERY variable in EVERY environment for that project, as well as re-encrypting all shared passcodes in the `sharedSecrets` table.
   - **Implementation Note**: If implemented, it must be performed as a client-side batch job (decrypt with old key, re-encrypt with new key) with a progress indicator and warning to the user.
-- [ ] option to remove environments, only allowed to Owners, but Admin can create new Environment, but can't delete them. (also need to check if those vars are shared or not)
 - [ ] add length limit to description field and other such fields in schema.
 - [ ] update the enums such as "admin" and "member" to be "owner" and "member" in react files to types directly from convex.
 - [ ] when removing a env key, instead of the alert we should get a dialog telling us the name and the environment where the key is used, which will get deleted.
@@ -13,7 +12,6 @@
 - [ ] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
 - [x] Standardized error handling using `throwError` utility with numeric status codes and contextual server-side logging. (Implemented via `ConvexError` for frontend compatibility).
 - [ ] when the / loads, initially there is no sign in , get started and get started free button, they appear after a delay most probably network call to the clerk server, instead of waiting for the response and showing nothing add a suspense component to show get started, sign in until we get the response if we get user is logged in, we will just update the component in place else it will stay the same, just not via the suspense component.
-- [ ] there is a bug in variable naming in the dashboard, it always show the name of the var in CAPITAL, whether the actual name is small or capital.
 - [ ] update the toast ui.
 - [x] **Plan Downgrade Enforcement**: Users who downgrade keep paid privileges — need to implement enforcement:
   - [x] **On downgrade**: Check if user's current usage exceeds the new tier's limits:
@@ -32,9 +30,9 @@
     - Send email notification to user about enforcement action
   - **TODO (Future)**: Implement cron job `enforcePlanLimits` to run daily and reconcile excess after deadline passes
 - [ ] re-check save mutation thoroughly in @convex/variable.ts, seems something is wrong there.
-- [ ] update the field in per environment so that it shows in UI the last updated by User (who updated the env vars last)
 - [ ] check if Bulk add dialog and Bulk edit dialog can use a common logic instead of duplicating the code.
-- [x] update `platformRole` to `tier` in the user table, and update the UI and everyother place that uses it accordingly, do proper migration and cross-check, no issue regarding existing user since this is not on prod yet (dev only). [here user role -> free tier]
+- [x] update the field in per environment so that it shows in UI the last updated by User (who updated the env vars last), an logo + timestamp is good, the avatar on hover shows full name and make sure when a new var is added, updated, or deleted, the timestamp is updated in environment table for that env.
+- [x] option to remove environments, only allowed to Owners, but Admin can create new Environment, but can't delete them. (also need to check if those vars are shared or not)
 
 ---
 

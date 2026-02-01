@@ -141,7 +141,7 @@ export function VariableEditRow({
             onChange={(e) => onNameChange(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handleNamePaste}
-            className="font-mono text-[13px] h-9 bg-background uppercase"
+            className="font-mono text-[13px] h-9 bg-background"
             placeholder="VARIABLE_NAME"
             autoFocus={isNew}
           />

@@ -5,18 +5,14 @@ import type { Variable } from "@/lib/types";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/user-avatar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { formatDate } from "@/lib/time";
 
 export interface VariableRowProps {
   variable: Variable;
@@ -56,15 +52,18 @@ export const VariableRow = memo(function VariableRow({
   const isCopied = copied === variable._id;
 
   // Format revealed value: show first 10 chars + ellipsis
-  const displayValue = isRevealed && decryptedValue !== undefined
-    ? decryptedValue.length > 10 ? `${decryptedValue.slice(0, 10)}…` : decryptedValue
-    : null;
+  const displayValue =
+    isRevealed && decryptedValue !== undefined
+      ? decryptedValue.length > 10
+        ? `${decryptedValue.slice(0, 10)}…`
+        : decryptedValue
+      : null;
 
   // Determine if added or updated (threshold of 5 seconds)
-  const isUpdated = variable.updatedAt && variable._creationTime 
-    ? (variable.updatedAt - variable._creationTime) > 5000 
-    : false;
-
+  const isUpdated =
+    variable.updatedAt && variable._creationTime
+      ? variable.updatedAt - variable._creationTime > 5000
+      : false;
 
   return (
     <div className="grid grid-cols-12 items-center gap-4 py-4 px-4 hover:bg-accent/10 transition-colors group">
@@ -94,14 +93,14 @@ export const VariableRow = memo(function VariableRow({
                   size="icon"
                   className="h-8 w-8 hover:bg-accent shrink-0"
                   disabled={!derivedKey}
-                  onClick={() => onReveal(variable._id, variable.encryptedValue, variable.iv, variable.authTag)}
+                  onClick={() =>
+                    onReveal(variable._id, variable.encryptedValue, variable.iv, variable.authTag)
+                  }
                 >
                   {isRevealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                {isRevealed ? "Hide value" : "Click to reveal"}
-              </TooltipContent>
+              <TooltipContent>{isRevealed ? "Hide value" : "Click to reveal"}</TooltipContent>
             </Tooltip>
 
             <div className="flex-1 overflow-hidden">
@@ -109,15 +108,15 @@ export const VariableRow = memo(function VariableRow({
                 <Tooltip key={isCopied ? "copied" : "reveal"}>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={() => onCopy(variable._id, variable.encryptedValue, variable.iv, variable.authTag)}
+                      onClick={() =>
+                        onCopy(variable._id, variable.encryptedValue, variable.iv, variable.authTag)
+                      }
                       className="font-mono text-[13px] text-foreground tracking-widest cursor-pointer hover:bg-accent/50 px-2 py-0.5 rounded transition-colors"
                     >
                       {displayValue}
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    {isCopied ? "Copied!" : "Click to copy"}
-                  </TooltipContent>
+                  <TooltipContent>{isCopied ? "Copied!" : "Click to copy"}</TooltipContent>
                 </Tooltip>
               ) : hasError ? (
                 <span className="text-destructive text-xs font-medium">{hasError}</span>
@@ -134,12 +133,12 @@ export const VariableRow = memo(function VariableRow({
       {/* 3. Meta Data + Actions (Col 10-12) */}
       <div className="col-span-3 flex items-center justify-end gap-4 text-[13px] text-muted-foreground">
         <div className="flex items-center gap-3 shrink-0">
-          <span className="font-medium whitespace-nowrap">
-            {isUpdated 
-              ? `Updated ${new Date(variable.updatedAt).toLocaleDateString()}` 
-              : `Added ${new Date(variable._creationTime).toLocaleDateString()}`}
+          <span className="font-medium whitespace-nowrap max-sm:hidden">
+            {isUpdated
+              ? `Updated ${formatDate(variable.updatedAt)}`
+              : `Added ${formatDate(variable._creationTime)}`}
           </span>
-          
+
           <UserAvatar
             src={variable.creatorImage}
             name={variable.creatorName}
@@ -149,14 +148,20 @@ export const VariableRow = memo(function VariableRow({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent transition-opacity">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hover:bg-accent transition-opacity"
+              >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               {canEdit && (
                 <DropdownMenuItem
-                  onClick={() => onEdit(variable._id, variable.encryptedValue, variable.iv, variable.authTag)}
+                  onClick={() =>
+                    onEdit(variable._id, variable.encryptedValue, variable.iv, variable.authTag)
+                  }
                   disabled={!derivedKey}
                 >
                   <Pencil className="h-4 w-4 mr-2" />
@@ -164,10 +169,16 @@ export const VariableRow = memo(function VariableRow({
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem
-                onClick={() => onCopy(variable._id, variable.encryptedValue, variable.iv, variable.authTag)}
+                onClick={() =>
+                  onCopy(variable._id, variable.encryptedValue, variable.iv, variable.authTag)
+                }
                 disabled={!derivedKey}
               >
-                {isCopied ? <Check className="h-4 w-4 mr-2 text-green-500" /> : <Copy className="h-4 w-4 mr-2" />}
+                {isCopied ? (
+                  <Check className="h-4 w-4 mr-2 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4 mr-2" />
+                )}
                 Copy Value
               </DropdownMenuItem>
               {canEdit && (

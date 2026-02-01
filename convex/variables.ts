@@ -150,6 +150,12 @@ export const save = mutation({
         authTag: args.authTag,
         updatedAt: now,
       });
+
+      await ctx.db.patch(args.environmentId, {
+        updatedAt: now,
+        updatedBy: userId,
+      });
+
       return args.variableId;
     }
 
@@ -192,7 +198,7 @@ export const save = mutation({
       );
     }
 
-    return await ctx.db.insert("variables", {
+    const newVarId = await ctx.db.insert("variables", {
       environmentId: args.environmentId,
       name: args.name,
       encryptedValue: args.encryptedValue,
@@ -201,6 +207,13 @@ export const save = mutation({
       createdBy: userId,
       updatedAt: now,
     });
+
+    await ctx.db.patch(args.environmentId, {
+      updatedAt: now,
+      updatedBy: userId,
+    });
+
+    return newVarId;
   },
 });
 
@@ -213,7 +226,7 @@ export const remove = mutation({
     const variable = await ctx.db.get(args.id);
     if (!variable) throwError("Variable not found", "NOT_FOUND", 404);
 
-    const { membership } = await checkEnvironmentAccess(ctx, variable.environmentId);
+    const { userId, membership } = await checkEnvironmentAccess(ctx, variable.environmentId);
 
     // Enforce role-based access: only owner and admin can delete variables
     if (membership.role !== "owner" && membership.role !== "admin") {
@@ -225,5 +238,11 @@ export const remove = mutation({
     }
 
     await ctx.db.delete(args.id);
+
+    const now = Date.now();
+    await ctx.db.patch(variable.environmentId, {
+      updatedAt: now,
+      updatedBy: userId,
+    });
   },
 });

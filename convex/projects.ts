@@ -65,7 +65,9 @@ export const create = mutation({
     }
 
     if (!user.masterKeyHash) {
-      throwError("Master key not configured. Please set it in Settings.", "BAD_REQUEST", 400, { user_id: user._id });
+      throwError("Master key not configured. Please set it in Settings.", "BAD_REQUEST", 400, {
+        user_id: user._id,
+      });
     }
 
     // Check tier-based project limit
@@ -111,6 +113,7 @@ export const create = mutation({
       name: "Development",
       description: "Default environment for development",
       updatedAt: now,
+      updatedBy: user._id,
     });
 
     // Create quota documents for atomic limit enforcement
@@ -184,12 +187,18 @@ export const get = query({
       .unique();
 
     if (!membership) {
-      throwError("Access denied: Not a member of this project", "FORBIDDEN", 403, { user_id: userId, project_id: args.projectId });
+      throwError("Access denied: Not a member of this project", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     const project = await ctx.db.get(args.projectId);
     if (!project) {
-      throwError("Project not found", "NOT_FOUND", 404, { user_id: userId, project_id: args.projectId });
+      throwError("Project not found", "NOT_FOUND", 404, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Fetch owner's tier for frontend limit display
@@ -284,7 +293,12 @@ export const batchUpdatePasscodes = mutation({
     for (const update of args.updates) {
       const project = await ctx.db.get(update.projectId);
       if (!project || project.ownerId !== user._id) {
-        throwError(`Access denied: Not the owner of project ${update.projectId}`, "FORBIDDEN", 403, { user_id: user._id, project_id: update.projectId });
+        throwError(
+          `Access denied: Not the owner of project ${update.projectId}`,
+          "FORBIDDEN",
+          403,
+          { user_id: user._id, project_id: update.projectId }
+        );
       }
     }
 
@@ -328,7 +342,10 @@ export const listMembers = query({
       .unique();
 
     if (!membership) {
-      throwError("Access denied: Not a member of this project", "FORBIDDEN", 403, { user_id: userId, project_id: args.projectId });
+      throwError("Access denied: Not a member of this project", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Get all members
@@ -385,7 +402,9 @@ export const addMember = mutation({
 
     if (!currentUser) throwError("User not found", "NOT_FOUND", 404);
     if (currentUser.isDeactivated) {
-      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: currentUser._id });
+      throwError("User account is deactivated", "USER_DEACTIVATED", 403, {
+        user_id: currentUser._id,
+      });
     }
 
     // Check if user has permission (owner or admin)
@@ -397,7 +416,10 @@ export const addMember = mutation({
       .unique();
 
     if (!membership || (membership.role !== "owner" && membership.role !== "admin")) {
-      throwError("Access denied: Only owners and admins can add members", "FORBIDDEN", 403, { user_id: currentUser._id, project_id: args.projectId });
+      throwError("Access denied: Only owners and admins can add members", "FORBIDDEN", 403, {
+        user_id: currentUser._id,
+        project_id: args.projectId,
+      });
     }
 
     // Check member limit using atomic quota pattern
@@ -442,7 +464,10 @@ export const addMember = mutation({
       .unique();
 
     if (!targetUser) {
-      throwError("User not found with that email address", "NOT_FOUND", 404, { user_id: currentUser._id, project_id: args.projectId });
+      throwError("User not found with that email address", "NOT_FOUND", 404, {
+        user_id: currentUser._id,
+        project_id: args.projectId,
+      });
     }
 
     // Check if user is already a member
@@ -454,7 +479,10 @@ export const addMember = mutation({
       .unique();
 
     if (existingMembership) {
-      throwError("User is already a member of this project", "CONFLICT", 409, { user_id: currentUser._id, project_id: args.projectId });
+      throwError("User is already a member of this project", "CONFLICT", 409, {
+        user_id: currentUser._id,
+        project_id: args.projectId,
+      });
     }
 
     // Add the member
@@ -493,24 +521,36 @@ export const removeMember = mutation({
       .unique();
 
     if (!myMembership || (myMembership.role !== "owner" && myMembership.role !== "admin")) {
-      throwError("Access denied: Only owners and admins can remove members", "FORBIDDEN", 403, { user_id: userId, project_id: args.projectId });
+      throwError("Access denied: Only owners and admins can remove members", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Get the target membership
     const targetMembership = await ctx.db.get(args.memberId);
 
     if (!targetMembership || targetMembership.projectId !== args.projectId) {
-      throwError("Membership not found", "NOT_FOUND", 404, { user_id: userId, project_id: args.projectId });
+      throwError("Membership not found", "NOT_FOUND", 404, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Cannot remove the owner
     if (targetMembership.role === "owner") {
-      throwError("Cannot remove the project owner", "FORBIDDEN", 403, { user_id: userId, project_id: args.projectId });
+      throwError("Cannot remove the project owner", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Admins can only remove members, not other admins
     if (myMembership.role === "admin" && targetMembership.role === "admin") {
-      throwError("Admins cannot remove other admins", "FORBIDDEN", 403, { user_id: userId, project_id: args.projectId });
+      throwError("Admins cannot remove other admins", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Remove the membership
@@ -558,19 +598,28 @@ export const updateMemberRole = mutation({
       .unique();
 
     if (!myMembership || myMembership.role !== "owner") {
-      throwError("Access denied: Only owners can update member roles", "FORBIDDEN", 403, { user_id: userId, project_id: args.projectId });
+      throwError("Access denied: Only owners can update member roles", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Get the target membership
     const targetMembership = await ctx.db.get(args.memberId);
 
     if (!targetMembership || targetMembership.projectId !== args.projectId) {
-      throwError("Membership not found", "NOT_FOUND", 404, { user_id: userId, project_id: args.projectId });
+      throwError("Membership not found", "NOT_FOUND", 404, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Cannot change owner's role
     if (targetMembership.role === "owner") {
-      throwError("Cannot change the owner's role", "FORBIDDEN", 403, { user_id: userId, project_id: args.projectId });
+      throwError("Cannot change the owner's role", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Update the role
@@ -598,7 +647,10 @@ export const leaveProject = mutation({
       .unique();
 
     if (!membership) {
-      throwError("You are not a member of this project", "FORBIDDEN", 403, { user_id: userId, project_id: args.projectId });
+      throwError("You are not a member of this project", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Owners cannot leave
@@ -657,7 +709,10 @@ export const updateProject = mutation({
       .unique();
 
     if (!membership || membership.role !== "owner") {
-      throwError("Access denied: Only owners can update project details", "FORBIDDEN", 403, { user_id: userId, project_id: args.projectId });
+      throwError("Access denied: Only owners can update project details", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Build update object
@@ -690,7 +745,10 @@ export const deleteProject = mutation({
       .unique();
 
     if (!membership || membership.role !== "owner") {
-      throwError("Access denied: Only owners can delete projects", "FORBIDDEN", 403, { user_id: userId, project_id: args.projectId });
+      throwError("Access denied: Only owners can delete projects", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Delete all shared secrets

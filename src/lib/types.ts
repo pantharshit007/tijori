@@ -7,6 +7,9 @@ export interface Environment {
   updatedAt: number;
   projectId: Id<"projects">;
   description?: string;
+  updatedBy: Id<"users">;
+  updaterName: string;
+  updaterImage: string;
 }
 
 export interface Variable {
