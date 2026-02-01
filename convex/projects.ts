@@ -1,6 +1,10 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { checkAndClearPlanEnforcementFlag, getProjectOwnerLimits, getRoleLimits } from "./lib/roleLimits";
+import {
+  checkAndClearPlanEnforcementFlag,
+  getProjectOwnerLimits,
+  getRoleLimits,
+} from "./lib/roleLimits";
 import type { QueryCtx } from "./_generated/server";
 import type { PlatformRole } from "./lib/roleLimits";
 
@@ -338,13 +342,16 @@ export const listMembers = query({
     const membersWithDetails = await Promise.all(
       members.map(async (member) => {
         const user = await ctx.db.get(member.userId);
+        if (!user) return null;
+
         return {
           _id: member._id,
           userId: member.userId,
           role: member.role,
-          name: user?.name || "Unknown",
-          email: user?.email || "",
-          image: user?.image,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          isDeactivated: user.isDeactivated,
         };
       })
     );

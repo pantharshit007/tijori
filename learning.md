@@ -666,3 +666,67 @@ The frontend must also display limits based on the project owner's role. This re
 ### Profile UI Refinement
 
 On a global profile page, per-project counts (like environments or members) can be misleading against per-project limits. It's better to show project-wide counts only for global limits (like `maxProjects`) and show only the allowed limits for per-project features.
+
+---
+
+## 2026-02-01 - Convex Query Invalidation & Plan Enforcement
+
+### Convex Query Reactivity Is Table-Based
+
+Convex automatically re-runs queries when their underlying data changes, but **invalidation is based on which tables the query reads from**, not which specific documents.
+
+**Scenario**: A query reads from `users`, `projects`, and `quotas` tables. When a mutation updates the `quotas` table, you'd expect the query to re-run—but it may not always trigger as expected.
+
+**Why**: Convex's caching is optimized and may not invalidate for every table change, especially in dev mode.
+
+**Solution**: For critical state updates (like clearing plan enforcement flags), **explicitly update the primary table the UI depends on** within the mutation:
+
+```typescript
+// In deleteEnvironment mutation:
+// 1. Update quotas (decrement count)
+await ctx.db.patch(quota._id, { used: quota.used - 1 });
+
+// 2. Also update users table to trigger query re-run
+await checkAndClearPlanEnforcementFlag(ctx, project.ownerId);
+// This patches `users` table → getPlanEnforcementStatus re-runs → UI updates
+```
+
+**Key Insight**: If your query reads from table A but you want it to re-run when table B changes, have your mutation also write to table A (even if just clearing a flag).
+
+### Deactivated Users in Quota Counting
+
+When counting resources toward quota limits, consider how deactivated users should be handled:
+
+| Scenario | Option A: Don't Count | Option B: Always Count |
+|----------|----------------------|------------------------|
+| 3 members, 1 deactivated | Count = 2, can add 1 more | Count = 3, at limit |
+| User reactivated | No change needed | No change needed |
+| Complexity | High (sync on deactivate) | Low (simple) |
+
+**Recommended Approach**: Always count deactivated members toward the limit, but:
+1. Show deactivation status in the UI (gray out, show badge)
+2. Allow owners to explicitly remove deactivated members
+3. This gives owners control without complex automatic behavior
+
+**Rationale**: A deactivated user might be reactivated later (temporary suspension). Automatic quota changes on deactivation/reactivation could cause unexpected limit violations.
+
+### Guards for Deactivated Users
+
+Always add deactivation checks early in handlers, before business logic:
+
+```typescript
+export const getPlanEnforcementStatus = query({
+  handler: async (ctx) => {
+    const user = await getUser(ctx);
+    if (!user) return null;
+    
+    // Deactivated users should not see enforcement UI
+    if (user.isDeactivated) return null;
+    
+    // ... rest of logic
+  },
+});
+```
+
+This ensures deactivated users don't see or interact with features meant for active accounts.
+

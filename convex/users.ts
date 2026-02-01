@@ -163,6 +163,9 @@ export const getPlanEnforcementStatus = query({
 
     if (!user) return null;
 
+    // Deactivated users should not see plan enforcement UI
+    if (user.isDeactivated) return null;
+
     // If flag not set, return early
     if (!user.exceedsPlanLimits) {
       return { exceedsPlanLimits: false };
@@ -253,6 +256,11 @@ export const checkAndClearExceedsPlanLimits = mutation({
       .unique();
 
     if (!user) throw new ConvexError("User not found");
+
+    // Deactivated users cannot perform this action
+    if (user.isDeactivated) {
+      throw new ConvexError("Account is deactivated");
+    }
 
     // If not exceeding limits, nothing to do
     if (!user.exceedsPlanLimits) {

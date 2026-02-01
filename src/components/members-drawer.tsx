@@ -19,6 +19,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -51,11 +52,13 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
   const canManageMembers = userRole === "owner" || userRole === "admin";
   const canUpdateRoles = userRole === "owner";
 
-  const filteredMembers = members?.filter(
-    (m) =>
+  const filteredMembers = members?.filter((m) => {
+    if (!m) return false;
+    return (
       m.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       m.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    );
+  });
 
   async function handleAddMember() {
     if (!newMemberEmail.trim()) return;
@@ -170,49 +173,69 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
                   </div>
                 ))
               ) : filteredMembers && filteredMembers.length > 0 ? (
-                filteredMembers.map((member) => (
-                  <div
-                    key={member._id}
-                    className="flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-accent/30 transition-colors"
-                  >
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={member.image} alt={member.name || ""} />
-                      <AvatarFallback>
-                        {member.name?.charAt(0).toUpperCase() ||
-                          member.email?.charAt(0).toUpperCase() ||
-                          "?"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium truncate">{getDisplayName(member)}</p>
+                filteredMembers.map((member) => {
+                  if (!member) return null;
 
-                        <Badge variant={getRoleBadgeVariant(member.role)} className="gap-1 text-xs">
-                          {getRoleIcon(member.role)}
-                          {member.role}
-                        </Badge>
+                  return (
+                    <div
+                      key={member._id}
+                      className="flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-accent/30 transition-colors"
+                    >
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Avatar
+                            className={`h-10 w-10 ${
+                              member.isDeactivated ? "grayscale opacity-50" : ""
+                            }`}
+                          >
+                            <AvatarImage src={member.image} alt={member.name || ""} />
+                            <AvatarFallback>
+                              {member.name?.charAt(0).toUpperCase() ||
+                                member.email?.charAt(0).toUpperCase() ||
+                                "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                        </TooltipTrigger>
+                        {member.isDeactivated && (
+                          <TooltipContent>
+                            <p>User is deactivated</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium truncate">{getDisplayName(member)}</p>
+
+                          <Badge
+                            variant={getRoleBadgeVariant(member.role)}
+                            className="gap-1 text-xs"
+                          >
+                            {getRoleIcon(member.role)}
+                            {member.role}
+                          </Badge>
+                        </div>
+                        <p className="text-xs pt-0.5 text-muted-foreground truncate">
+                          {member.email}
+                        </p>
                       </div>
-                      <p className="text-xs pt-0.5 text-muted-foreground truncate">
-                        {member.email}
-                      </p>
-                    </div>
 
-                    {/* Actions - Only show if:
+                      {/* Actions - Only show if:
                         - Member is not owner (can never act on owners)
                         - Current user can manage members
                         - If member is admin, only owner can act on them */}
-                    {member.role !== "owner" &&
-                      canManageMembers &&
-                      (member.role !== "admin" || userRole === "owner") && (
-                        <MemberActions
-                          canUpdateRoles={canUpdateRoles}
-                          memberRole={member.role}
-                          onUpdateRole={(role) => handleUpdateRole(member._id, role)}
-                          onRemove={() => handleRemoveMember(member._id)}
-                        />
-                      )}
-                  </div>
-                ))
+                      {member.role !== "owner" &&
+                        canManageMembers &&
+                        (member.role !== "admin" || userRole === "owner") && (
+                          <MemberActions
+                            canUpdateRoles={canUpdateRoles}
+                            memberRole={member.role}
+                            onUpdateRole={(role) => handleUpdateRole(member._id, role)}
+                            onRemove={() => handleRemoveMember(member._id)}
+                          />
+                        )}
+                    </div>
+                  );
+                })
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
