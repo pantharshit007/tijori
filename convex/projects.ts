@@ -157,7 +157,6 @@ export const list = query({
 
     const projects = [];
     for (const membership of memberships) {
-      // ? TODO: do convex not allow us to get data from a specific table instead of quering the entire tables in db with an ID?
       const project = await ctx.db.get(membership.projectId);
       if (project) {
         projects.push({
@@ -339,22 +338,24 @@ export const listMembers = query({
       .collect();
 
     // Get user details for each member
-    const membersWithDetails = await Promise.all(
-      members.map(async (member) => {
-        const user = await ctx.db.get(member.userId);
-        if (!user) return null;
+    const membersWithDetails = (
+      await Promise.all(
+        members.map(async (member) => {
+          const user = await ctx.db.get(member.userId);
+          if (!user) return null;
 
-        return {
-          _id: member._id,
-          userId: member.userId,
-          role: member.role,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-          isDeactivated: user.isDeactivated,
-        };
-      })
-    );
+          return {
+            _id: member._id,
+            userId: member.userId,
+            role: member.role,
+            name: user.name,
+            email: user.email,
+            image: user.image,
+            isDeactivated: user.isDeactivated,
+          };
+        })
+      )
+    ).filter((m) => m !== null);
 
     return membersWithDetails;
   },

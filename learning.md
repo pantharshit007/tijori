@@ -375,10 +375,14 @@ Instead of counting documents on every mutation, we maintain a `quotas` table wi
 // Schema
 quotas: defineTable({
   projectId: v.id("projects"),
-  resourceType: v.union(v.literal("environments"), v.literal("members"), v.literal("sharedSecrets")),
+  resourceType: v.union(
+    v.literal("environments"),
+    v.literal("members"),
+    v.literal("sharedSecrets")
+  ),
   used: v.number(),
   limit: v.number(),
-}).index("by_project_resource", ["projectId", "resourceType"])
+}).index("by_project_resource", ["projectId", "resourceType"]);
 ```
 
 ### Atomic Operations
@@ -389,7 +393,7 @@ quotas: defineTable({
 
 ```typescript
 const quota = await ctx.db.query("quotas")
-  .withIndex("by_project_resource", (q) => 
+  .withIndex("by_project_resource", (q) =>
     q.eq("projectId", args.projectId).eq("resourceType", "environments")
   ).unique();
 
@@ -409,13 +413,12 @@ await ctx.db.patch(quota._id, { used: quota.used + 1 }); // Atomic increment
 
 ### Tradeoffs
 
-| Approach | Pros | Cons |
-|----------|------|------|
-| Count-based | Simple, always accurate | Race conditions, N+1 queries |
-| Quota docs | Concurrent-safe, single read | Requires sync on delete/add |
+| Approach    | Pros                         | Cons                         |
+| ----------- | ---------------------------- | ---------------------------- |
+| Count-based | Simple, always accurate      | Race conditions, N+1 queries |
+| Quota docs  | Concurrent-safe, single read | Requires sync on delete/add  |
 
 ---
-
 
 ### Role-Based Access Control (RBAC) Implementation
 
@@ -697,16 +700,17 @@ await checkAndClearPlanEnforcementFlag(ctx, project.ownerId);
 
 When counting resources toward quota limits, consider how deactivated users should be handled:
 
-| Scenario | Option A: Don't Count | Option B: Always Count |
-|----------|----------------------|------------------------|
-| 3 members, 1 deactivated | Count = 2, can add 1 more | Count = 3, at limit |
-| User reactivated | No change needed | No change needed |
-| Complexity | High (sync on deactivate) | Low (simple) |
+| Scenario                 | Option A: Don't Count     | Option B: Always Count |
+| ------------------------ | ------------------------- | ---------------------- |
+| 3 members, 1 deactivated | Count = 2, can add 1 more | Count = 3, at limit    |
+| User reactivated         | No change needed          | No change needed       |
+| Complexity               | High (sync on deactivate) | Low (simple)           |
 
-**Recommended Approach**: Always count deactivated members toward the limit, but:
-1. Show deactivation status in the UI (gray out, show badge)
-2. Allow owners to explicitly remove deactivated members
-3. This gives owners control without complex automatic behavior
+**Decision**: We have gone with **Option B** (always count deactivated members toward the limit).
+
+- In the member list UI, deactivated members will have their avatar/logo shown in grey, with a tooltip indicating they are deactivated.
+- Owners can explicitly remove deactivated members.
+- This gives owners control without complex automatic behavior.
 
 **Rationale**: A deactivated user might be reactivated later (temporary suspension). Automatic quota changes on deactivation/reactivation could cause unexpected limit violations.
 
@@ -719,14 +723,13 @@ export const getPlanEnforcementStatus = query({
   handler: async (ctx) => {
     const user = await getUser(ctx);
     if (!user) return null;
-    
+
     // Deactivated users should not see enforcement UI
     if (user.isDeactivated) return null;
-    
+
     // ... rest of logic
   },
 });
 ```
 
 This ensures deactivated users don't see or interact with features meant for active accounts.
-

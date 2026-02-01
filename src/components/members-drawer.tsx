@@ -53,10 +53,9 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
   const canUpdateRoles = userRole === "owner";
 
   const filteredMembers = members?.filter((m) => {
-    if (!m) return false;
     return (
-      m.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.email?.toLowerCase().includes(searchQuery.toLowerCase())
+      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
 
@@ -174,8 +173,6 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
                 ))
               ) : filteredMembers && filteredMembers.length > 0 ? (
                 filteredMembers.map((member) => {
-                  if (!member) return null;
-
                   return (
                     <div
                       key={member._id}

@@ -197,7 +197,6 @@ export function ProjectMembers({ projectId, userRole }: ProjectMembersProps) {
       <CardContent>
         <div className="space-y-3">
           {members.map((member) => {
-            if (!member) return null;
             const RoleIcon = roleIcons[member.role];
             const canRemove =
               member.role !== "owner" &&
