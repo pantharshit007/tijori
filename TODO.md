@@ -33,6 +33,7 @@
 - [ ] update `platformRole` to `tier` in the user table, and update the UI accordingly.
 - [ ] update the field in per environment so that it shows in UI the last updated by User (who updated the env vars last)
 - [ ] check if Bulk add dialog and Bulk edit dialog can use a common logic instead of duplicating the code.
+- [ ] instead of throwing convex error, return a custom error object with a message and a code, and use it in the UI, this will make error logs more readable, use `@/lib/errors.ts` to extract the error message from the error object and use it in the UI, everywhere.
 
 ---
 
