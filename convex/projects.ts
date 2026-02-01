@@ -609,6 +609,12 @@ export const leaveProject = mutation({
       await ctx.db.patch(quota._id, { used: quota.used - 1 });
     }
 
+    // Check if project owner still exceeds plan limits after this member left
+    const project = await ctx.db.get(args.projectId);
+    if (project) {
+      await checkAndClearPlanEnforcementFlag(ctx, project.ownerId);
+    }
+
     return { success: true };
   },
 });
