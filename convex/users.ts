@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { ROLE_LIMITS, type PlatformRole } from "./lib/roleLimits";
+import {  ROLE_LIMITS } from "./lib/roleLimits";
+import type {PlatformRole} from "./lib/roleLimits";
 
 /**
  * Sync or create a user profile from Clerk.

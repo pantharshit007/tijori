@@ -1,9 +1,9 @@
 import { useQuery } from "convex/react";
 import { AlertTriangle, Clock, X } from "lucide-react";
+import { useState } from "react";
 import { api } from "../../convex/_generated/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 
 /**
  * Plan Enforcement Banner

@@ -107,10 +107,14 @@ export const save = mutation({
           .withIndex("by_environmentId", (q) => q.eq("environmentId", args.environmentId))
           .collect();
         const collision = allVars.find(
-          (v) => v._id !== args.variableId && v.name.toUpperCase() === args.name.toUpperCase()
+          (variable) =>
+            variable._id !== args.variableId &&
+            variable.name.toUpperCase() === args.name.toUpperCase()
         );
         if (collision) {
-          throw new ConvexError(`A variable named "${args.name}" already exists (names are case-insensitive)`);
+          throw new ConvexError(
+            `A variable named "${args.name}" already exists (names are case-insensitive)`
+          );
         }
       }
 
@@ -132,11 +136,13 @@ export const save = mutation({
       .collect();
 
     const existingByName = allVars.find(
-      (v) => v.name.toUpperCase() === args.name.toUpperCase()
+      (variable) => variable.name.toUpperCase() === args.name.toUpperCase()
     );
 
     if (existingByName) {
-      throw new ConvexError(`A variable named "${args.name}" already exists (names are case-insensitive)`);
+      throw new ConvexError(
+        `A variable named "${args.name}" already exists (names are case-insensitive)`
+      );
     }
 
     // 2. Check variable limit based on PROJECT OWNER's role
