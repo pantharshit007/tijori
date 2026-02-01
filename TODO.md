@@ -28,10 +28,8 @@
 - [ ] re-check save mutation thoroughly in @convex/variable.ts, seems something is wrong there.
 - [ ] check if Bulk add dialog and Bulk edit dialog can use a common logic instead of duplicating the code.
 - [ ] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
-- [ ] more options like select all, select none, and select few in shared section in dashboard to perform bulk actions, disable, expire, delete.
-- [ ] add pagination to the /d/shared route's table for doc you can visit [here](https://docs.convex.dev/database/pagination)
-- [x] add length limit to description field in whichever table we have and other such fields in schema, so that nobody is able to misuse it.
-- [x] when removing a env key, instead of the alert we should get a dialog telling us the name and the environment where the key belongs to, which will get deleted. (VariableRow.tsx:185)
+- [x] more options like select all, select none, and select few in shared section in dashboard to perform bulk actions, disable, expire, delete.
+- [x] add pagination to the /d/shared route's table for doc you can visit [here](https://docs.convex.dev/database/pagination)
 
 ---
 

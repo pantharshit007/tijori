@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
+import type { QueryCtx } from "./_generated/server";
 import { checkAndClearPlanEnforcementFlag, getProjectOwnerLimits } from "./lib/roleLimits";
 import { throwError, validateLength } from "./lib/errors";
 import type { Id } from "./_generated/dataModel";
@@ -148,6 +150,58 @@ export const create = mutation({
     return sharedSecretId;
   },
 });
+
+/**
+ * Access check helper for managing a shared secret.
+ * Returns the shared secret if access is granted.
+ */
+async function checkSecretManagementAccess(ctx: QueryCtx, secretId: Id<"sharedSecrets">) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) throwError("Not authenticated", "UNAUTHENTICATED", 401);
+
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_tokenIdentifier", (q: any) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+    .unique();
+
+  if (!user) throwError("User not found", "NOT_FOUND", 404);
+  if (user.isDeactivated) {
+    throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
+  }
+
+  const sharedSecret = await ctx.db.get(secretId);
+  if (!sharedSecret) throwError("Shared secret not found", "NOT_FOUND", 404);
+
+  const membership = await ctx.db
+    .query("projectMembers")
+    .withIndex("by_project_user", (q: any) =>
+      q.eq("projectId", sharedSecret.projectId).eq("userId", user._id)
+    )
+    .unique();
+
+  if (!membership) {
+    throwError("Access denied - not a project member", "FORBIDDEN", 403, {
+      user_id: user._id,
+      project_id: sharedSecret.projectId,
+    });
+  }
+
+  const isOwner = membership.role === "owner";
+  const isCreatorWithAdminAccess =
+    sharedSecret.createdBy === user._id &&
+    (membership.role === "owner" || membership.role === "admin");
+
+  if (!isOwner && !isCreatorWithAdminAccess) {
+    throwError(
+      "Access denied - only project owner or the creator (with admin rights) can modify/delete",
+      "FORBIDDEN",
+      403,
+      { user_id: user._id, project_id: sharedSecret.projectId }
+    );
+  }
+
+  return { user, sharedSecret, membership };
+}
 
 /**
  * Get a shared secret by ID.
@@ -401,59 +455,28 @@ export const toggleDisabled = mutation({
     id: v.id("sharedSecrets"),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throwError("Not authenticated", "UNAUTHENTICATED", 401);
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
-      .unique();
-
-    if (!user) {
-      throwError("User not found", "NOT_FOUND", 404);
-    }
-
-    if (user.isDeactivated) {
-      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
-    }
-
-    const sharedSecret = await ctx.db.get(args.id);
-    if (!sharedSecret) {
-      throwError("Shared secret not found", "NOT_FOUND", 404);
-    }
-
-    // Check user's current role in the project
-    const membership = await ctx.db
-      .query("projectMembers")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", sharedSecret.projectId).eq("userId", user._id)
-      )
-      .unique();
-
-    if (!membership) {
-      throwError("Access denied - not a project member", "FORBIDDEN", 403, { user_id: user._id, project_id: sharedSecret.projectId });
-    }
-
-    // Allow if: owner of project, OR creator who is still admin/owner
-    const isOwner = membership.role === "owner";
-    const isCreatorWithAdminAccess =
-      sharedSecret.createdBy === user._id &&
-      (membership.role === "owner" || membership.role === "admin");
-
-    if (!isOwner && !isCreatorWithAdminAccess) {
-      throwError(
-        "Access denied - only project owner or the creator (with admin rights) can modify",
-        "FORBIDDEN",
-        403,
-        { user_id: user._id, project_id: sharedSecret.projectId }
-      );
-    }
+    const { sharedSecret } = await checkSecretManagementAccess(ctx, args.id);
 
     await ctx.db.patch(args.id, {
       isDisabled: !sharedSecret.isDisabled,
     });
+  },
+});
+
+/**
+ * Bulk toggle disabled state.
+ */
+export const bulkToggleDisabled = mutation({
+  args: {
+    ids: v.array(v.id("sharedSecrets")),
+    isDisabled: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    for (const id of args.ids) {
+      // Re-checks permissions for each item
+      await checkSecretManagementAccess(ctx, id);
+      await ctx.db.patch(id, { isDisabled: args.isDisabled });
+    }
   },
 });
 
@@ -473,55 +496,7 @@ export const updateExpiry = mutation({
     }
     const normalizedExpiresAt = args.isIndefinite ? undefined : args.expiresAt;
 
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throwError("Not authenticated", "UNAUTHENTICATED", 401);
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
-      .unique();
-
-    if (!user) {
-      throwError("User not found", "NOT_FOUND", 404);
-    }
-
-    if (user.isDeactivated) {
-      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
-    }
-
-    const sharedSecret = await ctx.db.get(args.id);
-    if (!sharedSecret) {
-      throwError("Shared secret not found", "NOT_FOUND", 404);
-    }
-
-    // Check user's current role in the project
-    const membership = await ctx.db
-      .query("projectMembers")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", sharedSecret.projectId).eq("userId", user._id)
-      )
-      .unique();
-
-    if (!membership) {
-      throwError("Access denied - not a project member", "FORBIDDEN", 403, { user_id: user._id, project_id: sharedSecret.projectId });
-    }
-
-    // Allow if: owner of project, OR creator who is still admin/owner
-    const isOwner = membership.role === "owner";
-    const isCreatorWithAdminAccess =
-      sharedSecret.createdBy === user._id &&
-      (membership.role === "owner" || membership.role === "admin");
-
-    if (!isOwner && !isCreatorWithAdminAccess) {
-      throwError(
-        "Access denied - only project owner or the creator (with admin rights) can modify",
-        "FORBIDDEN",
-        403,
-        { user_id: user._id, project_id: sharedSecret.projectId }
-      );
-    }
+    const { sharedSecret, user } = await checkSecretManagementAccess(ctx, args.id);
 
     // Check shared secrets limit based on PROJECT OWNER's role
     const limits = await getProjectOwnerLimits(ctx, sharedSecret.projectId);
@@ -542,6 +517,39 @@ export const updateExpiry = mutation({
 });
 
 /**
+ * Bulk update expiry.
+ */
+export const bulkUpdateExpiry = mutation({
+  args: {
+    ids: v.array(v.id("sharedSecrets")),
+    expiresAt: v.optional(v.number()),
+    isIndefinite: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const normalizedExpiresAt = args.isIndefinite ? undefined : args.expiresAt;
+
+    for (const id of args.ids) {
+      const { sharedSecret, user } = await checkSecretManagementAccess(ctx, id);
+
+      const limits = await getProjectOwnerLimits(ctx, sharedSecret.projectId);
+      if (args.isIndefinite && !limits.canCreateIndefiniteShares) {
+        throwError(
+          "Indefinite shares are only available on Pro plans. Some shares were not updated.",
+          "LIMIT_REACHED",
+          403,
+          { user_id: user._id, project_id: sharedSecret.projectId }
+        );
+      }
+
+      await ctx.db.patch(id, {
+        expiresAt: normalizedExpiresAt,
+        isIndefinite: args.isIndefinite,
+      });
+    }
+  },
+});
+
+/**
  * Delete a shared secret.
  * Allowed for: project owner, OR creator who is still admin/owner.
  */
@@ -550,55 +558,7 @@ export const remove = mutation({
     id: v.id("sharedSecrets"),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throwError("Not authenticated", "UNAUTHENTICATED", 401);
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
-      .unique();
-
-    if (!user) {
-      throwError("User not found", "NOT_FOUND", 404);
-    }
-
-    if (user.isDeactivated) {
-      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
-    }
-
-    const sharedSecret = await ctx.db.get(args.id);
-    if (!sharedSecret) {
-      throwError("Shared secret not found", "NOT_FOUND", 404);
-    }
-
-    // Check user's current role in the project
-    const membership = await ctx.db
-      .query("projectMembers")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", sharedSecret.projectId).eq("userId", user._id)
-      )
-      .unique();
-
-    if (!membership) {
-      throwError("Access denied - not a project member", "FORBIDDEN", 403, { user_id: user._id, project_id: sharedSecret.projectId });
-    }
-
-    // Allow if: owner of project, OR creator who is still admin/owner
-    const isOwner = membership.role === "owner";
-    const isCreatorWithAdminAccess =
-      sharedSecret.createdBy === user._id &&
-      (membership.role === "owner" || membership.role === "admin");
-
-    if (!isOwner && !isCreatorWithAdminAccess) {
-      throwError(
-        "Access denied - only project owner or the creator (with admin rights) can delete",
-        "FORBIDDEN",
-        403,
-        { user_id: user._id, project_id: sharedSecret.projectId }
-      );
-    }
+    const { sharedSecret } = await checkSecretManagementAccess(ctx, args.id);
 
     await ctx.db.delete(args.id);
 
@@ -616,8 +576,165 @@ export const remove = mutation({
 
     // Check if project owner still exceeds plan limits after this deletion
     const project = await ctx.db.get(sharedSecret.projectId);
-    if (project) {
+    if (project && "ownerId" in project) {
       await checkAndClearPlanEnforcementFlag(ctx, project.ownerId);
     }
+  },
+});
+
+/**
+ * Bulk remove shared secrets.
+ */
+export const bulkRemove = mutation({
+  args: {
+    ids: v.array(v.id("sharedSecrets")),
+  },
+  handler: async (ctx, args) => {
+    for (const id of args.ids) {
+      const { sharedSecret } = await checkSecretManagementAccess(ctx, id);
+
+      await ctx.db.delete(id);
+
+      // Decrement quota
+      const quota = await ctx.db
+        .query("quotas")
+        .withIndex("by_project_resource", (q) =>
+          q.eq("projectId", sharedSecret.projectId).eq("resourceType", "sharedSecrets")
+        )
+        .unique();
+
+      if (quota && quota.used > 0) {
+        await ctx.db.patch(quota._id, { used: quota.used - 1 });
+      }
+
+      // Re-evaluate limits for project owner
+      const project = await ctx.db.get(sharedSecret.projectId);
+      if (project && "ownerId" in project) {
+        await checkAndClearPlanEnforcementFlag(ctx, project.ownerId);
+      }
+    }
+  },
+});
+
+/**
+ * Paginated version of listByUser.
+ * Since this combines results from multiple queries (owned projects + created secrets),
+ * we fetch everything and slice it manually to provide a paginated interface.
+ */
+export const paginatedListByUser = query({
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return { page: [], isDone: true, continueCursor: "" };
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!user || user.isDeactivated) {
+      return { page: [], isDone: true, continueCursor: "" };
+    }
+
+    // Get ALL memberships to identify projects the user has access to
+    const allMemberships = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .collect();
+
+    const roleMap = new Map<string, string>();
+    const ownerProjectIds: Id<"projects">[] = [];
+    for (const m of allMemberships) {
+      roleMap.set(m.projectId, m.role);
+      if (m.role === "owner") {
+        ownerProjectIds.push(m.projectId);
+      }
+    }
+
+    // Fetch secrets: created by user OR in owned projects
+    const [userSharedSecrets, ...ownerProjectSecrets] = await Promise.all([
+      ctx.db
+        .query("sharedSecrets")
+        .withIndex("by_createdBy", (q) => q.eq("createdBy", user._id))
+        .collect(),
+      ...ownerProjectIds.map((projectId) =>
+        ctx.db
+          .query("sharedSecrets")
+          .withIndex("by_projectId", (q) => q.eq("projectId", projectId))
+          .collect()
+      ),
+    ]);
+
+    // Deduplicate and combine
+    const userSecretIds = new Set(userSharedSecrets.map((s) => s._id));
+    const ownerSharedSecrets = ownerProjectSecrets
+      .flat()
+      .filter((secret) => !userSecretIds.has(secret._id));
+
+    const allSharedSecrets = [...userSharedSecrets, ...ownerSharedSecrets].sort(
+      (a, b) => b._creationTime - a._creationTime
+    );
+
+    // Manual pagination
+    const { numItems, cursor } = args.paginationOpts;
+    const startIndex = cursor ? parseInt(cursor, 10) : 0;
+    const endIndex = startIndex + numItems;
+    const pageItems = allSharedSecrets.slice(startIndex, endIndex);
+    const isDone = endIndex >= allSharedSecrets.length;
+    const continueCursor = isDone ? "" : endIndex.toString();
+
+    // Fetch related data for the current page only (optimization)
+    const projectIds = [...new Set(pageItems.map((s) => s.projectId))];
+    const environmentIds = [...new Set(pageItems.map((s) => s.environmentId))];
+    const creatorIds = [...new Set(pageItems.map((s) => s.createdBy))];
+
+    const [projects, environments, creators] = await Promise.all([
+      Promise.all(projectIds.map((id) => ctx.db.get(id))),
+      Promise.all(environmentIds.map((id) => ctx.db.get(id))),
+      Promise.all(creatorIds.map((id) => ctx.db.get(id))),
+    ]);
+
+    const projectMap = Object.fromEntries(projects.filter(Boolean).map((p) => [p!._id, p!.name]));
+    const envMap = Object.fromEntries(environments.filter(Boolean).map((e) => [e!._id, e!.name]));
+    const creatorMap = Object.fromEntries(
+      creators.filter(Boolean).map((c) => [c!._id, { name: c!.name, image: c!.image }])
+    );
+
+    const page = pageItems.map((s) => {
+      const userRole = roleMap.get(s.projectId) || null;
+      const isOwner = userRole === "owner";
+      const isCreator = s.createdBy === user._id;
+      const canManage = isOwner || (isCreator && (userRole === "owner" || userRole === "admin"));
+
+      return {
+        _id: s._id,
+        _creationTime: s._creationTime,
+        projectId: s.projectId,
+        projectName: projectMap[s.projectId] || "Unknown",
+        environmentName: envMap[s.environmentId] || "Unknown",
+        name: s.name,
+        encryptedPasscode: s.encryptedPasscode,
+        passcodeIv: s.passcodeIv,
+        passcodeAuthTag: s.passcodeAuthTag,
+        isIndefinite: s.isIndefinite,
+        isDisabled: s.isDisabled,
+        expiresAt: s.expiresAt,
+        views: s.views,
+        isExpired: s.expiresAt ? Date.now() > s.expiresAt : false,
+        creatorName: creatorMap[s.createdBy]?.name,
+        creatorImage: creatorMap[s.createdBy]?.image,
+        isOwner,
+        isCreator,
+        canManage,
+      };
+    });
+
+    return {
+      page,
+      isDone,
+      continueCursor,
+    };
   },
 });

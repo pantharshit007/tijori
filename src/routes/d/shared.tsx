@@ -1,6 +1,7 @@
 import { createFileRoute, useSearch } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, usePaginatedQuery } from "convex/react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   Clock,
   Copy,
@@ -15,6 +16,7 @@ import {
   Unlock,
 } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
+import { PAGINATION_LIMIT } from "@/lib/constants";
 import type { Id } from "../../../convex/_generated/dataModel";
 
 import type { ShareExpiryValue } from "@/lib/constants";
@@ -49,6 +51,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDateTime, formatRelativeTime } from "@/lib/time";
 import { SHARE_EXPIRY_OPTIONS } from "@/lib/constants";
+import { Checkbox } from "@/components/ui/checkbox";
 import { keyStore } from "@/lib/key-store";
 import { decrypt } from "@/lib/crypto";
 import { UserAvatar } from "@/components/user-avatar";
@@ -69,20 +72,29 @@ export const Route = createFileRoute("/d/shared")({
 
 function SharedDashboard() {
   const { p: initialProjectFilter } = useSearch({ from: "/d/shared" });
-  const sharedSecrets = useQuery(api.sharedSecrets.listByUser);
+  const {
+    results: sharedSecrets,
+    status: paginationStatus,
+    loadMore,
+  } = usePaginatedQuery(api.sharedSecrets.paginatedListByUser, {}, { initialNumItems: PAGINATION_LIMIT });
+
   const toggleDisabled = useMutation(api.sharedSecrets.toggleDisabled);
   const removeShare = useMutation(api.sharedSecrets.remove);
   const updateExpiry = useMutation(api.sharedSecrets.updateExpiry);
+
+  const bulkToggleDisabled = useMutation(api.sharedSecrets.bulkToggleDisabled);
+  const bulkRemove = useMutation(api.sharedSecrets.bulkRemove);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [projectFilter, setProjectFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [revealedPasscodes, setRevealedPasscodes] = useState<Set<string>>(new Set());
   const [decryptedPasscodes, setDecryptedPasscodes] = useState<Record<string, string>>({});
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Initialize project filter from URL param once data is loaded
   useEffect(() => {
-    if (initialProjectFilter && sharedSecrets) {
+    if (initialProjectFilter && sharedSecrets.length > 0) {
       const matchingProject = sharedSecrets.find(
         (s) => s.projectName.toLowerCase() === initialProjectFilter.toLowerCase()
       );
@@ -92,7 +104,7 @@ function SharedDashboard() {
     }
   }, [initialProjectFilter, sharedSecrets]);
 
-  if (sharedSecrets === undefined) {
+  if (paginationStatus === "LoadingFirstPage") {
     return (
       <div className="flex flex-col gap-6 animate-pulse">
         <div className="space-y-2">
@@ -129,6 +141,65 @@ function SharedDashboard() {
 
     return matchesSearch && matchesProject && matchesStatus;
   });
+
+  const allSelected =
+    filteredShares.length > 0 &&
+    filteredShares.every((share) => selectedIds.has(share._id));
+  const someSelected = selectedIds.size > 0;
+
+  function handleSelectAll(checked: boolean) {
+    if (checked) {
+      setSelectedIds(new Set([...selectedIds, ...filteredShares.map((s) => s._id)]));
+    } else {
+      const next = new Set(selectedIds);
+      filteredShares.forEach((s) => next.delete(s._id));
+      setSelectedIds(next);
+    }
+  }
+
+  function handleSelect(id: string, checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.size === 0) return;
+    if (
+      !confirm(
+        `Are you sure you want to delete ${selectedIds.size} shared links? This action cannot be undone.`
+      )
+    )
+      return;
+
+    try {
+      await bulkRemove({ ids: Array.from(selectedIds) as Id<"sharedSecrets">[] });
+      toast.success(`${selectedIds.size} links deleted`);
+      setSelectedIds(new Set());
+    } catch (err: any) {
+      console.error("Bulk delete failed:", err);
+      toast.error(getErrorMessage(err, "Failed to delete links"));
+    }
+  }
+
+  async function handleBulkToggleDisabled(isDisabled: boolean) {
+    if (selectedIds.size === 0) return;
+
+    try {
+      await bulkToggleDisabled({
+        ids: Array.from(selectedIds) as Id<"sharedSecrets">[],
+        isDisabled,
+      });
+      toast.success(`${selectedIds.size} links ${isDisabled ? "disabled" : "enabled"}`);
+      setSelectedIds(new Set());
+    } catch (err: any) {
+      console.error("Bulk toggle failed:", err);
+      toast.error(getErrorMessage(err, `Failed to ${isDisabled ? "disable" : "enable"} links`));
+    }
+  }
 
   async function togglePasscode(share: SharedSecret) {
     const id = share._id;
@@ -236,10 +307,57 @@ function SharedDashboard() {
           </div>
         </div>
 
+        {someSelected && (
+          <div className="flex items-center gap-3 px-4 py-2 bg-muted/50 border rounded-lg animate-in fade-in slide-in-from-top-2">
+            <span className="text-sm font-medium">{selectedIds.size} selected</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  Bulk Actions
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => handleBulkToggleDisabled(true)}>
+                  <Lock className="h-4 w-4 mr-2" />
+                  Disable selected
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkToggleDisabled(false)}>
+                  <Unlock className="h-4 w-4 mr-2" />
+                  Enable selected
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                  onClick={handleBulkDelete}
+                >
+                  <Trash2 className="h-4 w-4 mr-2 text-destructive" />
+                  Delete selected
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds(new Set())}
+              className="text-muted-foreground h-8"
+            >
+              Deselect All
+            </Button>
+          </div>
+        )}
+
         <Card>
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[40px]">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                    aria-label="Select all"
+                  />
+                </TableHead>
                 <TableHead>Label</TableHead>
                 <TableHead>Environment / Project</TableHead>
                 <TableHead>Created By</TableHead>
@@ -259,7 +377,14 @@ function SharedDashboard() {
                 </TableRow>
               ) : (
                 filteredShares.map((share) => (
-                  <TableRow key={share._id}>
+                  <TableRow key={share._id} data-state={selectedIds.has(share._id) && "selected"}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(share._id)}
+                        onCheckedChange={(checked) => handleSelect(share._id, !!checked)}
+                        aria-label={`Select ${share.name || "secret"}`}
+                      />
+                    </TableCell>
                     <TableCell>
                       {share.name ? (
                         <span className="font-medium text-sm">{share.name}</span>
@@ -449,6 +574,22 @@ function SharedDashboard() {
             </TableBody>
           </Table>
         </Card>
+
+        {paginationStatus === "CanLoadMore" && (
+          <div className="flex justify-center mt-4">
+            <Button variant="outline" onClick={() => loadMore(10)}>
+              Load More
+            </Button>
+          </div>
+        )}
+
+        {paginationStatus === "LoadingMore" && (
+          <div className="flex justify-center mt-4">
+            <Badge variant="secondary" className="animate-pulse">
+              Loading more...
+            </Badge>
+          </div>
+        )}
       </div>
     </TooltipProvider>
   );
