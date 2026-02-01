@@ -22,6 +22,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { getErrorMessage } from "@/lib/errors";
 
 interface MembersDrawerProps {
   projectId: Id<"projects">;
@@ -29,10 +30,11 @@ interface MembersDrawerProps {
   trigger: React.ReactNode;
 }
 
-function getDisplayName(member: { name?: string | null; email?: string | null }): string {
-  const displayName = member.name || member.email || "Unknown";
+function getDisplayName(member: { name: string }): string {
+  const displayName = member.name;
   return displayName.length > 15 ? displayName.slice(0, 15) + "..." : displayName;
 }
+
 export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerProps) {
   const members = useQuery(api.projects.listMembers, { projectId });
   const addMember = useMutation(api.projects.addMember);
@@ -53,10 +55,11 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
   const canUpdateRoles = userRole === "owner";
 
   const filteredMembers = members?.filter((m) => {
-    return (
-      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.email.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const query = searchQuery.toLowerCase();
+    const name = m.name.toLowerCase();
+    const email = m.email.toLowerCase();
+
+    return name.includes(query) || email.includes(query);
   });
 
   async function handleAddMember() {
@@ -74,7 +77,7 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
       setNewMemberEmail("");
       setShowAddDialog(false);
     } catch (err: any) {
-      setAddError(err.data || "Failed to add member");
+      setAddError(getErrorMessage(err, "Failed to add member"));
     } finally {
       setIsAdding(false);
     }
