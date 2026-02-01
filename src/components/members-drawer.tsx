@@ -19,8 +19,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { getErrorMessage } from "@/lib/errors";
 
 interface MembersDrawerProps {
   projectId: Id<"projects">;
@@ -28,10 +30,11 @@ interface MembersDrawerProps {
   trigger: React.ReactNode;
 }
 
-function getDisplayName(member: { name?: string | null; email?: string | null }): string {
-  const displayName = member.name || member.email || "Unknown";
+function getDisplayName(member: { name: string }): string {
+  const displayName = member.name;
   return displayName.length > 15 ? displayName.slice(0, 15) + "..." : displayName;
 }
+
 export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerProps) {
   const members = useQuery(api.projects.listMembers, { projectId });
   const addMember = useMutation(api.projects.addMember);
@@ -51,11 +54,13 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
   const canManageMembers = userRole === "owner" || userRole === "admin";
   const canUpdateRoles = userRole === "owner";
 
-  const filteredMembers = members?.filter(
-    (m) =>
-      m.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredMembers = members?.filter((m) => {
+    const query = searchQuery.toLowerCase();
+    const name = m.name.toLowerCase();
+    const email = m.email.toLowerCase();
+
+    return name.includes(query) || email.includes(query);
+  });
 
   async function handleAddMember() {
     if (!newMemberEmail.trim()) return;
@@ -72,7 +77,7 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
       setNewMemberEmail("");
       setShowAddDialog(false);
     } catch (err: any) {
-      setAddError(err.message || "Failed to add member");
+      setAddError(getErrorMessage(err, "Failed to add member"));
     } finally {
       setIsAdding(false);
     }
@@ -83,7 +88,7 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
     try {
       await removeMember({ projectId, memberId });
     } catch (err: any) {
-      const message = err?.message || "Failed to remove member";
+      const message = err?.data || "Failed to remove member";
       alert(message);
       console.error("Failed to remove member:", err);
     }
@@ -93,7 +98,7 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
     try {
       await updateMemberRole({ projectId, memberId, role: newRole });
     } catch (err: any) {
-      const message = err?.message || "Failed to update role";
+      const message = err?.data || "Failed to update role";
       alert(message);
       console.error("Failed to update role:", err);
     }
@@ -170,49 +175,67 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
                   </div>
                 ))
               ) : filteredMembers && filteredMembers.length > 0 ? (
-                filteredMembers.map((member) => (
-                  <div
-                    key={member._id}
-                    className="flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-accent/30 transition-colors"
-                  >
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={member.image} alt={member.name || ""} />
-                      <AvatarFallback>
-                        {member.name?.charAt(0).toUpperCase() ||
-                          member.email?.charAt(0).toUpperCase() ||
-                          "?"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium truncate">{getDisplayName(member)}</p>
+                filteredMembers.map((member) => {
+                  return (
+                    <div
+                      key={member._id}
+                      className="flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-accent/30 transition-colors"
+                    >
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Avatar
+                            className={`h-10 w-10 ${
+                              member.isDeactivated ? "grayscale opacity-50" : ""
+                            }`}
+                          >
+                            <AvatarImage src={member.image} alt={member.name || ""} />
+                            <AvatarFallback>
+                              {member.name?.charAt(0).toUpperCase() ||
+                                member.email?.charAt(0).toUpperCase() ||
+                                "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                        </TooltipTrigger>
+                        {member.isDeactivated && (
+                          <TooltipContent>
+                            <p>User is deactivated</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium truncate">{getDisplayName(member)}</p>
 
-                        <Badge
-                          variant={getRoleBadgeVariant(member.role)}
-                          className="gap-1 text-xs"
-                        >
-                          {getRoleIcon(member.role)}
-                          {member.role}
-                        </Badge>
+                          <Badge
+                            variant={getRoleBadgeVariant(member.role)}
+                            className="gap-1 text-xs"
+                          >
+                            {getRoleIcon(member.role)}
+                            {member.role}
+                          </Badge>
+                        </div>
+                        <p className="text-xs pt-0.5 text-muted-foreground truncate">
+                          {member.email}
+                        </p>
                       </div>
-                      <p className="text-xs pt-0.5 text-muted-foreground truncate">{member.email}</p>
-                    </div>
 
-                    {/* Actions - Only show if:
+                      {/* Actions - Only show if:
                         - Member is not owner (can never act on owners)
                         - Current user can manage members
                         - If member is admin, only owner can act on them */}
-                    {member.role !== "owner" && canManageMembers && 
-                     (member.role !== "admin" || userRole === "owner") && (
-                      <MemberActions
-                        canUpdateRoles={canUpdateRoles}
-                        memberRole={member.role}
-                        onUpdateRole={(role) => handleUpdateRole(member._id, role)}
-                        onRemove={() => handleRemoveMember(member._id)}
-                      />
-                    )}
-                  </div>
-                ))
+                      {member.role !== "owner" &&
+                        canManageMembers &&
+                        (member.role !== "admin" || userRole === "owner") && (
+                          <MemberActions
+                            canUpdateRoles={canUpdateRoles}
+                            memberRole={member.role}
+                            onUpdateRole={(role) => handleUpdateRole(member._id, role)}
+                            onRemove={() => handleRemoveMember(member._id)}
+                          />
+                        )}
+                    </div>
+                  );
+                })
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />

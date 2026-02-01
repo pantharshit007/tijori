@@ -8,7 +8,9 @@
  * @module
  */
 
+import type * as admin from "../admin.js";
 import type * as environments from "../environments.js";
+import type * as lib_roleLimits from "../lib/roleLimits.js";
 import type * as projects from "../projects.js";
 import type * as sharedSecrets from "../sharedSecrets.js";
 import type * as users from "../users.js";
@@ -21,7 +23,9 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   environments: typeof environments;
+  "lib/roleLimits": typeof lib_roleLimits;
   projects: typeof projects;
   sharedSecrets: typeof sharedSecrets;
   users: typeof users;

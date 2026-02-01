@@ -1,6 +1,3 @@
-- [ ] move the dashboard to dedicated route `/dashboard`.
-- [ ] update the sidebar with the correct functionality, log out button, and settings button and profile, along with correct user info.
-- [ ] do we need a profile page? what is even the use case for it?
 - [ ] in `handleReveal` and `handleCopy` are we re-calculating the decrypted value every time? for each value? if yes, then we should cache it in state or fix it such that once we unlock the passcode, we don't need to decrypt the same value again.
 - [ ] **Project Passcode Rotation**: Currently, changing a project's 6-digit passcode is not allowed.
   - **Reasoning**: It is a high-cost operation. Changing the passcode changes the PBKDF2 derived key, which would require re-encrypting EVERY variable in EVERY environment for that project, as well as re-encrypting all shared passcodes in the `sharedSecrets` table.
@@ -13,6 +10,31 @@
 - [ ] Transfer ownership of project, pending.
 - [ ] more options like select all, select none, and select few in shared section in dashboard to perform bulk actions, disable, expire, delete.
 - [ ] add toast notifications for successful actions, ex: copy, delete, etc.
-- [ ] add a role attribute to user table, role is whole platform based, role: user, pro, pro_plus, super_admin
-  - [ ] continuation of the above, this will limit few things, ex: number of projects creation 5 or 10, no. of environments 3 or 5, no. of members per project 2 or 5, etc.
 - [ ] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
+- [ ] when the / loads, initially there is no sign in , get started and get started free button, they appear after a delay most probably network call to the clerk server, instead of waiting for the response and showing nothing add a suspense component to show get started, sign in until we get the response if we get user is logged in, we will just update the component in place else it will stay the same, just not via the suspense component.
+- [ ] there is a bug in variable naming in the dashboard, it always show the name of the var in CAPITAL, whether the actual name is small or capital.
+- [ ] update the toast ui.
+- [x] **Plan Downgrade Enforcement**: Users who downgrade keep paid privileges — need to implement enforcement:
+  - [x] **On downgrade**: Check if user's current usage exceeds the new tier's limits:
+    - Compare `User.projectCount` against new tier's `maxProjects` limit, along with other limits such as environment count, members count, shared secret count, etc.
+    - **Only if usage > new limit**: Set `User.exceedsPlanLimits = true` and `User.planEnforcementDeadline = now + 7 days`
+    - If usage is within limits, no flag needed — user can continue normally
+  - [x] **Dashboard Warning**: Show prominent warning banner on dashboard when `exceedsPlanLimits === true`, informing user:
+    - Current tier limits (e.g., "Pro plan allows 30 projects, you have 31")
+    - Days remaining before enforcement (countdown from `planEnforcementDeadline`)
+    - Action required: "Please delete excess projects/secrets to stay within your plan limits"
+  - [ ] **After 7-day grace period**: Cron job runs and deletes excess projects based on criteria:
+    - Least recently used (by `updatedAt` timestamp)
+    - OR oldest created (`createdAt`)
+    - Emit `AuditLog` entries for each deleted project
+    - Send email notification to user about enforcement action
+  - **TODO (Future)**: Implement cron job `enforcePlanLimits` to run daily and reconcile excess after deadline passes
+- [ ] re-check save mutation thoroughly in @convex/variable.ts, seems something is wrong there.
+- [ ] update `platformRole` to `tier` in the user table, and update the UI accordingly.
+- [ ] update the field in per environment so that it shows in UI the last updated by User (who updated the env vars last)
+- [ ] check if Bulk add dialog and Bulk edit dialog can use a common logic instead of duplicating the code.
+- [ ] instead of throwing convex error, return a custom error object with a message and a code, and use it in the UI, this will make error logs more readable, use `@/lib/errors.ts` to extract the error message from the error object and use it in the UI, everywhere.
+
+---
+
+- [ ] before going prod, [configure Google social connection in Clerk](https://clerk.com/docs/guides/configure/auth-strategies/social-connections/google)

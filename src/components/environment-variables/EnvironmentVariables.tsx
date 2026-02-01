@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { toast } from "sonner";
 import {
   ArrowUpDown,
   Check,
@@ -13,6 +14,7 @@ import {
   Search,
   Share2,
 } from "lucide-react";
+import { ROLE_LIMITS } from "../../../convex/lib/roleLimits";
 import { api } from "../../../convex/_generated/api";
 import { ShareDialog } from "../share-dialog";
 import { VariableRow } from "./VariableRow";
@@ -20,6 +22,7 @@ import { VariableEditRow } from "./VariableEditRow";
 import { BulkAddDialog } from "./BulkAddDialog";
 import { BulkEditDialog } from "./BulkEditDialog";
 import { useVariableActions } from "./useVariableActions";
+import type { PlatformRole } from "../../../convex/lib/roleLimits";
 import type { Id } from "../../../convex/_generated/dataModel";
 
 import type { EnvironmentVariablesProps, ParsedVariable } from "@/lib/types";
@@ -51,6 +54,7 @@ export function EnvironmentVariables({
   environment,
   derivedKey,
   userRole,
+  platformRole,
 }: EnvironmentVariablesProps) {
   const variables = useQuery(api.variables.list, { environmentId: environment._id });
   const saveVariable = useMutation(api.variables.save);
@@ -80,13 +84,13 @@ export function EnvironmentVariables({
   const [editingVarId, setEditingVarId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editValue, setEditValue] = useState("");
-  const [editOriginalName, setEditOriginalName] = useState("");
   const [isEditSaving, setIsEditSaving] = useState(false);
 
   // Bulk add
   const [showBulkAdd, setShowBulkAdd] = useState(false);
   const [isBulkSaving, setIsBulkSaving] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(0);
+  const [bulkPasteText, setBulkPasteText] = useState("");
 
   // Bulk edit
   const [showBulkEdit, setShowBulkEdit] = useState(false);
@@ -161,8 +165,10 @@ export function EnvironmentVariables({
       setNewName("");
       setNewValue("");
       setShowNewVar(false);
-    } catch (err) {
+      toast.success("Variable saved successfully");
+    } catch (err: any) {
       console.error("Failed to save:", err);
+      toast.error(err.data || "Failed to save variable");
     } finally {
       setIsSaving(false);
     }
@@ -186,7 +192,6 @@ export function EnvironmentVariables({
       }
       setEditName(varName);
       setEditValue(value);
-      setEditOriginalName(varName);
       setEditingVarId(varId);
     } catch (err) {
       console.error("Failed to decrypt for edit:", err);
@@ -194,13 +199,13 @@ export function EnvironmentVariables({
   }
 
   async function handleSaveEdit() {
-    if (!derivedKey || !editName.trim() || !editValue.trim()) return;
+    if (!derivedKey || !editName.trim() || !editValue.trim() || !editingVarId) return;
 
     setIsEditSaving(true);
     try {
-      // Save the new/updated variable first
       const { encryptedValue, iv, authTag } = await encrypt(editValue, derivedKey);
       await saveVariable({
+        variableId: editingVarId as Id<"variables">,
         environmentId: environment._id,
         name: editName.trim(),
         encryptedValue,
@@ -208,22 +213,14 @@ export function EnvironmentVariables({
         authTag,
       });
 
-      if (editOriginalName !== editName.trim()) {
-        const oldVar = variables?.find((v) => v.name === editOriginalName);
-        if (oldVar) {
-          await removeVariable({ id: oldVar._id as Id<"variables"> });
-        }
-      }
-
-      if (editingVarId) {
-        setDecryptedValues((prev) => ({ ...prev, [editingVarId]: editValue }));
-      }
+      setDecryptedValues((prev) => ({ ...prev, [editingVarId]: editValue }));
       setEditingVarId(null);
       setEditName("");
       setEditValue("");
-      setEditOriginalName("");
-    } catch (err) {
+      toast.success("Variable updated successfully");
+    } catch (err: any) {
       console.error("Failed to update:", err);
+      toast.error(err.data || "Failed to update variable");
     } finally {
       setIsEditSaving(false);
     }
@@ -233,15 +230,16 @@ export function EnvironmentVariables({
     setEditingVarId(null);
     setEditName("");
     setEditValue("");
-    setEditOriginalName("");
   }
 
   async function handleDelete(varId: Id<"variables">) {
     if (!confirm("Delete this variable?")) return;
     try {
       await removeVariable({ id: varId });
+      toast.success("Variable deleted");
     } catch (err: any) {
-      console.error("Failed to delete variable:", err?.message);
+      console.error("Failed to delete variable:", err?.data);
+      toast.error("Failed to delete variable");
     }
   }
 
@@ -274,45 +272,33 @@ export function EnvironmentVariables({
   }
 
   async function handleBulkEditSave(
-    updates: { name: string; value: string; originalName?: string }[],
+    updates: { id?: string; name: string; value: string; originalName?: string }[],
     deletes: string[]
   ) {
     if (!derivedKey) return;
 
     setIsBulkEditSaving(true);
     try {
-      // Track which original names need deletion after saving new values
-      const renamesToDelete: string[] = [];
-
-      // First, save all updates (this preserves data if any save fails)
+      // First, save all updates/creates
       for (const u of updates) {
         const { encryptedValue, iv, authTag } = await encrypt(u.value, derivedKey);
         await saveVariable({
+          variableId: u.id as Id<"variables"> | undefined,
           environmentId: environment._id,
           name: u.name,
           encryptedValue,
           iv,
           authTag,
         });
-
-        // If name changed, mark old name for deletion
-        if (u.originalName && u.originalName !== u.name) {
-          renamesToDelete.push(u.originalName);
-        }
       }
 
       // Now delete explicitly removed variables
-      for (const name of deletes) {
-        const v = variables?.find((v) => v.name === name);
-        if (v) await removeVariable({ id: v._id as Id<"variables"> });
-      }
-
-      for (const oldName of renamesToDelete) {
-        const oldVar = variables?.find((v) => v.name === oldName);
-        if (oldVar) await removeVariable({ id: oldVar._id as Id<"variables"> });
+      for (const id of deletes) {
+        await removeVariable({ id: id as Id<"variables"> });
       }
     } catch (err) {
       console.error("Failed to bulk edit:", err);
+      toast.error("Failed to save changes. Some variables may not have been updated.");
     } finally {
       setIsBulkEditSaving(false);
     }
@@ -361,8 +347,10 @@ export function EnvironmentVariables({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            {filteredVariables?.length ?? 0} variable
-            {(filteredVariables?.length ?? 0) !== 1 ? "s" : ""}
+            {filteredVariables?.length ?? 0} /{" "}
+            {ROLE_LIMITS[(platformRole as PlatformRole) || "user"]?.maxVariablesPerEnvironment ||
+              "∞"}{" "}
+            variables
             {searchQuery && ` (filtered from ${variables.length})`}
           </p>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -423,18 +411,20 @@ export function EnvironmentVariables({
                       </DropdownMenuItem>
                     )}
 
-                    <ShareDialog
-                      variables={variables}
-                      environment={environment}
-                      derivedKey={derivedKey}
-                      createShare={createShare}
-                      trigger={
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2">
-                          <Share2 className="h-4 w-4 text-primary" />
-                          Share Secrets
-                        </DropdownMenuItem>
-                      }
-                    />
+                    {variables.length > 0 && (
+                      <ShareDialog
+                        variables={variables}
+                        environment={environment}
+                        derivedKey={derivedKey}
+                        createShare={createShare}
+                        trigger={
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2">
+                            <Share2 className="h-4 w-4 text-primary" />
+                            Share Secrets
+                          </DropdownMenuItem>
+                        }
+                      />
+                    )}
                   </>
                 )}
               </DropdownMenuContent>
@@ -469,6 +459,13 @@ export function EnvironmentVariables({
             }}
             isSaving={isSaving}
             isNew
+            onBulkPaste={(text) => {
+              setShowNewVar(false);
+              setNewName("");
+              setNewValue("");
+              setShowBulkAdd(true);
+              setBulkPasteText(text);
+            }}
           />
         )}
         {(filteredVariables ?? []).map((variable) =>
@@ -521,6 +518,8 @@ export function EnvironmentVariables({
         onAdd={handleBulkAdd}
         isSaving={isBulkSaving}
         progress={bulkProgress}
+        initialText={bulkPasteText}
+        onClearInitialText={() => setBulkPasteText("")}
       />
 
       {/* Bulk Edit Dialog */}

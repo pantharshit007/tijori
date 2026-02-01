@@ -227,10 +227,12 @@ For sensitive operations like key rotation, a multi-step dialog provides:
 
 ```tsx
 // Example pattern: step-based dialog state
-const [rotationStep, setRotationStep] = useState<'verify' | 'update'>('verify')
+const [rotationStep, setRotationStep] = useState<"verify" | "update">("verify");
 
 // Step 1: Verify, Step 2: Update
-{rotationStep === 'verify' ? <VerifyForm /> : <UpdateForm />}
+{
+  rotationStep === "verify" ? <VerifyForm /> : <UpdateForm />;
+}
 ```
 
 #### Client-Side Hash Verification
@@ -239,15 +241,16 @@ Since we store only the **hash** of the master key (not the plaintext), verifica
 
 ```typescript
 // Hash entered key with stored salt
-const enteredHash = await hash(currentMasterKey, user.masterKeySalt)
+const enteredHash = await hash(currentMasterKey, user.masterKeySalt);
 
 // Compare with stored hash
 if (enteredHash !== user.masterKeyHash) {
-  throw new Error('Incorrect master key')
+  throw new Error("Incorrect master key");
 }
 ```
 
 **Security Note**: This pattern is safe because:
+
 - The salt and hash are already in the client (loaded via `useQuery`)
 - No secret data is exposed - the hash is designed to be public
 - The actual plaintext master key never leaves the browser
@@ -267,33 +270,40 @@ When rotating a key that encrypts other secrets (like the Master Key encrypting 
 
 ```typescript
 // 1. Fetch all affected records
-const projects = await listOwned()
+const projects = await listOwned();
 
 // 2. For each record:
 for (const project of projects) {
   // Decrypt with OLD key
-  const oldKey = await deriveKey(oldMasterKey, project.passcodeSalt)
+  const oldKey = await deriveKey(oldMasterKey, project.passcodeSalt);
   const plainPasscode = await decrypt(
     project.encryptedPasscode,
     project.iv,
     project.authTag,
     oldKey
-  )
+  );
 
   // Re-encrypt with NEW key (and fresh salt!)
-  const newSalt = generateSalt()
-  const newKey = await deriveKey(newMasterKey, newSalt)
-  const { encryptedValue, iv, authTag } = await encrypt(plainPasscode, newKey)
+  const newSalt = generateSalt();
+  const newKey = await deriveKey(newMasterKey, newSalt);
+  const { encryptedValue, iv, authTag } = await encrypt(plainPasscode, newKey);
 
   // Collect updates
-  updates.push({ projectId, encryptedPasscode: encryptedValue, passcodeSalt: newSalt, iv, authTag })
+  updates.push({
+    projectId,
+    encryptedPasscode: encryptedValue,
+    passcodeSalt: newSalt,
+    iv,
+    authTag,
+  });
 }
 
 // 3. Batch update atomically
-await batchUpdatePasscodes({ updates })
+await batchUpdatePasscodes({ updates });
 ```
 
 **Key Points**:
+
 - Generate a **fresh salt** for each re-encrypted item (better security)
 - Batch the database updates for atomicity
 - Client-side re-encryption means server never sees plaintext
@@ -303,21 +313,22 @@ await batchUpdatePasscodes({ updates })
 For multi-step operations, use a step-based state machine:
 
 ```typescript
-const [step, setStep] = useState<'verify' | 'update' | 'processing'>('verify')
-const [progress, setProgress] = useState(0)
-const [status, setStatus] = useState('')
+const [step, setStep] = useState<"verify" | "update" | "processing">("verify");
+const [progress, setProgress] = useState(0);
+const [status, setStatus] = useState("");
 
 // In processing step:
 for (let i = 0; i < items.length; i++) {
-  setStatus(`Processing: ${items[i].name}...`)
-  setProgress(Math.round(((i + 0.5) / total) * 100))
+  setStatus(`Processing: ${items[i].name}...`);
+  setProgress(Math.round(((i + 0.5) / total) * 100));
   // ... do work
 }
-setProgress(100)
-setStatus('Complete!')
+setProgress(100);
+setStatus("Complete!");
 ```
 
 This provides:
+
 - Real-time feedback during potentially slow operations
 - User confidence that the app isn't frozen
 - Clear indication of what's happening
@@ -325,14 +336,17 @@ This provides:
 ### Critical: Shared Salt Architecture Warning ⚠️
 
 In Tijori, `passcodeSalt` is used for **two purposes**:
+
 1. Deriving the recovery key (from Master Key) for `encryptedPasscode`
 2. Hashing the 6-digit passcode for verification (`passcodeHash`)
 
 **Problem**: If you change the salt during any operation, you MUST update BOTH:
+
 - `encryptedPasscode` (re-encrypt)
 - `passcodeHash` (re-compute)
 
 **Failure mode**: If only one is updated, the other becomes invalid:
+
 - If only `encryptedPasscode` is updated → Passcode verification fails on unlock
 - If only `passcodeHash` is updated → Passcode recovery fails
 
@@ -347,7 +361,64 @@ In Tijori, `passcodeSalt` is used for **two purposes**:
 
 ---
 
-## 2026-01-21 - Phase 6
+## 2026-01-28 - Quota Document Pattern
+
+### Why Quota Documents?
+
+Count-based limit checks (e.g., `Collection.length >= limit`) are susceptible to race conditions. Two concurrent requests may both see `used = 4`, pass the `< 5` check, and both insert—resulting in 6 items instead of the max 5.
+
+### The Quota Document Pattern
+
+Instead of counting documents on every mutation, we maintain a `quotas` table with pre-computed usage:
+
+```typescript
+// Schema
+quotas: defineTable({
+  projectId: v.id("projects"),
+  resourceType: v.union(
+    v.literal("environments"),
+    v.literal("members"),
+    v.literal("sharedSecrets")
+  ),
+  used: v.number(),
+  limit: v.number(),
+}).index("by_project_resource", ["projectId", "resourceType"]);
+```
+
+### Atomic Operations
+
+1. **Before insert**: Read quota doc, check `used < limit`
+2. **After insert**: Patch the same doc to increment `used`
+3. **Convex's OCC**: If two mutations read the same version, the second `patch` will conflict and retry
+
+```typescript
+const quota = await ctx.db.query("quotas")
+  .withIndex("by_project_resource", (q) =>
+    q.eq("projectId", args.projectId).eq("resourceType", "environments")
+  ).unique();
+
+if (quota.used >= quota.limit) {
+  throw new ConvexError("Limit reached");
+}
+
+await ctx.db.insert("environments", { ... });
+await ctx.db.patch(quota._id, { used: quota.used + 1 }); // Atomic increment
+```
+
+### Migration Strategy
+
+- **New projects**: Create quota docs on project creation
+- **Existing projects**: Run admin migration mutation to backfill
+- **Fallback**: Keep count-based check as fallback if quota doc doesn't exist
+
+### Tradeoffs
+
+| Approach    | Pros                         | Cons                         |
+| ----------- | ---------------------------- | ---------------------------- |
+| Count-based | Simple, always accurate      | Race conditions, N+1 queries |
+| Quota docs  | Concurrent-safe, single read | Requires sync on delete/add  |
+
+---
 
 ### Role-Based Access Control (RBAC) Implementation
 
@@ -359,14 +430,14 @@ Conditionally render UI elements based on user role:
 
 ```tsx
 // Only show for owners and admins
-{(userRole === "owner" || userRole === "admin") && (
-  <ShareButton />
-)}
+{
+  (userRole === "owner" || userRole === "admin") && <ShareButton />;
+}
 
 // Only show for owners
-{userRole === "owner" && (
-  <DeleteProjectButton />
-)}
+{
+  userRole === "owner" && <DeleteProjectButton />;
+}
 ```
 
 #### Backend Authorization
@@ -374,10 +445,9 @@ Conditionally render UI elements based on user role:
 Always validate permissions in mutations, even if UI hides the action:
 
 ```typescript
-const membership = await ctx.db.query("projectMembers")
-  .withIndex("by_project_user", (q) => 
-    q.eq("projectId", args.projectId).eq("userId", userId)
-  )
+const membership = await ctx.db
+  .query("projectMembers")
+  .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
   .unique();
 
 if (!membership || membership.role === "member") {
@@ -398,6 +468,7 @@ encryptedPasscode = AES_Encrypt(passcode, deriveKey(ownerMasterKey, passcodeSalt
 ```
 
 **Implications**:
+
 1. Only the owner can recover the passcode (they need their master key)
 2. Admins and members cannot recover the passcode - they must ask the owner
 3. If a project is transferred (owner changed), the new owner would need to re-encrypt the passcode with their master key
@@ -405,11 +476,9 @@ encryptedPasscode = AES_Encrypt(passcode, deriveKey(ownerMasterKey, passcodeSalt
 **UI Pattern**: Only show "Forgot Passcode?" for owners:
 
 ```tsx
-{userRole === "owner" && (
-  <Button onClick={onForgotPasscode}>
-    Forgot Passcode?
-  </Button>
-)}
+{
+  userRole === "owner" && <Button onClick={onForgotPasscode}>Forgot Passcode?</Button>;
+}
 ```
 
 ### Leave Project Pattern
@@ -417,19 +486,20 @@ encryptedPasscode = AES_Encrypt(passcode, deriveKey(ownerMasterKey, passcodeSalt
 Non-owners need a way to remove themselves from projects they no longer want access to:
 
 **Backend**:
+
 ```typescript
 export const leaveProject = mutation({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
     const membership = await getMembership(ctx, args.projectId);
-    
+
     // Owners cannot leave their own project
     if (membership.role === "owner") {
       throw new Error("Owners cannot leave. Transfer ownership or delete instead.");
     }
-    
+
     await ctx.db.delete(membership._id);
-  }
+  },
 });
 ```
 
@@ -457,8 +527,9 @@ When implementing theme switching (dark/light/system):
 1. **Prevent Flash of Unstyled Content (FOUC)**: Add an inline script in `<head>` that runs before React hydrates:
 
 ```tsx
-<script dangerouslySetInnerHTML={{
-  __html: `
+<script
+  dangerouslySetInnerHTML={{
+    __html: `
     (function() {
       const stored = localStorage.getItem('theme');
       const theme = stored || 'dark';
@@ -467,8 +538,9 @@ When implementing theme switching (dark/light/system):
         : theme;
       document.documentElement.classList.add(resolved);
     })();
-  `
-}} />
+  `,
+  }}
+/>
 ```
 
 2. **Use `suppressHydrationWarning`**: Add to `<html>` element to prevent React warnings about class mismatch between server and client.
@@ -491,7 +563,7 @@ return allSharedSecrets.map((s) => {
   const userRole = roleMap.get(s.projectId) || null;
   const isOwner = userRole === "owner";
   const isCreator = s.createdBy === user._id;
-  
+
   // canManage = owner OR creator with admin rights
   const canManage = isOwner || (isCreator && (userRole === "owner" || userRole === "admin"));
 
@@ -507,11 +579,13 @@ return allSharedSecrets.map((s) => {
 **Frontend usage:**
 
 ```tsx
-{share.canManage ? (
-  <DropdownMenuItem onClick={handleEdit}>Edit</DropdownMenuItem>
-) : (
-  <DropdownMenuItem disabled>View Only</DropdownMenuItem>
-)}
+{
+  share.canManage ? (
+    <DropdownMenuItem onClick={handleEdit}>Edit</DropdownMenuItem>
+  ) : (
+    <DropdownMenuItem disabled>View Only</DropdownMenuItem>
+  );
+}
 ```
 
 **Key Insight**: Always compute permissions on the backend and pass them to the frontend. Never derive permissions solely on the frontend from other flags - the backend is the source of truth.
@@ -529,7 +603,8 @@ return allSharedSecrets.map((s) => {
 const membership = await getMembership(ctx, sharedSecret.projectId);
 
 // Demoted creator cannot manage
-const canManage = membership.role === "owner" || 
+const canManage =
+  membership.role === "owner" ||
   (sharedSecret.createdBy === user._id && membership.role === "admin");
 
 if (!canManage) {
@@ -555,3 +630,106 @@ const allShares = dedupe([...userShares, ...ownerShares]);
 
 **Result**: The creator sees their share to monitor it, the owner sees it to govern it.
 
+---
+
+## 2026-01-26 - Owner-Based Limits Refactor
+
+### Tying Limits to Resource Owner
+
+In a collaborative platform, limits should be enforced based on the **Project Owner's** tier, not the acting user's tier. This ensures:
+
+1.  **Fairness**: A free-tier user invited to a Pro-tier project should enjoy Pro-tier limits within that project.
+2.  **Consistency**: The project's capacity doesn't change depending on who is performing the action.
+3.  **Monetization**: The owner is the one who pays for the capacity and governs the project.
+
+### Implementation Pattern: `getProjectOwnerLimits`
+
+We centralize the limit retrieval by project:
+
+```typescript
+export async function getProjectOwnerLimits(ctx, projectId) {
+  const project = await ctx.db.get(projectId);
+  const owner = await ctx.db.get(project.ownerId);
+  return getRoleLimits(owner.platformRole);
+}
+```
+
+### UI Consistency
+
+The frontend must also display limits based on the project owner's role. This requires:
+
+- Passing the owner's role from the backend in project-related queries.
+- Distinguishing between the acting user's role (for permission checks) and the project owner's role (for limit display).
+
+### New Limits Added
+
+- **Indefinite Shares**: Restricted to Pro+ tiers. Checked in `create` and `updateExpiry`.
+- **Variables Count**: Restricted per environment based on owner tier. Checked in `save`.
+
+### Profile UI Refinement
+
+On a global profile page, per-project counts (like environments or members) can be misleading against per-project limits. It's better to show project-wide counts only for global limits (like `maxProjects`) and show only the allowed limits for per-project features.
+
+---
+
+## 2026-02-01 - Convex Query Invalidation & Plan Enforcement
+
+### Convex Query Reactivity Is Table-Based
+
+Convex automatically re-runs queries when their underlying data changes, but **invalidation is based on which tables the query reads from**, not which specific documents.
+
+**Scenario**: A query reads from `users`, `projects`, and `quotas` tables. When a mutation updates the `quotas` table, you'd expect the query to re-run—but it may not always trigger as expected.
+
+**Why**: Convex's caching is optimized and may not invalidate for every table change, especially in dev mode.
+
+**Solution**: For critical state updates (like clearing plan enforcement flags), **explicitly update the primary table the UI depends on** within the mutation:
+
+```typescript
+// In deleteEnvironment mutation:
+// 1. Update quotas (decrement count)
+await ctx.db.patch(quota._id, { used: quota.used - 1 });
+
+// 2. Also update users table to trigger query re-run
+await checkAndClearPlanEnforcementFlag(ctx, project.ownerId);
+// This patches `users` table → getPlanEnforcementStatus re-runs → UI updates
+```
+
+**Key Insight**: If your query reads from table A but you want it to re-run when table B changes, have your mutation also write to table A (even if just clearing a flag).
+
+### Deactivated Users in Quota Counting
+
+When counting resources toward quota limits, consider how deactivated users should be handled:
+
+| Scenario                 | Option A: Don't Count     | Option B: Always Count |
+| ------------------------ | ------------------------- | ---------------------- |
+| 3 members, 1 deactivated | Count = 2, can add 1 more | Count = 3, at limit    |
+| User reactivated         | No change needed          | No change needed       |
+| Complexity               | High (sync on deactivate) | Low (simple)           |
+
+**Decision**: We have gone with **Option B** (always count deactivated members toward the limit).
+
+- In the member list UI, deactivated members will have their avatar/logo shown in grey, with a tooltip indicating they are deactivated.
+- Owners can explicitly remove deactivated members.
+- This gives owners control without complex automatic behavior.
+
+**Rationale**: A deactivated user might be reactivated later (temporary suspension). Automatic quota changes on deactivation/reactivation could cause unexpected limit violations.
+
+### Guards for Deactivated Users
+
+Always add deactivation checks early in handlers, before business logic:
+
+```typescript
+export const getPlanEnforcementStatus = query({
+  handler: async (ctx) => {
+    const user = await getUser(ctx);
+    if (!user) return null;
+
+    // Deactivated users should not see enforcement UI
+    if (user.isDeactivated) return null;
+
+    // ... rest of logic
+  },
+});
+```
+
+This ensures deactivated users don't see or interact with features meant for active accounts.
