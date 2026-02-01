@@ -650,7 +650,7 @@ We centralize the limit retrieval by project:
 export async function getProjectOwnerLimits(ctx, projectId) {
   const project = await ctx.db.get(projectId);
   const owner = await ctx.db.get(project.ownerId);
-  return getRoleLimits(owner.platformRole);
+  return getTierLimits(owner.tier);
 }
 ```
 
@@ -780,3 +780,48 @@ To:
 `WARN: [FORBIDDEN:403] { "code": 403, "type": "FORBIDDEN", "message": "Access denied", "user_id": "...", "project_id": "..." }`
 
 This provides immediate, actionable data for every failure without needing to add extra `console.log` statements during incident response.
+
+---
+
+## 2026-02-01 - Renaming `platformRole` to `tier`
+
+### The Refactoring
+
+We decided to rename `platformRole` to `tier` throughout the codebase for clarity. The term "tier" better represents subscription levels (free, pro, pro_plus, super_admin) than "role," which could be confused with project-level roles (owner, admin, member).
+
+### Naming Changes
+
+| Old Name | New Name |
+|----------|----------|
+| `platformRole` (field) | `tier` |
+| `PlatformRole` (type) | `Tier` |
+| `ROLE_LIMITS` | `TIER_LIMITS` |
+| `RoleLimits` (interface) | `TierLimits` |
+| `getRoleLimits()` | `getTierLimits()` |
+| `"user"` (tier value) | `"free"` |
+| `ownerPlatformRole` | `ownerTier` |
+
+### Migration Strategy
+
+Since this project is dev-only (not in production), we used a simple migration approach:
+
+1. **Update Schema**: Changed field name and made it temporarily optional during transition
+2. **Temporary Migration Mutation**: Created `migratePlatformRoleToTier` mutation callable from admin dashboard
+3. **Migration Logic**: `"user"` → `"free"`, all other values copied as-is
+4. **Post-Migration Cleanup**: Removed migration code and made `tier` required again
+
+### Key Takeaways
+
+1. **Schema Field Renaming**: When renaming a field with existing data:
+   - Keep both fields temporarily (old as optional, new as optional)
+   - Create a one-time migration to copy values
+   - Remove old field after migration
+   - Make new field required
+
+2. **Type-Safe Migrations**: Use schema types when accessing fields to catch typos at compile time
+
+3. **Admin-Only Migrations**: Gate data migrations behind admin checks to prevent accidental triggers
+
+4. **Semantic Naming**: Choose field names that clearly express intent:
+   - `tier` = subscription level (free, pro, pro_plus)
+   - `role` = project permissions (owner, admin, member)

@@ -9,8 +9,8 @@ export default defineSchema({
     image: v.optional(v.string()),
     masterKeyHash: v.optional(v.string()),
     masterKeySalt: v.optional(v.string()),
-    platformRole: v.union(
-      v.literal("user"),
+    tier: v.union(
+      v.literal("free"),
       v.literal("pro"),
       v.literal("pro_plus"),
       v.literal("super_admin")

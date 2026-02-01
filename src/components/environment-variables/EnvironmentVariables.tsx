@@ -14,7 +14,7 @@ import {
   Search,
   Share2,
 } from "lucide-react";
-import { ROLE_LIMITS } from "../../../convex/lib/roleLimits";
+import { TIER_LIMITS } from "../../../convex/lib/roleLimits";
 import { api } from "../../../convex/_generated/api";
 import { ShareDialog } from "../share-dialog";
 import { VariableRow } from "./VariableRow";
@@ -22,7 +22,7 @@ import { VariableEditRow } from "./VariableEditRow";
 import { BulkAddDialog } from "./BulkAddDialog";
 import { BulkEditDialog } from "./BulkEditDialog";
 import { useVariableActions } from "./useVariableActions";
-import type { PlatformRole } from "../../../convex/lib/roleLimits";
+import type { Tier } from "../../../convex/lib/roleLimits";
 import type { Id } from "../../../convex/_generated/dataModel";
 
 import type { EnvironmentVariablesProps, ParsedVariable } from "@/lib/types";
@@ -55,7 +55,7 @@ export function EnvironmentVariables({
   environment,
   derivedKey,
   userRole,
-  platformRole,
+  ownerTier,
 }: EnvironmentVariablesProps) {
   const variables = useQuery(api.variables.list, { environmentId: environment._id });
   const saveVariable = useMutation(api.variables.save);
@@ -349,7 +349,7 @@ export function EnvironmentVariables({
         <div className="flex items-center gap-4">
           <p className="text-sm text-muted-foreground">
             {filteredVariables?.length ?? 0} /{" "}
-            {ROLE_LIMITS[(platformRole as PlatformRole) || "user"]?.maxVariablesPerEnvironment ||
+            {TIER_LIMITS[(ownerTier as Tier) || "free"]?.maxVariablesPerEnvironment ||
               "∞"}{" "}
             variables
             {searchQuery && ` (filtered from ${variables.length})`}

@@ -34,7 +34,7 @@
 - [ ] re-check save mutation thoroughly in @convex/variable.ts, seems something is wrong there.
 - [ ] update the field in per environment so that it shows in UI the last updated by User (who updated the env vars last)
 - [ ] check if Bulk add dialog and Bulk edit dialog can use a common logic instead of duplicating the code.
-- [ ] update `platformRole` to `tier` in the user table, and update the UI and everyother place that uses it accordingly, do proper migration and cross-check, no issue regarding existing user since this is not on prod yet (dev only). [here user role -> free tier]
+- [x] update `platformRole` to `tier` in the user table, and update the UI and everyother place that uses it accordingly, do proper migration and cross-check, no issue regarding existing user since this is not on prod yet (dev only). [here user role -> free tier]
 
 ---
 

@@ -3,11 +3,11 @@ import { mutation, query } from "./_generated/server";
 import {
   checkAndClearPlanEnforcementFlag,
   getProjectOwnerLimits,
-  getRoleLimits,
+  getTierLimits,
 } from "./lib/roleLimits";
-import type { QueryCtx } from "./_generated/server";
-import type { PlatformRole } from "./lib/roleLimits";
 import { throwError } from "./lib/errors";
+import type { QueryCtx } from "./_generated/server";
+import type { Tier } from "./lib/roleLimits";
 
 /**
  * Helper to get the current user ID or throw.
@@ -68,8 +68,8 @@ export const create = mutation({
       throwError("Master key not configured. Please set it in Settings.", "BAD_REQUEST", 400, { user_id: user._id });
     }
 
-    // Check role-based project limit
-    const limits = getRoleLimits(user.platformRole as PlatformRole | undefined);
+    // Check tier-based project limit
+    const limits = getTierLimits(user.tier as Tier | undefined);
     const existingProjects = await ctx.db
       .query("projects")
       .withIndex("by_ownerId", (q) => q.eq("ownerId", user._id))
@@ -192,13 +192,13 @@ export const get = query({
       throwError("Project not found", "NOT_FOUND", 404, { user_id: userId, project_id: args.projectId });
     }
 
-    // Fetch owner's platformRole for frontend limit display
+    // Fetch owner's tier for frontend limit display
     const owner = await ctx.db.get(project.ownerId);
 
     return {
       ...project,
       role: membership.role,
-      ownerPlatformRole: owner?.platformRole ?? "user",
+      ownerTier: owner?.tier ?? "free",
     };
   },
 });

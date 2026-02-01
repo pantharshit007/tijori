@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { ROLE_LIMITS } from "./lib/roleLimits";
-import type { PlatformRole } from "./lib/roleLimits";
+import { TIER_LIMITS } from "./lib/roleLimits";
 import { throwError } from "./lib/errors";
+import type { Tier } from "./lib/roleLimits";
 
 /**
  * Sync or create a user profile from Clerk.
@@ -53,7 +53,7 @@ export const store = mutation({
       name,
       email: args.email.toLowerCase(),
       image: args.image,
-      platformRole: "user",
+      tier: "free",
     });
   },
 });
@@ -141,7 +141,7 @@ export const getUsageStats = query({
 
     return {
       projectsCount: projects.length,
-      role: user.platformRole,
+      tier: user.tier,
     };
   },
 });
@@ -172,8 +172,8 @@ export const getPlanEnforcementStatus = query({
       return { exceedsPlanLimits: false };
     }
 
-    const role = (user.platformRole || "user") as PlatformRole;
-    const limits = ROLE_LIMITS[role];
+    const tier = (user.tier || "free") as Tier;
+    const limits = TIER_LIMITS[tier];
 
     // Count owned projects
     const projects = await ctx.db
@@ -236,7 +236,7 @@ export const getPlanEnforcementStatus = query({
         maxMembersPerProject: limits.maxMembersPerProject,
         maxSharedSecretsPerProject: limits.maxSharedSecretsPerProject,
       },
-      tierName: role === "user" ? "Free" : role === "pro" ? "Pro" : role === "pro_plus" ? "Pro+" : "Admin",
+      tierName: tier === "free" ? "Free" : tier === "pro" ? "Pro" : tier === "pro_plus" ? "Pro+" : "Admin",
     };
   },
 });
@@ -268,8 +268,8 @@ export const checkAndClearExceedsPlanLimits = mutation({
       return { cleared: false, wasAlreadyClear: true };
     }
 
-    const role = (user.platformRole || "user") as PlatformRole;
-    const limits = ROLE_LIMITS[role];
+    const tier = (user.tier || "free") as Tier;
+    const limits = TIER_LIMITS[tier];
 
     // Count owned projects (only need IDs)
     const projects = await ctx.db

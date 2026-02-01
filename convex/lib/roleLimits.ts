@@ -1,8 +1,8 @@
 /**
- * Platform Role Limits
+ * User Tier Limits
  *
- * Defines the feature limits for each user role tier.
- * - user: Free tier (default)
+ * Defines the feature limits for each user tier.
+ * - free: Free tier (default)
  * - pro: Paid tier
  * - pro_plus: Premium paid tier
  * - super_admin: Unlimited access
@@ -10,9 +10,9 @@
 
 import type { Id } from "../_generated/dataModel";
 
-export type PlatformRole = "user" | "pro" | "pro_plus" | "super_admin";
+export type Tier = "free" | "pro" | "pro_plus" | "super_admin";
 
-export interface RoleLimits {
+export interface TierLimits {
   maxProjects: number;
   maxEnvironmentsPerProject: number;
   maxMembersPerProject: number;
@@ -21,8 +21,8 @@ export interface RoleLimits {
   canCreateIndefiniteShares: boolean;
 }
 
-export const ROLE_LIMITS: Record<PlatformRole, RoleLimits> = {
-  user: {
+export const TIER_LIMITS: Record<Tier, TierLimits> = {
+  free: {
     maxProjects: 3,
     maxEnvironmentsPerProject: 2,
     maxMembersPerProject: 3,
@@ -57,22 +57,22 @@ export const ROLE_LIMITS: Record<PlatformRole, RoleLimits> = {
 };
 
 /**
- * Get the limits for a given role.
- * Defaults to 'user' if role is undefined.
+ * Get the limits for a given tier.
+ * Defaults to 'free' if tier is undefined.
  */
-export function getRoleLimits(role?: PlatformRole): RoleLimits {
-  return ROLE_LIMITS[role ?? "user"];
+export function getTierLimits(tier?: Tier): TierLimits {
+  return TIER_LIMITS[tier ?? "free"];
 }
 
 /**
  * Check if a user can perform an action based on their current count.
  */
 export function canPerformAction(
-  role: PlatformRole | undefined,
-  limitKey: keyof RoleLimits,
+  tier: Tier | undefined,
+  limitKey: keyof TierLimits,
   currentCount: number
 ): boolean {
-  const limits = getRoleLimits(role);
+  const limits = getTierLimits(tier);
   const limit = limits[limitKey];
 
   // Boolean limits (like canCreateIndefiniteShares) should be checked directly
@@ -84,24 +84,24 @@ export function canPerformAction(
 }
 
 /**
- * Get the limits for a project based on the owner's platform role.
+ * Get the limits for a project based on the owner's tier.
  * This ensures all collaborators operate under the owner's tier limits.
  */
 export async function getProjectOwnerLimits(
   ctx: { db: any },
   projectId: Id<"projects">
-): Promise<RoleLimits> {
+): Promise<TierLimits> {
   const project = await ctx.db.get(projectId);
   if (!project) {
-    return getRoleLimits("user"); // Fallback to free tier
+    return getTierLimits("free"); // Fallback to free tier
   }
 
   const owner = await ctx.db.get(project.ownerId);
   if (!owner) {
-    return getRoleLimits("user"); // Fallback to free tier
+    return getTierLimits("free"); // Fallback to free tier
   }
 
-  return getRoleLimits(owner.platformRole as PlatformRole | undefined);
+  return getTierLimits(owner.tier as Tier | undefined);
 }
 
 /**
@@ -118,8 +118,8 @@ export async function checkAndClearPlanEnforcementFlag(
     return false;
   }
 
-  const role = (user.platformRole || "user") as PlatformRole;
-  const limits = ROLE_LIMITS[role];
+  const tier = (user.tier || "free") as Tier;
+  const limits = TIER_LIMITS[tier];
 
   const projects = await ctx.db
     .query("projects")

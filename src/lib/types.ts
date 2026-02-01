@@ -71,7 +71,7 @@ export interface EnvironmentVariablesProps {
   environment: Environment;
   derivedKey: CryptoKey | null;
   userRole: "owner" | "admin" | "member";
-  platformRole?: string;
+  ownerTier: string;
 }
 
 export interface ParsedVariable {
