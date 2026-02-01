@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getProjectOwnerLimits } from "./lib/roleLimits";
-import { throwError } from "./lib/errors";
+import { throwError, validateLength } from "./lib/errors";
 import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
@@ -103,6 +103,8 @@ export const save = mutation({
         environment_id: args.environmentId,
       });
     }
+
+    validateLength(args.name, 50, "Variable name");
 
     const now = Date.now();
 

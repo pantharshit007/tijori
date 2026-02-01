@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { checkAndClearPlanEnforcementFlag, getProjectOwnerLimits } from "./lib/roleLimits";
-import { throwError } from "./lib/errors";
+import { throwError, validateLength } from "./lib/errors";
 import type { Id } from "./_generated/dataModel";
 
 /**
@@ -31,6 +31,8 @@ export const create = mutation({
       throwError("expiresAt is required for non-indefinite shares", "BAD_REQUEST", 400);
     }
     const normalizedExpiresAt = args.isIndefinite ? undefined : args.expiresAt;
+    
+    validateLength(args.name, 100, "Secret name");
 
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { TIER_LIMITS } from "./lib/roleLimits";
-import { throwError } from "./lib/errors";
+import { throwError, validateLength } from "./lib/errors";
 import type { Tier } from "./lib/roleLimits";
 
 /**
@@ -19,6 +19,9 @@ export const store = mutation({
     if (!identity) {
       throwError("Called storeUser without authentication identity", "UNAUTHENTICATED", 401);
     }
+
+    validateLength(args.name, 50, "Name");
+    validateLength(args.email, 100, "Email");
 
     // Check if the user already exists
     const user = await ctx.db
@@ -193,13 +196,19 @@ export const getPlanEnforcementStatus = query({
         .collect();
 
       for (const quota of quotas) {
-        if (quota.resourceType === "environments" && quota.used > limits.maxEnvironmentsPerProject) {
+        if (
+          quota.resourceType === "environments" &&
+          quota.used > limits.maxEnvironmentsPerProject
+        ) {
           projectsExceedingEnvLimits++;
         }
         if (quota.resourceType === "members" && quota.used > limits.maxMembersPerProject) {
           projectsExceedingMemberLimits++;
         }
-        if (quota.resourceType === "sharedSecrets" && quota.used > limits.maxSharedSecretsPerProject) {
+        if (
+          quota.resourceType === "sharedSecrets" &&
+          quota.used > limits.maxSharedSecretsPerProject
+        ) {
           projectsExceedingSecretLimits++;
         }
       }
@@ -222,7 +231,10 @@ export const getPlanEnforcementStatus = query({
       exceedsPlanLimits: true,
       planEnforcementDeadline: user.planEnforcementDeadline,
       daysRemaining: user.planEnforcementDeadline
-        ? Math.max(0, Math.ceil((user.planEnforcementDeadline - Date.now()) / (24 * 60 * 60 * 1000)))
+        ? Math.max(
+            0,
+            Math.ceil((user.planEnforcementDeadline - Date.now()) / (24 * 60 * 60 * 1000))
+          )
         : 0,
       currentUsage: {
         projects: projects.length,
@@ -236,7 +248,8 @@ export const getPlanEnforcementStatus = query({
         maxMembersPerProject: limits.maxMembersPerProject,
         maxSharedSecretsPerProject: limits.maxSharedSecretsPerProject,
       },
-      tierName: tier === "free" ? "Free" : tier === "pro" ? "Pro" : tier === "pro_plus" ? "Pro+" : "Admin",
+      tierName:
+        tier === "free" ? "Free" : tier === "pro" ? "Pro" : tier === "pro_plus" ? "Pro+" : "Admin",
     };
   },
 });
@@ -289,7 +302,10 @@ export const checkAndClearExceedsPlanLimits = mutation({
           .collect();
 
         for (const quota of quotas) {
-          if (quota.resourceType === "environments" && quota.used > limits.maxEnvironmentsPerProject) {
+          if (
+            quota.resourceType === "environments" &&
+            quota.used > limits.maxEnvironmentsPerProject
+          ) {
             stillExceeds = true;
             break;
           }
@@ -297,7 +313,10 @@ export const checkAndClearExceedsPlanLimits = mutation({
             stillExceeds = true;
             break;
           }
-          if (quota.resourceType === "sharedSecrets" && quota.used > limits.maxSharedSecretsPerProject) {
+          if (
+            quota.resourceType === "sharedSecrets" &&
+            quota.used > limits.maxSharedSecretsPerProject
+          ) {
             stillExceeds = true;
             break;
           }

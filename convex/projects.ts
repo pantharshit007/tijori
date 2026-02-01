@@ -5,7 +5,7 @@ import {
   getProjectOwnerLimits,
   getTierLimits,
 } from "./lib/roleLimits";
-import { throwError } from "./lib/errors";
+import { throwError, validateLength } from "./lib/errors";
 import type { QueryCtx } from "./_generated/server";
 import type { Tier } from "./lib/roleLimits";
 
@@ -85,6 +85,10 @@ export const create = mutation({
         { user_id: user._id }
       );
     }
+
+    validateLength(args.name, 50, "Project name");
+    validateLength(args.description, 200, "Description");
+    validateLength(args.passcodeHint, 75, "Passcode hint");
 
     const now = Date.now();
 
@@ -714,6 +718,10 @@ export const updateProject = mutation({
         project_id: args.projectId,
       });
     }
+
+    validateLength(args.name, 50, "Project name");
+    validateLength(args.description, 200, "Description");
+    validateLength(args.passcodeHint, 100, "Passcode hint");
 
     // Build update object
     const updates: Record<string, any> = { updatedAt: Date.now() };

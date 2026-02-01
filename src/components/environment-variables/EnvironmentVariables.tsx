@@ -46,6 +46,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 /**
  * Main EnvironmentVariables component.
@@ -96,6 +106,9 @@ export function EnvironmentVariables({
   // Bulk edit
   const [showBulkEdit, setShowBulkEdit] = useState(false);
   const [isBulkEditSaving, setIsBulkEditSaving] = useState(false);
+
+  // Delete confirmation
+  const [deletingVarId, setDeletingVarId] = useState<Id<"variables"> | null>(null);
 
   // Search and sort
   const [searchQuery, setSearchQuery] = useState("");
@@ -233,14 +246,21 @@ export function EnvironmentVariables({
     setEditValue("");
   }
 
-  async function handleDelete(varId: Id<"variables">) {
-    if (!confirm("Delete this variable?")) return;
+  function handleDelete(varId: Id<"variables">) {
+    setDeletingVarId(varId);
+  }
+
+  async function confirmDelete() {
+    if (!deletingVarId) return;
+
     try {
-      await removeVariable({ id: varId });
+      await removeVariable({ id: deletingVarId });
       toast.success("Variable deleted");
     } catch (err: any) {
       console.error("Failed to delete variable:", err?.data);
       toast.error(getErrorMessage(err, "Failed to delete variable"));
+    } finally {
+      setDeletingVarId(null);
     }
   }
 
@@ -547,6 +567,36 @@ export function EnvironmentVariables({
           isSaving={isBulkEditSaving}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={deletingVarId !== null}
+        onOpenChange={(open) => !open && setDeletingVarId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the variable{" "}
+              <span className="font-mono font-bold text-foreground">
+                {variables.find((v) => v._id === deletingVarId)?.name}
+              </span>{" "}
+              from the{" "}
+              <span className="font-bold text-foreground">{environment.name}</span>{" "}
+              environment. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Variable
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

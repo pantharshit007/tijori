@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { checkAndClearPlanEnforcementFlag, getProjectOwnerLimits } from "./lib/roleLimits";
-import { throwError } from "./lib/errors";
+import { throwError, validateLength } from "./lib/errors";
 import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
@@ -86,6 +86,9 @@ export const create = mutation({
       throwError("Access denied: Only owners and admins can create environments", "FORBIDDEN", 403, { user_id: userId, project_id: args.projectId });
     }
 
+    validateLength(args.name, 50, "Environment name");
+    validateLength(args.description, 200, "Description");
+
     // Fetch quota document for environments
     const quota = await ctx.db
       .query("quotas")
@@ -165,6 +168,9 @@ export const updateEnvironment = mutation({
     if (role !== "owner" && role !== "admin") {
       throwError("Access denied: Only owners and admins can update environments", "FORBIDDEN", 403, { user_id: userId, project_id: environment.projectId, environment_id: args.environmentId });
     }
+
+    validateLength(args.name, 50, "Environment name");
+    validateLength(args.description, 200, "Description");
 
     // Build update object
     const updates: Record<string, any> = { updatedAt: Date.now(), updatedBy: userId };

@@ -44,3 +44,15 @@ export function throwError(
 
   throw new ConvexError({ message, type, code });
 }
+
+/**
+ * Validates that a string is within a maximum length.
+ * @param val - The string to check.
+ * @param max - Maximum allowed length.
+ * @param fieldName - Name of the field for the error message.
+ */
+export function validateLength(val: string | undefined, max: number, fieldName: string) {
+  if (val && val.length > max) {
+    throwError(`${fieldName} is too long (max ${max} characters)`, "BAD_REQUEST", 400);
+  }
+}
