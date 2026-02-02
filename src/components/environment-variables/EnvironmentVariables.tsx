@@ -14,7 +14,6 @@ import {
   Search,
   Share2,
 } from "lucide-react";
-import { TIER_LIMITS } from "@/lib/role-limits";
 import { api } from "../../../convex/_generated/api";
 import { ShareDialog } from "../share-dialog";
 import { VariableRow } from "./VariableRow";
@@ -25,6 +24,7 @@ import { useVariableActions } from "./useVariableActions";
 import type { Id } from "../../../convex/_generated/dataModel";
 
 import type { EnvironmentVariablesProps, ParsedVariable } from "@/lib/types";
+import { TIER_LIMITS } from "@/lib/role-limits";
 import { variablesToExport } from "@/lib/utils";
 import { decrypt, encrypt } from "@/lib/crypto";
 import { formatRelativeTime } from "@/lib/time";

@@ -1,8 +1,8 @@
 import { v } from "convex/values";
+import { MAX_LENGTHS } from "../src/lib/constants";
 import { mutation, query } from "./_generated/server";
 import { TIER_LIMITS } from "./lib/roleLimits";
 import { throwError, validateLength } from "./lib/errors";
-import { MAX_LENGTHS } from "../src/lib/constants";
 import type { Tier } from "./lib/roleLimits";
 
 /**

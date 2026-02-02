@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import { Check, Clock, Copy, ExternalLink, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Id } from "../../convex/_generated/dataModel";
-import { MAX_LENGTHS } from "@/lib/constants";
 
 import type { ShareExpiryValue } from "@/lib/constants";
 import type { Environment, Variable } from "@/lib/types";
+import { MAX_LENGTHS, SHARE_EXPIRY_OPTIONS  } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { decrypt, deriveKey, encrypt, generateSalt } from "@/lib/crypto";
-import { SHARE_EXPIRY_OPTIONS } from "@/lib/constants";
 import { getErrorMessage } from "@/lib/errors";
 
 export interface ShareDialogProps {

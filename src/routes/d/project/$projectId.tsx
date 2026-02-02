@@ -14,10 +14,10 @@ import {
 } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { MAX_LENGTHS } from "@/lib/constants";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
 import type { Environment } from "@/lib/types";
+import { MAX_LENGTHS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

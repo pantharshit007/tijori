@@ -1,5 +1,5 @@
+import type { Tier } from "./role-limits";
 import type { Id } from "../../convex/_generated/dataModel";
-import { Tier } from "./role-limits";
 
 export interface Environment {
   _id: Id<"environments">;

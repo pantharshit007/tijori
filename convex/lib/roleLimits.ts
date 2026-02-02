@@ -8,14 +8,15 @@
  * - super_admin: Unlimited access
  */
 
-import type { Id } from "../_generated/dataModel";
 import { 
-  Tier, 
-  TierLimits, 
   TIER_LIMITS, 
-  getTierLimits as getTierLimitsShared,
-  canPerformAction as canPerformActionShared
+  canPerformAction as canPerformActionShared,
+  getTierLimits as getTierLimitsShared
 } from "../../src/lib/role-limits";
+import type { 
+  Tier, 
+  TierLimits} from "../../src/lib/role-limits";
+import type { Id } from "../_generated/dataModel";
 
 export type { Tier, TierLimits };
 export { TIER_LIMITS };

@@ -1,5 +1,5 @@
-import { Id } from "convex/_generated/dataModel";
 import { ConvexError } from "convex/values";
+import type { Id } from "convex/_generated/dataModel";
 
 /**
  * Standard error types for the application.
