@@ -1,3 +1,4 @@
+import { Id } from "convex/_generated/dataModel";
 import { ConvexError } from "convex/values";
 
 /**
@@ -19,7 +20,7 @@ export type ErrorType =
 export type ErrorCode = 400 | 401 | 403 | 404 | 409 | 429 | 500;
 
 export interface ErrorContext {
-  user_id?: string;
+  user_id?: Id<"users"> | string;
   project_id?: string;
   environment_id?: string;
 }

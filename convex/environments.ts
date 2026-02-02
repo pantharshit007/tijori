@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { checkAndClearPlanEnforcementFlag, getProjectOwnerLimits } from "./lib/roleLimits";
 import { throwError, validateLength } from "./lib/errors";
+import { FALLBACK_USER_DATA, MAX_LENGTHS } from "../src/lib/constants";
 import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
@@ -27,7 +28,8 @@ async function checkProjectAccess(ctx: QueryCtx, projectId: Id<"projects">) {
     .withIndex("by_project_user", (q: any) => q.eq("projectId", projectId).eq("userId", user._id))
     .unique();
 
-  if (!membership) throwError("Access denied", "FORBIDDEN", 403, { user_id: user._id, project_id: projectId });
+  if (!membership)
+    throwError("Access denied", "FORBIDDEN", 403, { user_id: user._id, project_id: projectId });
 
   return { userId: user._id, role: membership.role, user };
 }
@@ -49,13 +51,11 @@ export const list = query({
     // Join user data for updatedBy
     const environmentsWithUpdater = await Promise.all(
       environments.map(async (env) => {
-        let updaterName: string | undefined;
-        let updaterImage: string | undefined;
-        if (env.updatedBy) {
-          const updater = await ctx.db.get(env.updatedBy);
-          updaterName = updater?.name;
-          updaterImage = updater?.image;
-        }
+        const updater = await ctx.db.get(env.updatedBy);
+
+        const updaterName = updater?.name || FALLBACK_USER_DATA.name;
+        const updaterImage = updater?.image || FALLBACK_USER_DATA.image;
+
         return {
           ...env,
           updaterName,
@@ -83,11 +83,16 @@ export const create = mutation({
     const { userId, role } = await checkProjectAccess(ctx, args.projectId);
 
     if (role !== "owner" && role !== "admin") {
-      throwError("Access denied: Only owners and admins can create environments", "FORBIDDEN", 403, { user_id: userId, project_id: args.projectId });
+      throwError(
+        "Access denied: Only owners and admins can create environments",
+        "FORBIDDEN",
+        403,
+        { user_id: userId, project_id: args.projectId }
+      );
     }
 
-    validateLength(args.name, 50, "Environment name");
-    validateLength(args.description, 200, "Description");
+    validateLength(args.name, MAX_LENGTHS.ENVIRONMENT_NAME, "Environment name");
+    validateLength(args.description, MAX_LENGTHS.ENVIRONMENT_DESCRIPTION, "Description");
 
     // Fetch quota document for environments
     const quota = await ctx.db
@@ -161,16 +166,22 @@ export const updateEnvironment = mutation({
   },
   handler: async (ctx, args) => {
     const environment = await ctx.db.get(args.environmentId);
-    if (!environment) throwError("Environment not found", "NOT_FOUND", 404, { environment_id: args.environmentId });
+    if (!environment)
+      throwError("Environment not found", "NOT_FOUND", 404, { environment_id: args.environmentId });
 
     const { userId, role } = await checkProjectAccess(ctx, environment.projectId);
 
     if (role !== "owner" && role !== "admin") {
-      throwError("Access denied: Only owners and admins can update environments", "FORBIDDEN", 403, { user_id: userId, project_id: environment.projectId, environment_id: args.environmentId });
+      throwError(
+        "Access denied: Only owners and admins can update environments",
+        "FORBIDDEN",
+        403,
+        { user_id: userId, project_id: environment.projectId, environment_id: args.environmentId }
+      );
     }
 
-    validateLength(args.name, 50, "Environment name");
-    validateLength(args.description, 200, "Description");
+    validateLength(args.name, MAX_LENGTHS.ENVIRONMENT_NAME, "Environment name");
+    validateLength(args.description, MAX_LENGTHS.ENVIRONMENT_DESCRIPTION, "Description");
 
     // Build update object
     const updates: Record<string, any> = { updatedAt: Date.now(), updatedBy: userId };
@@ -194,13 +205,18 @@ export const deleteEnvironment = mutation({
   },
   handler: async (ctx, args) => {
     const environment = await ctx.db.get(args.environmentId);
-    if (!environment) throwError("Environment not found", "NOT_FOUND", 404, { environment_id: args.environmentId });
+    if (!environment)
+      throwError("Environment not found", "NOT_FOUND", 404, { environment_id: args.environmentId });
 
     const { userId, role } = await checkProjectAccess(ctx, environment.projectId);
 
     // Only owners can delete environments
     if (role !== "owner") {
-      throwError("Access denied: Only project owners can delete environments", "FORBIDDEN", 403, { user_id: userId, project_id: environment.projectId, environment_id: args.environmentId });
+      throwError("Access denied: Only project owners can delete environments", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: environment.projectId,
+        environment_id: args.environmentId,
+      });
     }
 
     // Delete all variables in this environment

@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { AlertTriangle, ArrowLeft, Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
 import { api } from "../../../../convex/_generated/api";
+import { MAX_LENGTHS } from "@/lib/constants";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -188,6 +189,7 @@ function NewProject() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={isLoading}
+                maxLength={MAX_LENGTHS.PROJECT_NAME}
               />
             </div>
             <div className="space-y-2">
@@ -198,6 +200,7 @@ function NewProject() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 disabled={isLoading}
+                maxLength={MAX_LENGTHS.PROJECT_DESCRIPTION}
               />
             </div>
           </CardContent>
@@ -275,7 +278,7 @@ function NewProject() {
                 value={passcodeHint}
                 onChange={(e) => setPasscodeHint(e.target.value)}
                 disabled={isLoading}
-                maxLength={100}
+                maxLength={MAX_LENGTHS.PASSCODE_HINT}
               />
               <p className="text-xs text-muted-foreground">
                 This hint will be visible in project settings to help you remember your passcode.

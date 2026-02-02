@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { TIER_LIMITS } from "./lib/roleLimits";
 import { throwError, validateLength } from "./lib/errors";
+import { MAX_LENGTHS } from "../src/lib/constants";
 import type { Tier } from "./lib/roleLimits";
 
 /**
@@ -20,8 +21,8 @@ export const store = mutation({
       throwError("Called storeUser without authentication identity", "UNAUTHENTICATED", 401);
     }
 
-    validateLength(args.name, 50, "Name");
-    validateLength(args.email, 100, "Email");
+    validateLength(args.name, MAX_LENGTHS.USER_NAME, "Name");
+    validateLength(args.email, MAX_LENGTHS.USER_EMAIL, "Email");
 
     // Check if the user already exists
     const user = await ctx.db

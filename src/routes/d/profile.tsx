@@ -3,7 +3,7 @@ import { useUser } from "@clerk/tanstack-react-start";
 import { Calendar, Mail, Shield, User } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { TIER_LIMITS } from "../../../convex/lib/roleLimits";
+import { TIER_LIMITS } from "@/lib/role-limits";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";

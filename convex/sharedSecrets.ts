@@ -3,6 +3,7 @@ import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "./_generated/server";
 import { checkAndClearPlanEnforcementFlag, getProjectOwnerLimits } from "./lib/roleLimits";
 import { throwError, validateLength } from "./lib/errors";
+import { MAX_LENGTHS } from "../src/lib/constants";
 import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
@@ -33,8 +34,8 @@ export const create = mutation({
       throwError("expiresAt is required for non-indefinite shares", "BAD_REQUEST", 400);
     }
     const normalizedExpiresAt = args.isIndefinite ? undefined : args.expiresAt;
-    
-    validateLength(args.name, 100, "Secret name");
+
+    validateLength(args.name, MAX_LENGTHS.SECRET_NAME, "Secret name");
 
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
@@ -61,17 +62,27 @@ export const create = mutation({
       .unique();
 
     if (!membership) {
-      throwError("Access denied", "FORBIDDEN", 403, { user_id: user._id, project_id: args.projectId });
+      throwError("Access denied", "FORBIDDEN", 403, {
+        user_id: user._id,
+        project_id: args.projectId,
+      });
     }
 
     if (membership.role !== "owner" && membership.role !== "admin") {
-      throwError("Access denied - only owners and admins can share variables", "FORBIDDEN", 403, { user_id: user._id, project_id: args.projectId });
+      throwError("Access denied - only owners and admins can share variables", "FORBIDDEN", 403, {
+        user_id: user._id,
+        project_id: args.projectId,
+      });
     }
 
     // Verify environment belongs to the project
     const environment = await ctx.db.get(args.environmentId);
     if (!environment || environment.projectId !== args.projectId) {
-      throwError("Invalid environment for this project", "BAD_REQUEST", 400, { user_id: user._id, project_id: args.projectId, environment_id: args.environmentId });
+      throwError("Invalid environment for this project", "BAD_REQUEST", 400, {
+        user_id: user._id,
+        project_id: args.projectId,
+        environment_id: args.environmentId,
+      });
     }
 
     // Check shared secrets limit based on PROJECT OWNER's role
@@ -513,39 +524,6 @@ export const updateExpiry = mutation({
       expiresAt: normalizedExpiresAt,
       isIndefinite: args.isIndefinite,
     });
-  },
-});
-
-/**
- * Bulk update expiry.
- */
-export const bulkUpdateExpiry = mutation({
-  args: {
-    ids: v.array(v.id("sharedSecrets")),
-    expiresAt: v.optional(v.number()),
-    isIndefinite: v.boolean(),
-  },
-  handler: async (ctx, args) => {
-    const normalizedExpiresAt = args.isIndefinite ? undefined : args.expiresAt;
-
-    for (const id of args.ids) {
-      const { sharedSecret, user } = await checkSecretManagementAccess(ctx, id);
-
-      const limits = await getProjectOwnerLimits(ctx, sharedSecret.projectId);
-      if (args.isIndefinite && !limits.canCreateIndefiniteShares) {
-        throwError(
-          "Indefinite shares are only available on Pro plans. Some shares were not updated.",
-          "LIMIT_REACHED",
-          403,
-          { user_id: user._id, project_id: sharedSecret.projectId }
-        );
-      }
-
-      await ctx.db.patch(id, {
-        expiresAt: normalizedExpiresAt,
-        isIndefinite: args.isIndefinite,
-      });
-    }
   },
 });
 

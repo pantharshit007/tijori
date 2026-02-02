@@ -14,7 +14,7 @@ import {
   Search,
   Share2,
 } from "lucide-react";
-import { TIER_LIMITS } from "../../../convex/lib/roleLimits";
+import { TIER_LIMITS } from "@/lib/role-limits";
 import { api } from "../../../convex/_generated/api";
 import { ShareDialog } from "../share-dialog";
 import { VariableRow } from "./VariableRow";
@@ -22,7 +22,6 @@ import { VariableEditRow } from "./VariableEditRow";
 import { BulkAddDialog } from "./BulkAddDialog";
 import { BulkEditDialog } from "./BulkEditDialog";
 import { useVariableActions } from "./useVariableActions";
-import type { Tier } from "../../../convex/lib/roleLimits";
 import type { Id } from "../../../convex/_generated/dataModel";
 
 import type { EnvironmentVariablesProps, ParsedVariable } from "@/lib/types";
@@ -371,8 +370,7 @@ export function EnvironmentVariables({
         <div className="flex items-center gap-4">
           <p className="text-sm text-muted-foreground">
             {filteredVariables?.length ?? 0} /{" "}
-            {TIER_LIMITS[(ownerTier as Tier) || "free"]?.maxVariablesPerEnvironment || "∞"}{" "}
-            variables
+            {TIER_LIMITS[ownerTier]?.maxVariablesPerEnvironment || "∞"} variables
             {searchQuery && ` (filtered from ${variables.length})`}
           </p>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -581,8 +579,7 @@ export function EnvironmentVariables({
               <span className="font-mono font-bold text-foreground">
                 {variables.find((v) => v._id === deletingVarId)?.name}
               </span>{" "}
-              from the{" "}
-              <span className="font-bold text-foreground">{environment.name}</span>{" "}
+              from the <span className="font-bold text-foreground">{environment.name}</span>{" "}
               environment. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

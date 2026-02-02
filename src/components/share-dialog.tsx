@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Check, Clock, Copy, ExternalLink, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Id } from "../../convex/_generated/dataModel";
+import { MAX_LENGTHS } from "@/lib/constants";
 
 import type { ShareExpiryValue } from "@/lib/constants";
 import type { Environment, Variable } from "@/lib/types";
@@ -287,7 +288,7 @@ export function ShareDialog({
                 <Input
                   id="share-name"
                   type="text"
-                  maxLength={50}
+                  maxLength={MAX_LENGTHS.SECRET_NAME}
                   placeholder="e.g., For QA Team, Staging Deploy"
                   value={shareName}
                   onChange={(e) => setShareName(e.target.value)}

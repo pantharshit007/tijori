@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
+import { MAX_LENGTHS } from "@/lib/constants";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
 import type { Environment } from "@/lib/types";
@@ -348,6 +349,7 @@ function ProjectView() {
                             value={newEnvName}
                             onChange={(e) => setNewEnvName(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && handleCreateEnvironment()}
+                            maxLength={MAX_LENGTHS.ENVIRONMENT_NAME}
                           />
                         </div>
                         <div className="space-y-2">
@@ -357,6 +359,7 @@ function ProjectView() {
                             placeholder="Production environment for live app..."
                             value={newEnvDescription}
                             onChange={(e) => setNewEnvDescription(e.target.value)}
+                            maxLength={MAX_LENGTHS.ENVIRONMENT_DESCRIPTION}
                           />
                         </div>
                       </div>

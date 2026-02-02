@@ -21,7 +21,7 @@ export function formatRelativeTime(timestamp: number): string {
     return `${value}${unit} ago`;
   };
 
-  if (seconds < 60) return isFuture ? "just now" : "just now";
+  if (seconds < 60) return isFuture ? "in few seconds" : "just now";
   if (minutes < 60) return getFormat(minutes, "m");
   if (hours < 24) return getFormat(hours, "h");
   if (days < 7) return getFormat(days, "d");

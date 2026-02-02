@@ -6,6 +6,7 @@ import {
   getTierLimits,
 } from "./lib/roleLimits";
 import { throwError, validateLength } from "./lib/errors";
+import { MAX_LENGTHS } from "../src/lib/constants";
 import type { QueryCtx } from "./_generated/server";
 import type { Tier } from "./lib/roleLimits";
 
@@ -86,9 +87,9 @@ export const create = mutation({
       );
     }
 
-    validateLength(args.name, 50, "Project name");
-    validateLength(args.description, 200, "Description");
-    validateLength(args.passcodeHint, 75, "Passcode hint");
+    validateLength(args.name, MAX_LENGTHS.PROJECT_NAME, "Project name");
+    validateLength(args.description, MAX_LENGTHS.PROJECT_DESCRIPTION, "Description");
+    validateLength(args.passcodeHint, MAX_LENGTHS.PASSCODE_HINT, "Passcode hint");
 
     const now = Date.now();
 
@@ -719,9 +720,9 @@ export const updateProject = mutation({
       });
     }
 
-    validateLength(args.name, 50, "Project name");
-    validateLength(args.description, 200, "Description");
-    validateLength(args.passcodeHint, 100, "Passcode hint");
+    validateLength(args.name, MAX_LENGTHS.PROJECT_NAME, "Project name");
+    validateLength(args.description, MAX_LENGTHS.PROJECT_DESCRIPTION, "Description");
+    validateLength(args.passcodeHint, MAX_LENGTHS.PASSCODE_HINT, "Passcode hint");
 
     // Build update object
     const updates: Record<string, any> = { updatedAt: Date.now() };

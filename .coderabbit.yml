@@ -40,10 +40,11 @@ reviews:
     - path: 'convex/**/*.{ts,tsx}'
       instructions: |
         These are Convex backend functions and schema definitions.
-        - Verify `v.*` validators are strict and appropriate.
-        - Ensure indices are defined for query performance.
-        - Check for security: Ensure authentication checks (e.g., `getUser`) are present in mutations/queries where required.
-        - **Security**: The server should NEVER see plain text secrets. Ensure only encrypted values are stored.
+        - Verify `v.*` validators are strict and appropriate for all input arguments.
+        - **Performance**: Ensure indices are defined and used for all queries. Avoid using `.collect()` on potentially large result sets; prefer pagination or narrow filters.
+        - **Security**: Ensure authentication checks (e.g., `getUser`) and project/environment access checks are robustly implemented in every mutation and sensitive query.
+        - **Security**: The server should NEVER see plain text secrets. Only encrypted payloads and hashes should reach the database.
+        - **Consistency**: Centralized error handling using `throwError` and centralized validation with `validateLength` using constants from `src/lib/constants.ts`.
 
     - path: 'src/utils/crypto.ts'
       instructions: |
@@ -59,13 +60,19 @@ reviews:
         - Ensure `init.md` reflects the current progress and architectural decisions.
         - Check grammar and formatting.
 
-    - path: 'src/components/**/*.{tsx,ts}'
+    - path: 'src/{components,routes}/**/*.{tsx,ts}'
       instructions: |
-        These are changes to UI components. Please check for:
-        - Correct rendering and functionality.
-        - Adherence to the design system (Tailwind CSS v4, Dark Mode, Glassmorphism).
-        - Responsiveness and accessibility.
-        - Proper use of state management (React Context for decrypted keys).
+        These are changes to UI components and routes. Please check for:
+        - Correct rendering, functionality, and proper use of semantic HTML.
+        - Adherence to the design system (Tailwind CSS v4, Dark Mode, glassmorphism, gradients, and micro-animations).
+        - Responsiveness and accessibility (ARIA labels, keyboard navigation).
+        - **Data Fetching**: Ensure `useQuery` and `useMutation` from `convex/react` are used correctly with optimal dependency arrays where needed.
+        - **Mutation Best Practices**:
+            - Always handle loading states (e.g., `isLoading` spinner, disabled buttons).
+            - Always handle error states with user-facing feedback (e.g., `toast.error`, error alerts).
+            - Implement optimistic updates for critical UI paths to ensure a premium, lag-free experience.
+            - Guard against race conditions and double-submissions (debouncing, state-based disabling).
+        - **Security**: Ensure master keys and passcodes are never exposed in logs, component props, or unencrypted state. Use the `keyStore` and React Context for secure key management.
 
     - path: 'package.json'
       instructions: |
