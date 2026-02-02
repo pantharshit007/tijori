@@ -655,9 +655,10 @@ export const paginatedListByUser = query({
       (a, b) => b._creationTime - a._creationTime
     );
 
-    // Manual pagination
+    // Manual pagination using array slicing since we combined multiple queries
     const { numItems, cursor } = args.paginationOpts;
-    const startIndex = cursor ? parseInt(cursor, 10) : 0;
+    const parsed = cursor ? parseInt(cursor, 10) : 0;
+    const startIndex = Number.isFinite(parsed) && Number.isInteger(parsed) ? Math.max(0, parsed) : 0;
     const endIndex = startIndex + numItems;
     const pageItems = allSharedSecrets.slice(startIndex, endIndex);
     const isDone = endIndex >= allSharedSecrets.length;
