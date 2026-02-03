@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useLocation } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useLocation } from "@tanstack/react-router";
 
 type TutorialPlacement = "top" | "right" | "bottom" | "left";
 
@@ -237,7 +237,7 @@ export function OnboardingTutorial({ enabled = true, restartSignal }: TutorialOv
     if (!isActive) return;
 
     const updateMeasurements = () => {
-      const target = step ? (document.querySelector(step.selector) as HTMLElement | null) : null;
+      const target = step ? (document.querySelector(step.selector)) : null;
       if (!target) {
         const nextIndex = findNextAvailable(currentIndex + 1);
         if (nextIndex === -1) {
