@@ -64,7 +64,7 @@ function Dashboard() {
             </Button>
           </div>
           <Link to="/d/projects/new">
-            <Button className="gap-2">
+            <Button className="gap-2" data-tutorial-id="new-project" title="Create new project">
               <Plus className="h-4 w-4" />
               New Project
             </Button>
@@ -73,7 +73,7 @@ function Dashboard() {
       </div>
 
       {/* Projects Section */}
-      <section className="space-y-4">
+      <section className="space-y-4" data-tutorial-id="projects-section">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold tracking-tight">Your Projects</h2>
           {projects && projects.length > 5 && (

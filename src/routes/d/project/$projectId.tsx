@@ -230,7 +230,12 @@ function ProjectView() {
               }}
             >
               <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2 relative" title="Unlock the keys">
+                <Button
+                  variant="outline"
+                  className="gap-2 relative"
+                  title="Unlock the keys"
+                  data-tutorial-id="project-unlock"
+                >
                   <KeyRound className="h-4 w-4" />
                   Unlock
                   <kbd className="hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
@@ -259,27 +264,29 @@ function ProjectView() {
               </DialogContent>
             </Dialog>
           )}
-          {/* Members Drawer */}
-          <MembersDrawer
-            projectId={projectId as Id<"projects">}
-            userRole={project.role}
-            trigger={
-              <Button variant="ghost" size="icon">
-                <Users className="h-4 w-4" />
-              </Button>
-            }
-          />
-          {/* Project Settings */}
-          <ProjectSettings
-            project={project}
-            environments={environments || []}
-            membersCount={members?.length || 0}
-            trigger={
-              <Button variant="ghost" size="icon">
-                <Settings className="h-4 w-4" />
-              </Button>
-            }
-          />
+          <div className="flex items-center gap-2" data-tutorial-id="project-collab">
+            {/* Members Drawer */}
+            <MembersDrawer
+              projectId={projectId as Id<"projects">}
+              userRole={project.role}
+              trigger={
+                <Button variant="ghost" size="icon" title="Manage members">
+                  <Users className="h-4 w-4" />
+                </Button>
+              }
+            />
+            {/* Project Settings */}
+            <ProjectSettings
+              project={project}
+              environments={environments || []}
+              membersCount={members?.length || 0}
+              trigger={
+                <Button variant="ghost" size="icon" title="Project settings">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              }
+            />
+          </div>
         </div>
       </div>
 
@@ -289,7 +296,7 @@ function ProjectView() {
         onValueChange={(v) => setActiveTab(v as "project" | "shared")}
         className="w-full"
       >
-        <TabsList>
+        <TabsList data-tutorial-id="project-tabs">
           <TabsTrigger
             value="project"
             className="data-[state=active]:bg-secondary dark:data-[state=active]:bg-secondary text-accent data-[state=active]:text-accent data-[state=inactive]:text-zinc-800"
@@ -310,7 +317,10 @@ function ProjectView() {
           {environments.length > 0 ? (
             <>
               {/* Environment Dropdown + Add Button */}
-              <div className="flex items-center gap-2">
+              <div
+                className="flex items-center gap-2 w-fit"
+                data-tutorial-id="project-environments"
+              >
                 <Select value={activeEnv || undefined} onValueChange={setActiveEnv}>
                   <SelectTrigger className="w-50">
                     <SelectValue placeholder="Select Environment" />
