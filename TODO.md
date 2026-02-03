@@ -28,6 +28,7 @@
 - [ ] check if Bulk add dialog and Bulk edit dialog can use a common logic instead of duplicating the code.
 - [ ] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
 - [ ] add in account deletion option, also need to think of how to handle the case when user deletes their account from clerk, panel.
+- [ ] update /docs and not found page.
 
 ---
 
