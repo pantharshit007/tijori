@@ -112,7 +112,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
+        <SidebarGroup data-tutorial-id="sidebar-nav">
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -172,7 +172,7 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        <SidebarGroup>
+        <SidebarGroup data-tutorial-id="account-section">
           <SidebarGroupLabel>Account</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -206,6 +206,7 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  data-tutorial-id="account-menu"
                 >
                   {!isLoaded || !user ? (
                     <>

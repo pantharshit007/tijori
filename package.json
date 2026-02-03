@@ -2,7 +2,7 @@
   "name": "tijori",
   "private": true,
   "type": "module",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "scripts": {
     "dev": "vite dev",
     "dev:convex": "bunx convex dev",
@@ -17,6 +17,7 @@
     "tsc": "bunx tsc",
     "cvx:dev": "bunx convex dev",
     "cvx:login": "bunx convex login",
+    "cvx:logout": "bunx convex logout",
     "cvx:deploy": "bunx convex deploy",
     "cvx:dashboard": "bunx convex dashboard",
     "cvx:env:set": "bunx convex env set",

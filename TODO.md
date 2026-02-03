@@ -22,14 +22,12 @@
     - we can create a table, which will store all the exceedsPlanLimits projects + userId + timestamp, and we can process them directly from this table in a cron job
     - Least recently used (by `updatedAt` timestamp)
     - OR oldest created (`createdAt`)
-    - Emit `AuditLog` entries for each deleted project
     - Send email notification to user about enforcement action
   - **TODO (Future)**: Implement cron job `enforcePlanLimits` to run daily and reconcile excess after deadline passes
 - [ ] re-check save mutation thoroughly in @convex/variable.ts, seems something is wrong there.
 - [ ] check if Bulk add dialog and Bulk edit dialog can use a common logic instead of duplicating the code.
 - [ ] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
-- [x] more options like select all, select none, and select few in shared section in dashboard to perform bulk actions, disable, expire, delete.
-- [x] add pagination to the /d/shared route's table for doc you can visit [here](https://docs.convex.dev/database/pagination)
+- [ ] add in account deletion option, also need to think of how to handle the case when user deletes their account from clerk, panel.
 
 ---
 
