@@ -1,30 +1,28 @@
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
+import { MAX_LENGTHS } from "../src/lib/constants";
 import { mutation, query } from "./_generated/server";
 import {
   checkAndClearPlanEnforcementFlag,
   getProjectOwnerLimits,
-  getRoleLimits,
+  getTierLimits,
 } from "./lib/roleLimits";
+import { throwError, validateLength } from "./lib/errors";
 import type { QueryCtx } from "./_generated/server";
-import type { PlatformRole } from "./lib/roleLimits";
+import type { Tier } from "./lib/roleLimits";
 
 /**
  * Helper to get the current user ID or throw.
  */
 async function getUserId(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
-    throw new ConvexError("Unauthenticated");
-  }
+  if (!identity) throwError("Unauthenticated", "UNAUTHENTICATED", 401);
   const user = await ctx.db
     .query("users")
     .withIndex("by_tokenIdentifier", (q: any) => q.eq("tokenIdentifier", identity.tokenIdentifier))
     .unique();
-  if (!user) {
-    throw new ConvexError("User not found in database");
-  }
+  if (!user) throwError("User not found in database", "NOT_FOUND", 404);
   if (user.isDeactivated) {
-    throw new ConvexError("User account is deactivated");
+    throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
   }
   return user._id;
 }
@@ -49,7 +47,7 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError("Unauthenticated");
+      throwError("Unauthenticated", "UNAUTHENTICATED", 401);
     }
 
     const user = await ctx.db
@@ -60,29 +58,38 @@ export const create = mutation({
       .unique();
 
     if (!user) {
-      throw new ConvexError("User not found");
+      throwError("User not found", "NOT_FOUND", 404);
     }
 
     if (user.isDeactivated) {
-      throw new ConvexError("User account is deactivated");
+      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
     if (!user.masterKeyHash) {
-      throw new ConvexError("Master key not configured. Please set it in Settings.");
+      throwError("Master key not configured. Please set it in Settings.", "BAD_REQUEST", 400, {
+        user_id: user._id,
+      });
     }
 
-    // Check role-based project limit
-    const limits = getRoleLimits(user.platformRole as PlatformRole | undefined);
+    // Check tier-based project limit
+    const limits = getTierLimits(user.tier as Tier | undefined);
     const existingProjects = await ctx.db
       .query("projects")
       .withIndex("by_ownerId", (q) => q.eq("ownerId", user._id))
       .collect();
 
     if (existingProjects.length >= limits.maxProjects) {
-      throw new ConvexError(
-        `Project limit reached (${limits.maxProjects}). Upgrade to Pro for more projects.`
+      throwError(
+        `Project limit reached (${limits.maxProjects}). Upgrade to Pro for more projects.`,
+        "LIMIT_REACHED",
+        403,
+        { user_id: user._id }
       );
     }
+
+    validateLength(args.name, MAX_LENGTHS.PROJECT_NAME, "Project name");
+    validateLength(args.description, MAX_LENGTHS.PROJECT_DESCRIPTION, "Description");
+    validateLength(args.passcodeHint, MAX_LENGTHS.PASSCODE_HINT, "Passcode hint");
 
     const now = Date.now();
 
@@ -111,6 +118,7 @@ export const create = mutation({
       name: "Development",
       description: "Default environment for development",
       updatedAt: now,
+      updatedBy: user._id,
     });
 
     // Create quota documents for atomic limit enforcement
@@ -184,21 +192,27 @@ export const get = query({
       .unique();
 
     if (!membership) {
-      throw new ConvexError("Access denied: Not a member of this project");
+      throwError("Access denied: Not a member of this project", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     const project = await ctx.db.get(args.projectId);
     if (!project) {
-      throw new ConvexError("Project not found");
+      throwError("Project not found", "NOT_FOUND", 404, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
-    // Fetch owner's platformRole for frontend limit display
+    // Fetch owner's tier for frontend limit display
     const owner = await ctx.db.get(project.ownerId);
 
     return {
       ...project,
       role: membership.role,
-      ownerPlatformRole: owner?.platformRole ?? "user",
+      ownerTier: owner?.tier ?? "free",
     };
   },
 });
@@ -259,7 +273,7 @@ export const batchUpdatePasscodes = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError("Unauthenticated");
+      throwError("Unauthenticated", "UNAUTHENTICATED", 401);
     }
 
     const user = await ctx.db
@@ -270,11 +284,11 @@ export const batchUpdatePasscodes = mutation({
       .unique();
 
     if (!user) {
-      throw new ConvexError("User not found");
+      throwError("User not found", "NOT_FOUND", 404);
     }
 
     if (user.isDeactivated) {
-      throw new ConvexError("User account is deactivated");
+      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
     const now = Date.now();
@@ -284,7 +298,12 @@ export const batchUpdatePasscodes = mutation({
     for (const update of args.updates) {
       const project = await ctx.db.get(update.projectId);
       if (!project || project.ownerId !== user._id) {
-        throw new ConvexError(`Access denied: Not the owner of project ${update.projectId}`);
+        throwError(
+          `Access denied: Not the owner of project ${update.projectId}`,
+          "FORBIDDEN",
+          403,
+          { user_id: user._id, project_id: update.projectId }
+        );
       }
     }
 
@@ -328,7 +347,10 @@ export const listMembers = query({
       .unique();
 
     if (!membership) {
-      throw new ConvexError("Access denied: Not a member of this project");
+      throwError("Access denied: Not a member of this project", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Get all members
@@ -374,7 +396,7 @@ export const addMember = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError("Unauthenticated");
+    if (!identity) throwError("Unauthenticated", "UNAUTHENTICATED", 401);
 
     const currentUser = await ctx.db
       .query("users")
@@ -383,9 +405,11 @@ export const addMember = mutation({
       )
       .unique();
 
-    if (!currentUser) throw new ConvexError("User not found");
+    if (!currentUser) throwError("User not found", "NOT_FOUND", 404);
     if (currentUser.isDeactivated) {
-      throw new ConvexError("User account is deactivated");
+      throwError("User account is deactivated", "USER_DEACTIVATED", 403, {
+        user_id: currentUser._id,
+      });
     }
 
     // Check if user has permission (owner or admin)
@@ -397,7 +421,10 @@ export const addMember = mutation({
       .unique();
 
     if (!membership || (membership.role !== "owner" && membership.role !== "admin")) {
-      throw new ConvexError("Access denied: Only owners and admins can add members");
+      throwError("Access denied: Only owners and admins can add members", "FORBIDDEN", 403, {
+        user_id: currentUser._id,
+        project_id: args.projectId,
+      });
     }
 
     // Check member limit using atomic quota pattern
@@ -410,8 +437,11 @@ export const addMember = mutation({
 
     if (quota) {
       if (quota.used >= quota.limit) {
-        throw new ConvexError(
-          `Member limit reached (${quota.limit}). Project owner needs to upgrade for more.`
+        throwError(
+          `Member limit reached (${quota.limit}). Project owner needs to upgrade for more.`,
+          "LIMIT_REACHED",
+          403,
+          { user_id: currentUser._id, project_id: args.projectId }
         );
       }
     } else {
@@ -423,8 +453,11 @@ export const addMember = mutation({
         .collect();
 
       if (existingMembers.length >= limits.maxMembersPerProject) {
-        throw new ConvexError(
-          `Member limit reached (${limits.maxMembersPerProject}). Project owner needs to upgrade for more.`
+        throwError(
+          `Member limit reached (${limits.maxMembersPerProject}). Project owner needs to upgrade for more.`,
+          "LIMIT_REACHED",
+          403,
+          { user_id: currentUser._id, project_id: args.projectId }
         );
       }
     }
@@ -436,7 +469,10 @@ export const addMember = mutation({
       .unique();
 
     if (!targetUser) {
-      throw new ConvexError("User not found with that email address");
+      throwError("User not found with that email address", "NOT_FOUND", 404, {
+        user_id: currentUser._id,
+        project_id: args.projectId,
+      });
     }
 
     // Check if user is already a member
@@ -448,7 +484,10 @@ export const addMember = mutation({
       .unique();
 
     if (existingMembership) {
-      throw new ConvexError("User is already a member of this project");
+      throwError("User is already a member of this project", "CONFLICT", 409, {
+        user_id: currentUser._id,
+        project_id: args.projectId,
+      });
     }
 
     // Add the member
@@ -487,24 +526,36 @@ export const removeMember = mutation({
       .unique();
 
     if (!myMembership || (myMembership.role !== "owner" && myMembership.role !== "admin")) {
-      throw new ConvexError("Access denied: Only owners and admins can remove members");
+      throwError("Access denied: Only owners and admins can remove members", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Get the target membership
     const targetMembership = await ctx.db.get(args.memberId);
 
     if (!targetMembership || targetMembership.projectId !== args.projectId) {
-      throw new ConvexError("Membership not found");
+      throwError("Membership not found", "NOT_FOUND", 404, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Cannot remove the owner
     if (targetMembership.role === "owner") {
-      throw new ConvexError("Cannot remove the project owner");
+      throwError("Cannot remove the project owner", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Admins can only remove members, not other admins
     if (myMembership.role === "admin" && targetMembership.role === "admin") {
-      throw new ConvexError("Admins cannot remove other admins");
+      throwError("Admins cannot remove other admins", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Remove the membership
@@ -552,19 +603,28 @@ export const updateMemberRole = mutation({
       .unique();
 
     if (!myMembership || myMembership.role !== "owner") {
-      throw new ConvexError("Access denied: Only owners can update member roles");
+      throwError("Access denied: Only owners can update member roles", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Get the target membership
     const targetMembership = await ctx.db.get(args.memberId);
 
     if (!targetMembership || targetMembership.projectId !== args.projectId) {
-      throw new ConvexError("Membership not found");
+      throwError("Membership not found", "NOT_FOUND", 404, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Cannot change owner's role
     if (targetMembership.role === "owner") {
-      throw new ConvexError("Cannot change the owner's role");
+      throwError("Cannot change the owner's role", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Update the role
@@ -592,13 +652,19 @@ export const leaveProject = mutation({
       .unique();
 
     if (!membership) {
-      throw new ConvexError("You are not a member of this project");
+      throwError("You are not a member of this project", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Owners cannot leave
     if (membership.role === "owner") {
-      throw new ConvexError(
-        "Owners cannot leave their own project. Transfer ownership or delete the project instead."
+      throwError(
+        "Owners cannot leave their own project. Transfer ownership or delete the project instead.",
+        "FORBIDDEN",
+        403,
+        { user_id: userId, project_id: args.projectId }
       );
     }
 
@@ -648,8 +714,15 @@ export const updateProject = mutation({
       .unique();
 
     if (!membership || membership.role !== "owner") {
-      throw new ConvexError("Access denied: Only owners can update project details");
+      throwError("Access denied: Only owners can update project details", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
+
+    validateLength(args.name, MAX_LENGTHS.PROJECT_NAME, "Project name");
+    validateLength(args.description, MAX_LENGTHS.PROJECT_DESCRIPTION, "Description");
+    validateLength(args.passcodeHint, MAX_LENGTHS.PASSCODE_HINT, "Passcode hint");
 
     // Build update object
     const updates: Record<string, any> = { updatedAt: Date.now() };
@@ -681,7 +754,10 @@ export const deleteProject = mutation({
       .unique();
 
     if (!membership || membership.role !== "owner") {
-      throw new ConvexError("Access denied: Only owners can delete projects");
+      throwError("Access denied: Only owners can delete projects", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
     }
 
     // Delete all shared secrets

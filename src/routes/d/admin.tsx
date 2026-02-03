@@ -73,14 +73,14 @@ function AdminDashboard() {
     setCursor(prevCursor ?? null);
   };
 
-  const handleUpdateRole = async (userId: any, role: any) => {
+  const handleUpdateTier = async (userId: any, tier: any) => {
     try {
-      await updateUserRole({ userId, role });
+      await updateUserRole({ userId, tier });
       setCursor(null);
       setHistory([]);
-      toast.success(`User role updated to ${role}`);
+      toast.success(`User tier updated to ${tier}`);
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Failed to update role"));
+      toast.error(getErrorMessage(err, "Failed to update tier"));
     }
   };
 
@@ -210,15 +210,15 @@ function AdminDashboard() {
                 <CardDescription>Breakdown of users by their platform tier.</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {Object.entries(metrics.roleDistribution).map(([role, count]) => (
-                    <div key={role} className="flex items-center justify-between">
-                      <span className="capitalize text-sm font-medium">{role}</span>
+              <div className="space-y-4">
+                  {Object.entries(metrics.tierDistribution).map(([tier, count]) => (
+                    <div key={tier} className="flex items-center justify-between">
+                      <span className="capitalize text-sm font-medium">{tier}</span>
                       <div className="flex items-center gap-4">
                         <div className="h-2 w-32 bg-muted rounded-full overflow-hidden">
                           <div
                             className="h-full bg-primary"
-                            style={{ width: `${(count / metrics.counts.users) * 100}%` }}
+                            style={{ width: `${((count) / metrics.counts.users) * 100}%` }}
                           />
                         </div>
                         <span className="text-sm font-bold">{count}</span>
@@ -277,14 +277,14 @@ function AdminDashboard() {
                   <TableCell>
                     <Badge
                       variant={
-                        user.platformRole === "super_admin"
+                        user.tier === "super_admin"
                           ? "default"
-                          : user.platformRole === "pro" || user.platformRole === "pro_plus"
+                          : user.tier === "pro" || user.tier === "pro_plus"
                             ? "secondary"
                             : "outline"
                       }
                     >
-                      {user.platformRole || "user"}
+                      {user.tier || "free"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
@@ -318,17 +318,17 @@ function AdminDashboard() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => handleUpdateRole(user._id, "user")}>
-                          Make User
+                        <DropdownMenuItem onSelect={() => handleUpdateTier(user._id, "free")}>
+                          Make Free
                         </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => handleUpdateRole(user._id, "pro")}>
+                        <DropdownMenuItem onSelect={() => handleUpdateTier(user._id, "pro")}>
                           Make Pro
                         </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => handleUpdateRole(user._id, "pro_plus")}>
+                        <DropdownMenuItem onSelect={() => handleUpdateTier(user._id, "pro_plus")}>
                           Make Pro+
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onSelect={() => handleUpdateRole(user._id, "super_admin")}
+                          onSelect={() => handleUpdateTier(user._id, "super_admin")}
                         >
                           Make Super Admin
                         </DropdownMenuItem>

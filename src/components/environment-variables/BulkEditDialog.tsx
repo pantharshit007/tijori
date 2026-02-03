@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { MAX_LENGTHS } from "@/lib/constants";
 
 export interface BulkEditDialogProps {
   open: boolean;
@@ -71,7 +72,7 @@ export function BulkEditDialog({ open, onOpenChange, variables, derivedKey, onSa
 
   function handleRawTextChange(text: string) {
     setRawText(text);
-    const parsed = parseBulkInput(text);
+    const parsed = parseBulkInput(text, MAX_LENGTHS.VARIABLE_NAME);
     
     // Create a shadow copy of existing state vars to match against
     const currentVars = [...editVars];
@@ -225,6 +226,7 @@ export function BulkEditDialog({ open, onOpenChange, variables, derivedKey, onSa
                             isDuplicate && "border-yellow-500/50"
                           )}
                           placeholder="VARIABLE_NAME"
+                          maxLength={MAX_LENGTHS.VARIABLE_NAME}
                         />
                       </div>
                       <div className="space-y-1">

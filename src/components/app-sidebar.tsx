@@ -3,8 +3,8 @@ import { useClerk, useUser } from "@clerk/tanstack-react-start";
 import { FolderKey, Home, KeyRound, LogOut, Settings, Share2, ShieldCheck, User } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import {  ROLE_LIMITS } from "../../convex/lib/roleLimits";
-import type {PlatformRole} from "../../convex/lib/roleLimits";
+import type { Tier } from "@/lib/role-limits";
+import { TIER_LIMITS } from "@/lib/role-limits";
 import { SidebarThemeToggle } from "@/components/sidebar-theme-toggle";
 import { keyStore } from "@/lib/key-store";
 import { Progress } from "@/components/ui/progress";
@@ -76,11 +76,11 @@ export function AppSidebar() {
         name: clerkUser.fullName || clerkUser.username || "User",
         email: clerkUser.primaryEmailAddress?.emailAddress || "",
         image: clerkUser.imageUrl || null,
-        role: (me?.role as PlatformRole) || "user",
+        tier: (me?.tier as Tier) || "free",
       }
     : null;
 
-  const limits = me ? ROLE_LIMITS[user?.role || "user"] : null;
+  const limits = me ? TIER_LIMITS[user?.tier || "free"] : null;
 
   const handleLogout = async () => {
     keyStore.clear();
@@ -130,7 +130,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              {user?.role === "super_admin" && (
+              {user?.tier === "super_admin" && (
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     asChild 
@@ -227,7 +227,7 @@ export function AppSidebar() {
                         <div className="flex items-center gap-2">
                           <span className="truncate font-semibold">{user.name}</span>
                           <Badge variant="outline" className="h-4 px-1 text-[9px] uppercase font-bold">
-                            {user.role}
+                            {user.tier}
                           </Badge>
                         </div>
                         <span className="truncate text-xs text-muted-foreground">{user.email}</span>

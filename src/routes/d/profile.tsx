@@ -3,7 +3,7 @@ import { useUser } from "@clerk/tanstack-react-start";
 import { Calendar, Mail, Shield, User } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { ROLE_LIMITS } from "../../../convex/lib/roleLimits";
+import { TIER_LIMITS } from "@/lib/role-limits";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
@@ -27,7 +27,7 @@ function ProfilePage() {
     return <div>Please sign in to view your profile.</div>;
   }
 
-  const limits = me ? ROLE_LIMITS[me.role || "user"] : null;
+  const limits = me ? TIER_LIMITS[me.tier] : null;
 
   function displayLimit(val: number | undefined) {
     if (val === undefined) return "∞";
@@ -57,7 +57,7 @@ function ProfilePage() {
             <CardDescription>{user.primaryEmailAddress?.emailAddress}</CardDescription>
             <div className="flex gap-2 mt-2">
               <Badge variant="default" className="uppercase font-bold">
-                {me?.role || "user"}
+                {me?.tier || "free"}
               </Badge>
               <Badge variant="outline">
                 {user.hasVerifiedEmailAddress ? "Verified" : "Unverified"}
@@ -131,11 +131,15 @@ function ProfilePage() {
             <div className="grid gap-4 sm:grid-cols-2 mt-4">
               <div className="flex items-center justify-between p-3 rounded-lg border bg-secondary/20">
                 <span className="text-sm">Variables per environment</span>
-                <span className="font-semibold">{displayLimit(limits?.maxVariablesPerEnvironment)}</span>
+                <span className="font-semibold">
+                  {displayLimit(limits?.maxVariablesPerEnvironment)}
+                </span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg border bg-secondary/20">
                 <span className="text-sm">Shared secret links</span>
-                <span className="font-semibold">{displayLimit(limits?.maxSharedSecretsPerProject)}</span>
+                <span className="font-semibold">
+                  {displayLimit(limits?.maxSharedSecretsPerProject)}
+                </span>
               </div>
             </div>
           </div>

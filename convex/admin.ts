@@ -1,7 +1,8 @@
 import { paginationOptsValidator } from "convex/server";
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { ROLE_LIMITS } from "./lib/roleLimits";
+import { TIER_LIMITS } from "./lib/roleLimits";
+import { throwError } from "./lib/errors";
 import type { QueryCtx } from "./_generated/server";
 
 /**
@@ -9,19 +10,21 @@ import type { QueryCtx } from "./_generated/server";
  */
 async function checkSuperAdmin(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity();
-  if (!identity) throw new ConvexError("Unauthenticated");
+  if (!identity) throwError("Unauthenticated", "UNAUTHENTICATED", 401);
 
   const user = await ctx.db
     .query("users")
     .withIndex("by_tokenIdentifier", (q: any) => q.eq("tokenIdentifier", identity.tokenIdentifier))
     .unique();
 
-  if (!user || user.platformRole !== "super_admin") {
-    throw new ConvexError("Access denied: Admin privileges required");
+  if (!user || user.tier !== "super_admin") {
+    throwError("Access denied: Admin privileges required", "FORBIDDEN", 403, {
+      user_id: user?._id,
+    });
   }
 
   if (user.isDeactivated) {
-    throw new ConvexError("User account is deactivated");
+    throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
   }
 
   return user;
@@ -53,10 +56,10 @@ export const getPlatformMetrics = query({
       sharedSecretsCount = (await ctx.db.query("sharedSecrets").collect()).length;
     }
 
-    // Calculate role distribution from already-fetched users
-    const roleDistribution = users.reduce((acc: Record<string, number>, user) => {
-      const role = user.platformRole || "user";
-      acc[role] = (acc[role] || 0) + 1;
+    // Calculate tier distribution from already-fetched users
+    const tierDistribution = users.reduce((acc: Record<string, number>, user) => {
+      const tier = user.tier || "free";
+      acc[tier] = (acc[tier] || 0) + 1;
       return acc;
     }, {});
 
@@ -68,7 +71,7 @@ export const getPlatformMetrics = query({
         variables: variablesCount,
         sharedSecrets: sharedSecretsCount,
       },
-      roleDistribution,
+      tierDistribution,
     };
   },
 });
@@ -93,8 +96,8 @@ export const listUsers = query({
 export const updateUserRole = mutation({
   args: {
     userId: v.id("users"),
-    role: v.union(
-      v.literal("user"),
+    tier: v.union(
+      v.literal("free"),
       v.literal("pro"),
       v.literal("pro_plus"),
       v.literal("super_admin")
@@ -106,33 +109,35 @@ export const updateUserRole = mutation({
     // Check if target user is a super_admin
     const targetUser = await ctx.db.get(args.userId);
     if (!targetUser) {
-      throw new ConvexError("User not found");
+      throwError("User not found", "NOT_FOUND", 404);
     }
 
     // Prevent demotion of any super_admin
-    if (targetUser.platformRole === "super_admin" && args.role !== "super_admin") {
-      throw new ConvexError("Super-admins cannot be demoted. This is a protected role.");
+    if (targetUser.tier === "super_admin" && args.tier !== "super_admin") {
+      throwError("Super-admins cannot be demoted. This is a protected role.", "FORBIDDEN", 403, {
+        user_id: targetUser._id,
+      });
     }
 
-    const currentRole = targetUser.platformRole;
-    const newRole = args.role;
+    const currentTier = targetUser.tier;
+    const newTier = args.tier;
 
     // Check if this is a downgrade
-    const roleHierarchy: Record<string, number> = {
-      user: 0,
+    const tierHierarchy: Record<string, number> = {
+      free: 0,
       pro: 1,
       pro_plus: 2,
       super_admin: 3,
     };
 
-    const isDowngrade = roleHierarchy[newRole] < roleHierarchy[currentRole];
+    const isDowngrade = tierHierarchy[newTier] < tierHierarchy[currentTier];
 
     let exceedsPlanLimits = false;
     let planEnforcementDeadline: number | undefined = undefined;
 
     if (isDowngrade) {
       // Check if user's current usage exceeds the new tier's limits
-      const newLimits = ROLE_LIMITS[newRole];
+      const newLimits = TIER_LIMITS[newTier];
 
       // Count user's owned projects
       const ownedProjects = await ctx.db
@@ -153,13 +158,19 @@ export const updateUserRole = mutation({
           .collect();
 
         for (const quota of quotas) {
-          if (quota.resourceType === "environments" && quota.used > newLimits.maxEnvironmentsPerProject) {
+          if (
+            quota.resourceType === "environments" &&
+            quota.used > newLimits.maxEnvironmentsPerProject
+          ) {
             hasEnvViolation = true;
           }
           if (quota.resourceType === "members" && quota.used > newLimits.maxMembersPerProject) {
             hasMemberViolation = true;
           }
-          if (quota.resourceType === "sharedSecrets" && quota.used > newLimits.maxSharedSecretsPerProject) {
+          if (
+            quota.resourceType === "sharedSecrets" &&
+            quota.used > newLimits.maxSharedSecretsPerProject
+          ) {
             hasSecretViolation = true;
           }
         }
@@ -178,15 +189,15 @@ export const updateUserRole = mutation({
       }
     }
 
-    // Update user with new role and enforcement flags
+    // Update user with new tier and enforcement flags
     await ctx.db.patch(args.userId, {
-      platformRole: args.role,
+      tier: args.tier,
       exceedsPlanLimits: exceedsPlanLimits || undefined,
       planEnforcementDeadline: planEnforcementDeadline,
     });
 
     // Update quota limits for all owned projects to reflect the new tier's limits
-    const newLimits = ROLE_LIMITS[args.role];
+    const newLimits = TIER_LIMITS[args.tier];
     const ownedProjects = await ctx.db
       .query("projects")
       .withIndex("by_ownerId", (q: any) => q.eq("ownerId", args.userId))
@@ -237,12 +248,17 @@ export const toggleUserStatus = mutation({
     // Check if target user is a super_admin
     const targetUser = await ctx.db.get(args.userId);
     if (!targetUser) {
-      throw new ConvexError("User not found");
+      throwError("User not found", "NOT_FOUND", 404);
     }
 
     // Prevent deactivation of any super_admin
-    if (targetUser.platformRole === "super_admin" && args.isDeactivated) {
-      throw new ConvexError("Super-admins cannot be deactivated. This is a protected role.");
+    if (targetUser.tier === "super_admin" && args.isDeactivated) {
+      throwError(
+        "Super-admins cannot be deactivated. This is a protected role.",
+        "FORBIDDEN",
+        403,
+        { user_id: targetUser._id }
+      );
     }
 
     await ctx.db.patch(args.userId, { isDeactivated: args.isDeactivated });

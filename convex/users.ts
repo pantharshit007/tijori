@@ -1,7 +1,9 @@
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
+import { MAX_LENGTHS } from "../src/lib/constants";
 import { mutation, query } from "./_generated/server";
-import {  ROLE_LIMITS } from "./lib/roleLimits";
-import type {PlatformRole} from "./lib/roleLimits";
+import { TIER_LIMITS } from "./lib/roleLimits";
+import { throwError, validateLength } from "./lib/errors";
+import type { Tier } from "./lib/roleLimits";
 
 /**
  * Sync or create a user profile from Clerk.
@@ -16,8 +18,11 @@ export const store = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError("Called storeUser without authentication identity");
+      throwError("Called storeUser without authentication identity", "UNAUTHENTICATED", 401);
     }
+
+    validateLength(args.name, MAX_LENGTHS.USER_NAME, "Name");
+    validateLength(args.email, MAX_LENGTHS.USER_EMAIL, "Email");
 
     // Check if the user already exists
     const user = await ctx.db
@@ -41,7 +46,7 @@ export const store = mutation({
         });
       }
       if (user.isDeactivated) {
-        throw new ConvexError("User account is deactivated");
+        throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
       }
       return user._id;
     }
@@ -52,7 +57,7 @@ export const store = mutation({
       name,
       email: args.email.toLowerCase(),
       image: args.image,
-      platformRole: "user",
+      tier: "free",
     });
   },
 });
@@ -87,7 +92,7 @@ export const setMasterKey = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      throw new ConvexError("Unauthenticated");
+      throwError("Unauthenticated", "UNAUTHENTICATED", 401);
     }
 
     const user = await ctx.db
@@ -96,11 +101,11 @@ export const setMasterKey = mutation({
       .unique();
 
     if (!user) {
-      throw new ConvexError("User not found");
+      throwError("User not found", "NOT_FOUND", 404);
     }
 
     if (user.isDeactivated) {
-      throw new ConvexError("User account is deactivated");
+      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
     await ctx.db.patch(user._id, {
@@ -129,7 +134,7 @@ export const getUsageStats = query({
     if (!user) return null;
 
     if (user.isDeactivated) {
-      throw new ConvexError("User account is deactivated");
+      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
     // Count owned projects
@@ -140,7 +145,7 @@ export const getUsageStats = query({
 
     return {
       projectsCount: projects.length,
-      role: user.platformRole,
+      tier: user.tier,
     };
   },
 });
@@ -171,8 +176,8 @@ export const getPlanEnforcementStatus = query({
       return { exceedsPlanLimits: false };
     }
 
-    const role = (user.platformRole || "user") as PlatformRole;
-    const limits = ROLE_LIMITS[role];
+    const tier = (user.tier || "free") as Tier;
+    const limits = TIER_LIMITS[tier];
 
     // Count owned projects
     const projects = await ctx.db
@@ -192,13 +197,19 @@ export const getPlanEnforcementStatus = query({
         .collect();
 
       for (const quota of quotas) {
-        if (quota.resourceType === "environments" && quota.used > limits.maxEnvironmentsPerProject) {
+        if (
+          quota.resourceType === "environments" &&
+          quota.used > limits.maxEnvironmentsPerProject
+        ) {
           projectsExceedingEnvLimits++;
         }
         if (quota.resourceType === "members" && quota.used > limits.maxMembersPerProject) {
           projectsExceedingMemberLimits++;
         }
-        if (quota.resourceType === "sharedSecrets" && quota.used > limits.maxSharedSecretsPerProject) {
+        if (
+          quota.resourceType === "sharedSecrets" &&
+          quota.used > limits.maxSharedSecretsPerProject
+        ) {
           projectsExceedingSecretLimits++;
         }
       }
@@ -221,7 +232,10 @@ export const getPlanEnforcementStatus = query({
       exceedsPlanLimits: true,
       planEnforcementDeadline: user.planEnforcementDeadline,
       daysRemaining: user.planEnforcementDeadline
-        ? Math.max(0, Math.ceil((user.planEnforcementDeadline - Date.now()) / (24 * 60 * 60 * 1000)))
+        ? Math.max(
+            0,
+            Math.ceil((user.planEnforcementDeadline - Date.now()) / (24 * 60 * 60 * 1000))
+          )
         : 0,
       currentUsage: {
         projects: projects.length,
@@ -235,7 +249,8 @@ export const getPlanEnforcementStatus = query({
         maxMembersPerProject: limits.maxMembersPerProject,
         maxSharedSecretsPerProject: limits.maxSharedSecretsPerProject,
       },
-      tierName: role === "user" ? "Free" : role === "pro" ? "Pro" : role === "pro_plus" ? "Pro+" : "Admin",
+      tierName:
+        tier === "free" ? "Free" : tier === "pro" ? "Pro" : tier === "pro_plus" ? "Pro+" : "Admin",
     };
   },
 });
@@ -248,18 +263,18 @@ export const checkAndClearExceedsPlanLimits = mutation({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError("Unauthenticated");
+    if (!identity) throwError("Unauthenticated", "UNAUTHENTICATED", 401);
 
     const user = await ctx.db
       .query("users")
       .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
 
-    if (!user) throw new ConvexError("User not found");
+    if (!user) throwError("User not found", "NOT_FOUND", 404);
 
     // Deactivated users cannot perform this action
     if (user.isDeactivated) {
-      throw new ConvexError("Account is deactivated");
+      throwError("Account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
     // If not exceeding limits, nothing to do
@@ -267,8 +282,8 @@ export const checkAndClearExceedsPlanLimits = mutation({
       return { cleared: false, wasAlreadyClear: true };
     }
 
-    const role = (user.platformRole || "user") as PlatformRole;
-    const limits = ROLE_LIMITS[role];
+    const tier = (user.tier || "free") as Tier;
+    const limits = TIER_LIMITS[tier];
 
     // Count owned projects (only need IDs)
     const projects = await ctx.db
@@ -288,7 +303,10 @@ export const checkAndClearExceedsPlanLimits = mutation({
           .collect();
 
         for (const quota of quotas) {
-          if (quota.resourceType === "environments" && quota.used > limits.maxEnvironmentsPerProject) {
+          if (
+            quota.resourceType === "environments" &&
+            quota.used > limits.maxEnvironmentsPerProject
+          ) {
             stillExceeds = true;
             break;
           }
@@ -296,7 +314,10 @@ export const checkAndClearExceedsPlanLimits = mutation({
             stillExceeds = true;
             break;
           }
-          if (quota.resourceType === "sharedSecrets" && quota.used > limits.maxSharedSecretsPerProject) {
+          if (
+            quota.resourceType === "sharedSecrets" &&
+            quota.used > limits.maxSharedSecretsPerProject
+          ) {
             stillExceeds = true;
             break;
           }

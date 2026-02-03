@@ -10,6 +10,7 @@
 
 import type * as admin from "../admin.js";
 import type * as environments from "../environments.js";
+import type * as lib_errors from "../lib/errors.js";
 import type * as lib_roleLimits from "../lib/roleLimits.js";
 import type * as projects from "../projects.js";
 import type * as sharedSecrets from "../sharedSecrets.js";
@@ -25,6 +26,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   environments: typeof environments;
+  "lib/errors": typeof lib_errors;
   "lib/roleLimits": typeof lib_roleLimits;
   projects: typeof projects;
   sharedSecrets: typeof sharedSecrets;

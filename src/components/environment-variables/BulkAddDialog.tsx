@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { MAX_LENGTHS } from "@/lib/constants";
 
 export interface BulkAddDialogProps {
   open: boolean;
@@ -43,7 +44,7 @@ export function BulkAddDialog({
 
   useEffect(() => {
     if (bulkInput.trim()) {
-      setParsedVars(parseBulkInput(bulkInput));
+      setParsedVars(parseBulkInput(bulkInput, MAX_LENGTHS.VARIABLE_NAME));
     } else {
       setParsedVars([]);
     }

@@ -13,7 +13,7 @@ export function cn(...inputs: Array<ClassValue>) {
  * Supports formats: KEY=VALUE, export KEY=VALUE, KEY="VALUE", KEY='VALUE'
  * Lines starting with # are treated as comments and skipped.
  */
-export function parseBulkInput(input: string): ParsedVariable[] {
+export function parseBulkInput(input: string, maxNameLength?: number): ParsedVariable[] {
   const lines = input.split("\n").filter((line) => line.trim());
   const results: ParsedVariable[] = [];
 
@@ -47,6 +47,11 @@ export function parseBulkInput(input: string): ParsedVariable[] {
 
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
       results.push({ name, value, error: "Invalid variable name format" });
+      continue;
+    }
+
+    if (maxNameLength && name.length > maxNameLength) {
+      results.push({ name, value, error: `Name too long (max ${maxNameLength})` });
       continue;
     }
 

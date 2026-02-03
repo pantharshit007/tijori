@@ -5,6 +5,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 
 import type { ShareExpiryValue } from "@/lib/constants";
 import type { Environment, Variable } from "@/lib/types";
+import { MAX_LENGTHS, SHARE_EXPIRY_OPTIONS  } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { decrypt, deriveKey, encrypt, generateSalt } from "@/lib/crypto";
-import { SHARE_EXPIRY_OPTIONS } from "@/lib/constants";
+import { getErrorMessage } from "@/lib/errors";
 
 export interface ShareDialogProps {
   variables: Array<Variable>;
@@ -198,7 +199,7 @@ export function ShareDialog({
       toast.success("Share link created");
     } catch (err: any) {
       console.error("Failed to create share:", err);
-      toast.error(err.data || "Failed to create share");
+      toast.error(getErrorMessage(err, "Failed to create share"));
     } finally {
       setIsCreating(false);
     }
@@ -286,7 +287,7 @@ export function ShareDialog({
                 <Input
                   id="share-name"
                   type="text"
-                  maxLength={50}
+                  maxLength={MAX_LENGTHS.SECRET_NAME}
                   placeholder="e.g., For QA Team, Staging Deploy"
                   value={shareName}
                   onChange={(e) => setShareName(e.target.value)}

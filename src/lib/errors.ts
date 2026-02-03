@@ -8,14 +8,21 @@ import { ConvexError } from "convex/values";
  * @param fallback - Default message if no specific error can be extracted
  * @returns A user-friendly error message string
  */
-export function getErrorMessage(err: unknown, fallback: string = "An error occurred"): string {
+export function getErrorMessage(err: unknown, fallback: string = "Unexpected error"): string {
   if (err instanceof ConvexError) {
     // ConvexError stores structured data in .data
-    if (typeof err.data === "string") {
-      return err.data;
+    const data = err.data;
+
+    if (typeof data === "string") {
+      return data;
     }
-    if (err.data && typeof err.data === "object" && "message" in err.data) {
-      return String((err.data as { message: unknown }).message);
+
+    if (data && typeof data === "object") {
+      if ("message" in data) {
+        return String((data as { message: unknown }).message);
+      }
+      // Fallback for other object structures
+      return JSON.stringify(data);
     }
   }
 

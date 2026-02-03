@@ -44,3 +44,30 @@ export const META_DATA = {
   github: "https://github.com/pantharshit007/tijori",
   twitter: "https://x.com/pantharshit007",
 };
+
+export const PAGINATION_LIMIT = 10;
+
+/**
+ * Validation limits for various fields across the application.
+ */
+export const MAX_LENGTHS = {
+  PROJECT_NAME: 50,
+  PROJECT_DESCRIPTION: 200,
+  PASSCODE_HINT: 100,
+
+  ENVIRONMENT_NAME: 50,
+  ENVIRONMENT_DESCRIPTION: 200,
+
+  VARIABLE_NAME: 50,
+
+  SECRET_NAME: 100,
+
+  USER_NAME: 50,
+  USER_EMAIL: 100,
+} as const;
+
+export const FALLBACK_USER_DATA = {
+  name: "Not Found",
+  email: "notfound@tijori.com",
+  image: "https://api.dicebear.com/9.x/micah/svg",
+};

@@ -1,3 +1,4 @@
+import type { Tier } from "./role-limits";
 import type { Id } from "../../convex/_generated/dataModel";
 
 export interface Environment {
@@ -7,6 +8,9 @@ export interface Environment {
   updatedAt: number;
   projectId: Id<"projects">;
   description?: string;
+  updatedBy: Id<"users">;
+  updaterName: string;
+  updaterImage: string;
 }
 
 export interface Variable {
@@ -71,7 +75,7 @@ export interface EnvironmentVariablesProps {
   environment: Environment;
   derivedKey: CryptoKey | null;
   userRole: "owner" | "admin" | "member";
-  platformRole?: string;
+  ownerTier: Tier;
 }
 
 export interface ParsedVariable {

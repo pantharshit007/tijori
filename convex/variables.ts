@@ -1,6 +1,8 @@
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
+import { MAX_LENGTHS } from "../src/lib/constants";
 import { mutation, query } from "./_generated/server";
 import { getProjectOwnerLimits } from "./lib/roleLimits";
+import { throwError, validateLength } from "./lib/errors";
 import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
@@ -9,20 +11,27 @@ import type { Id } from "./_generated/dataModel";
  */
 async function checkEnvironmentAccess(ctx: QueryCtx, environmentId: Id<"environments">) {
   const identity = await ctx.auth.getUserIdentity();
-  if (!identity) throw new ConvexError("Unauthenticated");
+  if (!identity) throwError("Unauthenticated", "UNAUTHENTICATED", 401);
 
   const user = await ctx.db
     .query("users")
     .withIndex("by_tokenIdentifier", (q: any) => q.eq("tokenIdentifier", identity.tokenIdentifier))
     .unique();
 
-  if (!user) throw new ConvexError("User not found");
+  if (!user) throwError("User not found", "NOT_FOUND", 404);
   if (user.isDeactivated) {
-    throw new ConvexError("User account is deactivated");
+    throwError("User account is deactivated", "USER_DEACTIVATED", 403, {
+      user_id: user._id,
+      environment_id: environmentId,
+    });
   }
 
   const environment = await ctx.db.get(environmentId);
-  if (!environment) throw new ConvexError("Environment not found");
+  if (!environment)
+    throwError("Environment not found", "NOT_FOUND", 404, {
+      user_id: user._id,
+      environment_id: environmentId,
+    });
 
   const membership = await ctx.db
     .query("projectMembers")
@@ -31,7 +40,12 @@ async function checkEnvironmentAccess(ctx: QueryCtx, environmentId: Id<"environm
     )
     .unique();
 
-  if (!membership) throw new ConvexError("Access denied");
+  if (!membership)
+    throwError("Access denied", "FORBIDDEN", 403, {
+      user_id: user._id,
+      project_id: environment.projectId,
+      environment_id: environmentId,
+    });
 
   return { userId: user._id, membership };
 }
@@ -85,8 +99,13 @@ export const save = mutation({
     const { userId, membership } = await checkEnvironmentAccess(ctx, args.environmentId);
 
     if (membership.role !== "owner" && membership.role !== "admin") {
-      throw new ConvexError("Forbidden: Only owners and admins can modify variables");
+      throwError("Forbidden: Only owners and admins can modify variables", "FORBIDDEN", 403, {
+        user_id: userId,
+        environment_id: args.environmentId,
+      });
     }
+
+    validateLength(args.name, MAX_LENGTHS.VARIABLE_NAME, "Variable name");
 
     const now = Date.now();
 
@@ -94,10 +113,16 @@ export const save = mutation({
     if (args.variableId) {
       const existing = await ctx.db.get(args.variableId);
       if (!existing) {
-        throw new ConvexError("Variable not found");
+        throwError("Variable not found", "NOT_FOUND", 404, {
+          user_id: userId,
+          environment_id: args.environmentId,
+        });
       }
       if (existing.environmentId !== args.environmentId) {
-        throw new ConvexError("Variable does not belong to this environment");
+        throwError("Variable does not belong to this environment", "BAD_REQUEST", 400, {
+          user_id: userId,
+          environment_id: args.environmentId,
+        });
       }
 
       // Check for name collisions if name is changing (case-insensitive)
@@ -112,8 +137,11 @@ export const save = mutation({
             variable.name.toUpperCase() === args.name.toUpperCase()
         );
         if (collision) {
-          throw new ConvexError(
-            `A variable named "${args.name}" already exists (names are case-insensitive)`
+          throwError(
+            `A variable named "${args.name}" already exists (names are case-insensitive)`,
+            "CONFLICT",
+            409,
+            { user_id: userId, environment_id: args.environmentId }
           );
         }
       }
@@ -125,6 +153,12 @@ export const save = mutation({
         authTag: args.authTag,
         updatedAt: now,
       });
+
+      await ctx.db.patch(args.environmentId, {
+        updatedAt: now,
+        updatedBy: userId,
+      });
+
       return args.variableId;
     }
 
@@ -140,24 +174,34 @@ export const save = mutation({
     );
 
     if (existingByName) {
-      throw new ConvexError(
-        `A variable named "${args.name}" already exists (names are case-insensitive)`
+      throwError(
+        `A variable named "${args.name}" already exists (names are case-insensitive)`,
+        "CONFLICT",
+        409,
+        { user_id: userId, environment_id: args.environmentId }
       );
     }
 
     // 2. Check variable limit based on PROJECT OWNER's role
     const env = await ctx.db.get(args.environmentId);
-    if (!env) throw new ConvexError("Environment not found");
+    if (!env)
+      throwError("Environment not found", "NOT_FOUND", 404, {
+        user_id: userId,
+        environment_id: args.environmentId,
+      });
 
     const limits = await getProjectOwnerLimits(ctx, env.projectId);
 
     if (allVars.length >= limits.maxVariablesPerEnvironment) {
-      throw new ConvexError(
-        `Variable limit reached (${limits.maxVariablesPerEnvironment}). Project owner needs to upgrade for more.`
+      throwError(
+        `Variable limit reached (${limits.maxVariablesPerEnvironment}). Project owner needs to upgrade for more.`,
+        "LIMIT_REACHED",
+        403,
+        { user_id: userId, project_id: env.projectId, environment_id: args.environmentId }
       );
     }
 
-    return await ctx.db.insert("variables", {
+    const newVarId = await ctx.db.insert("variables", {
       environmentId: args.environmentId,
       name: args.name,
       encryptedValue: args.encryptedValue,
@@ -166,6 +210,13 @@ export const save = mutation({
       createdBy: userId,
       updatedAt: now,
     });
+
+    await ctx.db.patch(args.environmentId, {
+      updatedAt: now,
+      updatedBy: userId,
+    });
+
+    return newVarId;
   },
 });
 
@@ -176,15 +227,25 @@ export const remove = mutation({
   args: { id: v.id("variables") },
   handler: async (ctx, args) => {
     const variable = await ctx.db.get(args.id);
-    if (!variable) throw new ConvexError("Variable not found");
+    if (!variable) throwError("Variable not found", "NOT_FOUND", 404);
 
-    const { membership } = await checkEnvironmentAccess(ctx, variable.environmentId);
+    const { userId, membership } = await checkEnvironmentAccess(ctx, variable.environmentId);
 
     // Enforce role-based access: only owner and admin can delete variables
     if (membership.role !== "owner" && membership.role !== "admin") {
-      throw new ConvexError("Forbidden: Only owners and admins can delete variables");
+      throwError("Forbidden: Only owners and admins can delete variables", "FORBIDDEN", 403, {
+        user_id: membership.userId,
+        project_id: membership.projectId,
+        environment_id: variable.environmentId,
+      });
     }
 
     await ctx.db.delete(args.id);
+
+    const now = Date.now();
+    await ctx.db.patch(variable.environmentId, {
+      updatedAt: now,
+      updatedBy: userId,
+    });
   },
 });

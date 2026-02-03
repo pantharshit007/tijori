@@ -650,7 +650,7 @@ We centralize the limit retrieval by project:
 export async function getProjectOwnerLimits(ctx, projectId) {
   const project = await ctx.db.get(projectId);
   const owner = await ctx.db.get(project.ownerId);
-  return getRoleLimits(owner.platformRole);
+  return getTierLimits(owner.tier);
 }
 ```
 
@@ -732,4 +732,102 @@ export const getPlanEnforcementStatus = query({
 });
 ```
 
-This ensures deactivated users don't see or interact with features meant for active accounts.
+## This ensures deactivated users don't see or interact with features meant for active accounts.
+
+## 2026-02-01 - Standardized Error Handling Patterns
+
+### Evolution of `throwError`
+
+We evolved our error handling from simple message strings to a robust, standardized pattern that balances **Server Observability** with **Client Safety**.
+
+#### 1. Standardized Numeric Status Codes
+
+We moved from purely internal error types (e.g., `NOT_FOUND`) to including **numeric HTTP-like status codes** (e.g., `404`). This aligns our backend errors with industry standards and makes logs much easier to filter and understand in external monitoring tools.
+
+#### 2. Contextual Server-Side Logging
+
+One of the most powerful additions was the `context` object. This allows us to pass rich metadata (like `user_id`, `project_id`, `environment_id`) when an error occurs.
+
+**Key Practice**: Always pass relevant IDs in the context. This turns a generic "Access denied" error into a traceable event: "User X tried to access Project Y but was forbidden."
+
+```typescript
+throwError("Access denied", "FORBIDDEN", 403, {
+  user_id: user._id,
+  project_id: args.projectId,
+});
+```
+
+#### 3. Lean & Safe Client Payloads (Architecture Decision)
+
+We made a deliberate architectural choice to **exclude context from the client payload**.
+
+- **The Server**: Logs the message, error type, numeric code, AND the full context (JSON stringified).
+- **The Client**: Receives only the message, type, and code via `ConvexError`.
+
+**Why?**:
+
+- **Security**: Prevents leaking internal database IDs or metadata to the client (even if they are generally "public," it's good hygiene).
+- **Simplicity**: Keeps the frontend error-handling logic clean—it only cares about the type and message for UI feedback.
+- **Observability**: Developers get the full picture in the Convex dashboard logs, while users get a clean error message.
+
+#### 4. The Centralized Wrapper Pattern
+
+By using a centralized `throwError` utility in `convex/lib/errors.ts`, we ensure that:
+
+1. Every error is logged consistently.
+2. The format of the log message is standardized (`[TYPE:CODE] { ...json }`).
+3. We have a single place to potentially switch to a more advanced logger (like Sentry or Axiom) in the future.
+
+### Impact on Debugging
+
+With this pattern, the Convex logs transformed from:
+`WARN: [Error 403] FORBIDDEN: Access denied`
+To:
+`WARN: [FORBIDDEN:403] { "code": 403, "type": "FORBIDDEN", "message": "Access denied", "user_id": "...", "project_id": "..." }`
+
+This provides immediate, actionable data for every failure without needing to add extra `console.log` statements during incident response.
+
+---
+
+## 2026-02-01 - Renaming `platformRole` to `tier`
+
+### The Refactoring
+
+We decided to rename `platformRole` to `tier` throughout the codebase for clarity. The term "tier" better represents subscription levels (free, pro, pro_plus, super_admin) than "role," which could be confused with project-level roles (owner, admin, member).
+
+### Naming Changes
+
+| Old Name                 | New Name          |
+| ------------------------ | ----------------- |
+| `platformRole` (field)   | `tier`            |
+| `PlatformRole` (type)    | `Tier`            |
+| `ROLE_LIMITS`            | `TIER_LIMITS`     |
+| `RoleLimits` (interface) | `TierLimits`      |
+| `getRoleLimits()`        | `getTierLimits()` |
+| `"user"` (tier value)    | `"free"`          |
+| `ownerPlatformRole`      | `ownerTier`       |
+
+### Migration Strategy
+
+Since this project is dev-only (not in production), we used a simple migration approach:
+
+1. **Update Schema**: Changed field name and made it temporarily optional during transition
+2. **Temporary Migration Mutation**: Created `migratePlatformRoleToTier` mutation callable from admin dashboard
+3. **Migration Logic**: `"user"` → `"free"`, all other values copied as-is
+4. **Post-Migration Cleanup**: Removed migration code and made `tier` required again
+
+### Key Takeaways
+
+1. **Schema Field Renaming**: When renaming a field with existing data:
+   - Keep both fields temporarily (old as optional, new as optional)
+   - Create a one-time migration to copy values
+   - Remove old field after migration
+   - Make new field required
+
+2. **Type-Safe Migrations**: Use schema types when accessing fields to catch typos at compile time
+
+3. **Admin-Only Migrations**: Gate data migrations behind admin checks to prevent accidental triggers
+
+4. **Semantic Naming**: Choose field names that clearly express intent:
+   - `tier` = subscription level (free, pro, pro_plus)
+   - `role` = project permissions (owner, admin, member)

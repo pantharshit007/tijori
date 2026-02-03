@@ -17,6 +17,7 @@ import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
 import type { Environment } from "@/lib/types";
+import { MAX_LENGTHS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +49,7 @@ import { ProjectSettings } from "@/components/project-settings";
 import { UserAvatar } from "@/components/user-avatar";
 import { hash as cryptoHash, deriveKey } from "@/lib/crypto";
 import { keyStore } from "@/lib/key-store";
+import { getErrorMessage } from "@/lib/errors";
 
 function ProjectView() {
   const { projectId } = useParams({ from: "/d/project/$projectId" });
@@ -149,7 +151,7 @@ function ProjectView() {
       toast.success("Environment created successfully");
     } catch (err: any) {
       console.error("Failed to create environment:", { err });
-      toast.error(err.data || "Failed to create environment");
+      toast.error(getErrorMessage(err, "Failed to create environment"));
     } finally {
       setIsCreatingEnv(false);
     }
@@ -347,6 +349,7 @@ function ProjectView() {
                             value={newEnvName}
                             onChange={(e) => setNewEnvName(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && handleCreateEnvironment()}
+                            maxLength={MAX_LENGTHS.ENVIRONMENT_NAME}
                           />
                         </div>
                         <div className="space-y-2">
@@ -356,6 +359,7 @@ function ProjectView() {
                             placeholder="Production environment for live app..."
                             value={newEnvDescription}
                             onChange={(e) => setNewEnvDescription(e.target.value)}
+                            maxLength={MAX_LENGTHS.ENVIRONMENT_DESCRIPTION}
                           />
                         </div>
                       </div>
@@ -379,7 +383,7 @@ function ProjectView() {
                   environment={environments.find((e) => e._id === activeEnv) as Environment}
                   derivedKey={derivedKey}
                   userRole={project.role}
-                  platformRole={project.ownerPlatformRole}
+                  ownerTier={project.ownerTier}
                 />
               )}
             </>
@@ -509,7 +513,7 @@ function PasscodeUnlock({
     } catch (err: any) {
       console.error("Unlock failed:", err);
       setUnlockError("Failed to unlock. Please check your passcode.");
-      toast.error(err.data || "Failed to unlock");
+      toast.error(getErrorMessage(err, "Failed to unlock"));
     } finally {
       setIsUnlocking(false);
     }

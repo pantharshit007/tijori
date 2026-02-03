@@ -3,6 +3,7 @@ import { Loader2, Save, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MAX_LENGTHS } from "@/lib/constants";
 
 export interface VariableEditRowProps {
   name: string;
@@ -141,9 +142,10 @@ export function VariableEditRow({
             onChange={(e) => onNameChange(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handleNamePaste}
-            className="font-mono text-[13px] h-9 bg-background uppercase"
+            className="font-mono text-[13px] h-9 bg-background"
             placeholder="VARIABLE_NAME"
             autoFocus={isNew}
+            maxLength={MAX_LENGTHS.VARIABLE_NAME}
           />
         </div>
       </div>

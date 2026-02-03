@@ -2,17 +2,12 @@
 - [ ] **Project Passcode Rotation**: Currently, changing a project's 6-digit passcode is not allowed.
   - **Reasoning**: It is a high-cost operation. Changing the passcode changes the PBKDF2 derived key, which would require re-encrypting EVERY variable in EVERY environment for that project, as well as re-encrypting all shared passcodes in the `sharedSecrets` table.
   - **Implementation Note**: If implemented, it must be performed as a client-side batch job (decrypt with old key, re-encrypt with new key) with a progress indicator and warning to the user.
-- [ ] option to remove environments, only allowed to Owners, but Admin can create new Environment, but can't delete them. (also need to check if those vars are shared or not)
-- [ ] add length limit to description field and other such fields in schema.
 - [ ] update the enums such as "admin" and "member" to be "owner" and "member" in react files to types directly from convex.
-- [ ] when removing a env key, instead of the alert we should get a dialog telling us the name and the environment where the key is used, which will get deleted.
 - [ ] remove mutation in variable.ts `const variable = await ctx.db.get(args.id);` why are we querying the whole db again, instead of that specific table?
 - [ ] Transfer ownership of project, pending.
-- [ ] more options like select all, select none, and select few in shared section in dashboard to perform bulk actions, disable, expire, delete.
 - [ ] add toast notifications for successful actions, ex: copy, delete, etc.
-- [ ] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
+- [x] Standardized error handling using `throwError` utility with numeric status codes and contextual server-side logging. (Implemented via `ConvexError` for frontend compatibility).
 - [ ] when the / loads, initially there is no sign in , get started and get started free button, they appear after a delay most probably network call to the clerk server, instead of waiting for the response and showing nothing add a suspense component to show get started, sign in until we get the response if we get user is logged in, we will just update the component in place else it will stay the same, just not via the suspense component.
-- [ ] there is a bug in variable naming in the dashboard, it always show the name of the var in CAPITAL, whether the actual name is small or capital.
 - [ ] update the toast ui.
 - [x] **Plan Downgrade Enforcement**: Users who downgrade keep paid privileges — need to implement enforcement:
   - [x] **On downgrade**: Check if user's current usage exceeds the new tier's limits:
@@ -24,17 +19,19 @@
     - Days remaining before enforcement (countdown from `planEnforcementDeadline`)
     - Action required: "Please delete excess projects/secrets to stay within your plan limits"
   - [ ] **After 7-day grace period**: Cron job runs and deletes excess projects based on criteria:
+    - we can create a table, which will store all the exceedsPlanLimits projects + userId + timestamp, and we can process them directly from this table in a cron job
     - Least recently used (by `updatedAt` timestamp)
     - OR oldest created (`createdAt`)
     - Emit `AuditLog` entries for each deleted project
     - Send email notification to user about enforcement action
   - **TODO (Future)**: Implement cron job `enforcePlanLimits` to run daily and reconcile excess after deadline passes
 - [ ] re-check save mutation thoroughly in @convex/variable.ts, seems something is wrong there.
-- [ ] update `platformRole` to `tier` in the user table, and update the UI accordingly.
-- [ ] update the field in per environment so that it shows in UI the last updated by User (who updated the env vars last)
 - [ ] check if Bulk add dialog and Bulk edit dialog can use a common logic instead of duplicating the code.
-- [ ] instead of throwing convex error, return a custom error object with a message and a code, and use it in the UI, this will make error logs more readable, use `@/lib/errors.ts` to extract the error message from the error object and use it in the UI, everywhere.
+- [ ] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
+- [x] more options like select all, select none, and select few in shared section in dashboard to perform bulk actions, disable, expire, delete.
+- [x] add pagination to the /d/shared route's table for doc you can visit [here](https://docs.convex.dev/database/pagination)
 
 ---
 
 - [ ] before going prod, [configure Google social connection in Clerk](https://clerk.com/docs/guides/configure/auth-strategies/social-connections/google)
+- [ ] pagination in convex [paginationOptsValidator](https://docs.convex.dev/database/pagination)

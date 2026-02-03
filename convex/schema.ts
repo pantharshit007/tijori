@@ -9,8 +9,8 @@ export default defineSchema({
     image: v.optional(v.string()),
     masterKeyHash: v.optional(v.string()),
     masterKeySalt: v.optional(v.string()),
-    platformRole: v.union(
-      v.literal("user"),
+    tier: v.union(
+      v.literal("free"),
       v.literal("pro"),
       v.literal("pro_plus"),
       v.literal("super_admin")
@@ -49,6 +49,7 @@ export default defineSchema({
     name: v.string(),
     description: v.optional(v.string()),
     updatedAt: v.number(),
+    updatedBy: v.id("users"),
   }).index("by_projectId", ["projectId"]),
 
   variables: defineTable({

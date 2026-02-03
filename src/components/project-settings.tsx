@@ -14,6 +14,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { MAX_LENGTHS } from "@/lib/constants";
 import { getErrorMessage } from "@/lib/errors";
 
 import { Button } from "@/components/ui/button";
@@ -261,6 +262,7 @@ export function ProjectSettings({
                         id="editName"
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
+                        maxLength={MAX_LENGTHS.PROJECT_NAME}
                       />
                     </div>
                     <div className="space-y-2">
@@ -271,6 +273,7 @@ export function ProjectSettings({
                         onChange={(e) => setEditDescription(e.target.value)}
                         placeholder="Optional description..."
                         rows={2}
+                        maxLength={MAX_LENGTHS.PROJECT_DESCRIPTION}
                       />
                     </div>
                     <div className="space-y-2">
@@ -280,6 +283,7 @@ export function ProjectSettings({
                         value={editPasscodeHint}
                         onChange={(e) => setEditPasscodeHint(e.target.value)}
                         placeholder="Help remember your passcode..."
+                        maxLength={MAX_LENGTHS.PASSCODE_HINT}
                       />
                       <p className="text-xs text-muted-foreground">
                         Only visible to you in settings.
@@ -364,11 +368,13 @@ export function ProjectSettings({
                           value={editEnvName}
                           onChange={(e) => setEditEnvName(e.target.value)}
                           placeholder="Environment name"
+                          maxLength={MAX_LENGTHS.ENVIRONMENT_NAME}
                         />
                         <Input
                           value={editEnvDescription}
                           onChange={(e) => setEditEnvDescription(e.target.value)}
                           placeholder="Description (optional)"
+                          maxLength={MAX_LENGTHS.ENVIRONMENT_DESCRIPTION}
                         />
                         <div className="flex gap-2">
                           <Button
