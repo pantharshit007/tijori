@@ -111,7 +111,7 @@ function LocalSetupPage() {
           </p>
           <DocsCodeBlock code={`cp .env.example .env.local`} />
           <p className="doc-p-tag mb-0">
-            For Clerk keys, go to you dashboard and copy the keys from the "API Keys" section.
+            For Clerk keys, go to your dashboard and copy the keys from the "API Keys" section.
             Navigate here{" "}
             <a
               className="text-primary underline underline-offset-4"
@@ -127,7 +127,7 @@ function LocalSetupPage() {
             file.
           </p>
           <p className="doc-p-tag">
-            For detail guide, check offical{" "}
+            For detail guide, check the official{" "}
             <a
               href={SITE_CONFIG.links.convexClerkGuide}
               target="_blank"
@@ -212,8 +212,8 @@ function LocalSetupPage() {
           </Card>
         </div>
         <p className="doc-p-tag">
-          You may be asked to login to your convex account, it's upto you whether you want to use
-          the local running convex instance or the development instance via the cloud, for that you
+          You may be asked to log in to your Convex account; it's up to you whether you want to use
+          the local running Convex instance or the development instance via the cloud. For that, you
           have to login to your convex account and follow the steps to generate the keys.
         </p>
       </section>

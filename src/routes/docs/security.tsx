@@ -261,29 +261,29 @@ function SecurityDocsPage() {
           responsibly through our security portal on GitHub.
         </p>
         <div className="pt-4">
-          <a href={SITE_CONFIG.links.githubSecurity} target="_blank" rel="noreferrer">
-            <Button
-              size="lg"
-              className="rounded-xl gap-2 font-bold shadow-lg shadow-primary/10 transition-all hover:scale-105"
-              title="Open security policy"
-            >
+          <Button
+            asChild
+            size="lg"
+            className="rounded-xl gap-2 font-bold shadow-lg shadow-primary/10 transition-all hover:scale-105"
+            title="Open security policy"
+          >
+            <a href={SITE_CONFIG.links.githubSecurity} target="_blank" rel="noreferrer">
               <ExternalLink className="h-4 w-4" />
               Open Security Policy
-            </Button>
-          </a>
+            </a>
+          </Button>
         </div>
       </section>
 
       <div className="flex justify-center pt-8 border-t border-border/40">
-        <Link to="/d/dashboard">
-          <Button
-            variant="ghost"
-            className="text-muted-foreground hover:text-foreground font-medium"
-            title="Return to dashboard"
-          >
-            Return to Dashboard
-          </Button>
-        </Link>
+        <Button
+          asChild
+          variant="ghost"
+          className="text-muted-foreground hover:text-foreground font-medium"
+          title="Return to dashboard"
+        >
+          <Link to="/d/dashboard">Return to Dashboard</Link>
+        </Button>
       </div>
     </div>
   );
