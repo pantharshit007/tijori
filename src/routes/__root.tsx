@@ -10,6 +10,8 @@ import { Analytics } from "@vercel/analytics/react";
 import appCss from "../styles.css?url";
 import { ThemeProvider } from "@/components/theme-provider";
 import { convex, queryClient } from "@/lib/convex";
+import { NotFound as PremiumNotFound } from "@/components/not-found";
+import { SITE_CONFIG } from "@/utilities/site-config";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -22,15 +24,78 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "Tijori - Secure Environment Variables Manager",
+        title: SITE_CONFIG.title,
       },
       {
         name: "description",
-        content:
-          "Securely store, manage, and share encrypted environment variables across your team.",
+        content: SITE_CONFIG.description,
+      },
+      {
+        name: "keywords",
+        content: SITE_CONFIG.seo.keywords.join(", "),
+      },
+      {
+        name: "robots",
+        content: "index, follow",
+      },
+      {
+        name: "theme-color",
+        content: "#0a0a0a",
+      },
+      {
+        property: "og:site_name",
+        content: SITE_CONFIG.name,
+      },
+      {
+        property: "og:title",
+        content: SITE_CONFIG.title,
+      },
+      {
+        property: "og:description",
+        content: SITE_CONFIG.description,
+      },
+      {
+        property: "og:type",
+        content: "website",
+      },
+      {
+        property: "og:url",
+        content: SITE_CONFIG.siteUrl,
+      },
+      {
+        property: "og:image",
+        content: SITE_CONFIG.ogImage,
+      },
+      {
+        name: "twitter:card",
+        content: "summary_large_image",
+      },
+      {
+        name: "twitter:title",
+        content: SITE_CONFIG.title,
+      },
+      {
+        name: "twitter:description",
+        content: SITE_CONFIG.description,
+      },
+      {
+        name: "twitter:image",
+        content: SITE_CONFIG.ogImage,
+      },
+      {
+        name: "twitter:site",
+        content: SITE_CONFIG.seo.twitterHandle,
+      },
+      {
+        name: "twitter:creator",
+        content: SITE_CONFIG.seo.twitterHandle,
       },
     ],
     links: [
+      {
+        rel: "canonical",
+        href: SITE_CONFIG.siteUrl,
+      },
       {
         rel: "stylesheet",
         href: appCss,
@@ -56,6 +121,7 @@ export const Route = createRootRoute({
   }),
 
   shellComponent: RootDocument,
+  notFoundComponent: () => <PremiumNotFound />,
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
@@ -68,13 +134,32 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               <head>
                 <HeadContent />
                 <script
+                  type="application/ld+json"
+                  dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                      "@context": "https://schema.org",
+                      "@type": "SoftwareApplication",
+                      name: SITE_CONFIG.name,
+                      url: SITE_CONFIG.siteUrl,
+                      description: SITE_CONFIG.description,
+                      applicationCategory: "SecurityApplication",
+                      operatingSystem: "Web",
+                      offers: {
+                        "@type": "Offer",
+                        price: "0",
+                        priceCurrency: "USD",
+                      },
+                    }),
+                  }}
+                />
+                <script
                   dangerouslySetInnerHTML={{
                     __html: `
                       (function() {
                         const stored = localStorage.getItem('tijori-theme');
                         const theme = stored || 'dark';
                         const resolved = theme === 'system' 
-                          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                           ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
                           : theme;
                         document.documentElement.classList.add(resolved);
                       })();

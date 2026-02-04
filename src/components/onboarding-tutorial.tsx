@@ -32,7 +32,7 @@ const DASHBOARD_STEPS: TutorialStep[] = [
     title: "Your Projects",
     description: "Projects live here. Open one to manage environments and encrypted variables.",
     selector: '[data-tutorial-id="projects-section"]',
-    placement: "top",
+    placement: "bottom",
   },
   {
     id: "new-project",
@@ -237,7 +237,7 @@ export function OnboardingTutorial({ enabled = true, restartSignal }: TutorialOv
     if (!isActive) return;
 
     const updateMeasurements = () => {
-      const target = step ? (document.querySelector(step.selector)) : null;
+      const target = step ? document.querySelector(step.selector) : null;
       if (!target) {
         const nextIndex = findNextAvailable(currentIndex + 1);
         if (nextIndex === -1) {

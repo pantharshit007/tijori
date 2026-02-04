@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { PlanEnforcementBanner } from "@/components/PlanEnforcementBanner";
 import { OnboardingTutorial } from "@/components/onboarding-tutorial";
 
+import { NotFound } from "@/components/not-found";
+
 export const Route = createFileRoute("/d")({
   beforeLoad: ({ context, location }: { context: any; location: any }) => {
     if (context.auth?.userId === null) {
@@ -24,6 +26,14 @@ export const Route = createFileRoute("/d")({
     }
   },
   component: DashboardLayout,
+  notFoundComponent: () => (
+    <NotFound 
+      title="Feature Not Found" 
+      description="The dashboard feature or project you're looking for doesn't exist."
+      backLink="/d/dashboard"
+      backText="Back to Dashboard"
+    />
+  ),
 });
 
 function DashboardLayout() {
