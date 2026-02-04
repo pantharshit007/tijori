@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as ShareShareIdRouteImport } from './routes/share/$shareId'
 import { Route as DocsSecurityRouteImport } from './routes/docs/security'
+import { Route as DocsLocalSetupRouteImport } from './routes/docs/local-setup'
 import { Route as DocsDeploymentRouteImport } from './routes/docs/deployment'
 import { Route as DSharedRouteImport } from './routes/d/shared'
 import { Route as DSettingsRouteImport } from './routes/d/settings'
@@ -66,6 +67,11 @@ const ShareShareIdRoute = ShareShareIdRouteImport.update({
 const DocsSecurityRoute = DocsSecurityRouteImport.update({
   id: '/security',
   path: '/security',
+  getParentRoute: () => DocsRoute,
+} as any)
+const DocsLocalSetupRoute = DocsLocalSetupRouteImport.update({
+  id: '/local-setup',
+  path: '/local-setup',
   getParentRoute: () => DocsRoute,
 } as any)
 const DocsDeploymentRoute = DocsDeploymentRouteImport.update({
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/d/settings': typeof DSettingsRoute
   '/d/shared': typeof DSharedRoute
   '/docs/deployment': typeof DocsDeploymentRoute
+  '/docs/local-setup': typeof DocsLocalSetupRoute
   '/docs/security': typeof DocsSecurityRoute
   '/share/$shareId': typeof ShareShareIdRoute
   '/docs/': typeof DocsIndexRoute
@@ -184,6 +191,7 @@ export interface FileRoutesByTo {
   '/d/settings': typeof DSettingsRoute
   '/d/shared': typeof DSharedRoute
   '/docs/deployment': typeof DocsDeploymentRoute
+  '/docs/local-setup': typeof DocsLocalSetupRoute
   '/docs/security': typeof DocsSecurityRoute
   '/share/$shareId': typeof ShareShareIdRoute
   '/docs': typeof DocsIndexRoute
@@ -210,6 +218,7 @@ export interface FileRoutesById {
   '/d/settings': typeof DSettingsRoute
   '/d/shared': typeof DSharedRoute
   '/docs/deployment': typeof DocsDeploymentRoute
+  '/docs/local-setup': typeof DocsLocalSetupRoute
   '/docs/security': typeof DocsSecurityRoute
   '/share/$shareId': typeof ShareShareIdRoute
   '/docs/': typeof DocsIndexRoute
@@ -237,6 +246,7 @@ export interface FileRouteTypes {
     | '/d/settings'
     | '/d/shared'
     | '/docs/deployment'
+    | '/docs/local-setup'
     | '/docs/security'
     | '/share/$shareId'
     | '/docs/'
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/d/settings'
     | '/d/shared'
     | '/docs/deployment'
+    | '/docs/local-setup'
     | '/docs/security'
     | '/share/$shareId'
     | '/docs'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/d/settings'
     | '/d/shared'
     | '/docs/deployment'
+    | '/docs/local-setup'
     | '/docs/security'
     | '/share/$shareId'
     | '/docs/'
@@ -365,6 +377,13 @@ declare module '@tanstack/react-router' {
       path: '/security'
       fullPath: '/docs/security'
       preLoaderRoute: typeof DocsSecurityRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/docs/local-setup': {
+      id: '/docs/local-setup'
+      path: '/local-setup'
+      fullPath: '/docs/local-setup'
+      preLoaderRoute: typeof DocsLocalSetupRouteImport
       parentRoute: typeof DocsRoute
     }
     '/docs/deployment': {
@@ -508,12 +527,14 @@ const DRouteWithChildren = DRoute._addFileChildren(DRouteChildren)
 
 interface DocsRouteChildren {
   DocsDeploymentRoute: typeof DocsDeploymentRoute
+  DocsLocalSetupRoute: typeof DocsLocalSetupRoute
   DocsSecurityRoute: typeof DocsSecurityRoute
   DocsIndexRoute: typeof DocsIndexRoute
 }
 
 const DocsRouteChildren: DocsRouteChildren = {
   DocsDeploymentRoute: DocsDeploymentRoute,
+  DocsLocalSetupRoute: DocsLocalSetupRoute,
   DocsSecurityRoute: DocsSecurityRoute,
   DocsIndexRoute: DocsIndexRoute,
 }

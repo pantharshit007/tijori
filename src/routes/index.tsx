@@ -54,7 +54,7 @@ function LandingPage() {
               Security
             </a>
             <a
-              href={META_DATA.github}
+              href={META_DATA.github_repo}
               target="_blank"
               rel="noreferrer"
               className="hover:text-foreground transition-colors"
@@ -139,7 +139,7 @@ function LandingPage() {
                   </Button>
                 </Link>
               </SignedIn>
-              <a href={META_DATA.github} target="_blank" rel="noreferrer">
+              <a href={META_DATA.github_repo} target="_blank" rel="noreferrer">
                 <Button
                   size="lg"
                   variant="outline"
@@ -389,7 +389,7 @@ function LandingPage() {
         </div>
         <div className="container max-w-7xl mx-auto px-4 pt-8 mt-12 border-t border-border/20 text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} Tijori. Built by{" "}
-          <a href="https://github.com/pantharshit007" className="underline hover:text-foreground">
+          <a href={META_DATA.twitter} className="underline hover:text-foreground">
             pantharshit007
           </a>
           . Released under AGPL-3.0.

@@ -211,3 +211,19 @@ code {
 @utility profile-card-name {
   @apply text-xs text-muted-foreground uppercase mb-1 tracking-wider font-semibold
 }
+
+@utility doc-p-tag {
+  @apply text-sm text-muted-foreground font-medium;
+}
+
+.docs-page-container {
+  counter-reset: step-counter;
+}
+
+.docs-step-header {
+  counter-increment: step-counter;
+}
+
+.docs-step-number::before {
+  content: counter(step-counter);
+}
