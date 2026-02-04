@@ -40,12 +40,6 @@ export const SHARE_EXPIRY_OPTIONS = [
 
 export type ShareExpiryValue = (typeof SHARE_EXPIRY_OPTIONS)[number]["value"];
 
-export const META_DATA = {
-  github_repo: "https://github.com/pantharshit007/tijori",
-  github: "https://github.com/pantharshit007",
-  twitter: "https://x.com/pantharshit007",
-};
-
 export const PAGINATION_LIMIT = 10;
 
 /**

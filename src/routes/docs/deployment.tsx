@@ -3,8 +3,22 @@ import { AlertCircle, CheckCircle2, ChevronRight, ExternalLink, Terminal } from 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DocsCodeBlock, DocsStepHeader } from "@/components/docs-components";
+import { SITE_CONFIG } from "@/utilities/site-config";
 
 export const Route = createFileRoute("/docs/deployment")({
+  head: () => ({
+    meta: [
+      { title: SITE_CONFIG.pages.deployment },
+      { name: "description", content: SITE_CONFIG.description },
+      { property: "og:title", content: SITE_CONFIG.pages.deployment },
+      { property: "og:description", content: SITE_CONFIG.description },
+      { property: "og:url", content: `${SITE_CONFIG.siteUrl}/docs/deployment` },
+      { property: "og:image", content: SITE_CONFIG.ogImage },
+      { name: "twitter:title", content: SITE_CONFIG.pages.deployment },
+      { name: "twitter:description", content: SITE_CONFIG.description },
+      { name: "twitter:image", content: SITE_CONFIG.ogImage },
+    ],
+  }),
   component: DeploymentDocsPage,
 });
 
@@ -101,7 +115,7 @@ function DeploymentDocsPage() {
               domains, you have to use your own domain, setup your records, for detailed guide,
               check the offical{" "}
               <a
-                href="https://clerk.com/docs/guides/development/deployment/production?utm_source=tijori.hrshit.in&utm_medium=docs"
+                href={SITE_CONFIG.links.clerkProdGuide}
                 target="_blank"
                 rel="noreferrer"
                 className="text-primary underline underline-offset-4"
@@ -153,8 +167,9 @@ CLERK_JWT_ISSUER_DOMAIN=https://clerk.custom.domain
                 in sync, generate the keys from the production instance via dashboard or from{" "}
                 <a
                   className="text-primary underline underline-offset-4"
-                  href="https://dashboard.convex.dev/deployment/settings"
+                  href={SITE_CONFIG.links.convexDeploymentSettings}
                   target="_blank"
+                  rel="noreferrer"
                 >
                   Deployment Settings
                 </a>
@@ -187,7 +202,7 @@ CONVEX_DEPLOY_KEY=prod:cultured-man-99|abc123...
             For detailed guide, on deployment not only to vercel but also to any other platform,
             check the offical{" "}
             <a
-              href="https://docs.convex.dev/production/hosting/vercel?utm_source=tijori.hrshit.in&utm_medium=docs"
+              href={SITE_CONFIG.links.convexVercelGuide}
               target="_blank"
               rel="noreferrer"
               className="text-primary underline underline-offset-4"
@@ -281,12 +296,8 @@ CONVEX_DEPLOY_KEY=prod:cultured-man-99|abc123...
       <footer className="text-center py-12 border-t border-border/40">
         <p className="text-muted-foreground mb-6 font-medium">Need further assistance?</p>
         <div className="flex justify-center gap-4">
-          <a
-            href="https://github.com/pantharshit007/tijori/issues"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Button variant="outline" className="gap-2 font-bold">
+          <a href={SITE_CONFIG.links.githubIssues} target="_blank" rel="noreferrer">
+            <Button variant="outline" className="gap-2 font-bold" title="Open GitHub issues">
               <ExternalLink className="h-4 w-4" />
               GitHub Issues
             </Button>

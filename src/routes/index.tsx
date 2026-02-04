@@ -13,10 +13,23 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { META_DATA } from "@/lib/constants";
+import { SITE_CONFIG } from "@/utilities/site-config";
 import { useTheme } from "@/components/theme-provider";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: SITE_CONFIG.title },
+      { name: "description", content: SITE_CONFIG.description },
+      { property: "og:title", content: SITE_CONFIG.title },
+      { property: "og:description", content: SITE_CONFIG.description },
+      { property: "og:url", content: SITE_CONFIG.siteUrl },
+      { property: "og:image", content: SITE_CONFIG.ogImage },
+      { name: "twitter:title", content: SITE_CONFIG.title },
+      { name: "twitter:description", content: SITE_CONFIG.description },
+      { name: "twitter:image", content: SITE_CONFIG.ogImage },
+    ],
+  }),
   component: LandingPage,
 });
 
@@ -55,7 +68,7 @@ function LandingPage() {
               Security
             </a>
             <a
-              href={META_DATA.github_repo}
+              href={SITE_CONFIG.links.githubRepo}
               target="_blank"
               rel="noreferrer"
               className="hover:text-foreground transition-colors"
@@ -69,23 +82,26 @@ function LandingPage() {
               variant="outline"
               className="h-8 w-8 border-none dark:bg-transparent"
               onClick={handleToggleTheme}
+              title="Toggle theme"
             >
               <Lightbulb className="h-4 w-4 fill-primary" />
               <span className="sr-only">Toggle Dark Mode</span>
             </Button>
             <SignedOut>
               <SignInButton mode="modal">
-                <Button variant="ghost" className="hidden sm:inline-flex">
+                <Button variant="ghost" className="hidden sm:inline-flex" title="Sign in">
                   Sign In
                 </Button>
               </SignInButton>
               <SignInButton mode="modal">
-                <Button className="shadow-lg shadow-primary/20">Get Started</Button>
+                <Button className="shadow-lg shadow-primary/20" title="Get started">
+                  Get Started
+                </Button>
               </SignInButton>
             </SignedOut>
             <SignedIn>
               <Link to="/d/dashboard">
-                <Button className="gap-2 shadow-lg shadow-primary/20">
+                <Button className="gap-2 shadow-lg shadow-primary/20" title="Go to dashboard">
                   Dashboard
                   <ArrowRight className="size-4" />
                 </Button>
@@ -123,6 +139,7 @@ function LandingPage() {
                   <Button
                     size="lg"
                     className="h-12 px-8 text-md font-semibold gap-2 shadow-xl shadow-primary/20"
+                    title="Get started free"
                   >
                     Get Started Free
                     <ArrowRight className="size-5" />
@@ -134,6 +151,7 @@ function LandingPage() {
                   <Button
                     size="lg"
                     className="h-12 px-8 text-md font-semibold gap-2 shadow-xl shadow-primary/20"
+                    title="Go to dashboard"
                   >
                     Go to Dashboard
                     <ArrowRight className="size-5" />
@@ -145,6 +163,7 @@ function LandingPage() {
                   size="lg"
                   variant="outline"
                   className="h-12 px-8 text-md font-semibold gap-2 backdrop-blur-sm bg-background/50 border-white/10"
+                  title="Read documentation"
                 >
                   <BookOpen className="size-5" />
                   Read Documentation
@@ -277,7 +296,11 @@ function LandingPage() {
                 </ul>
                 <div className="pt-4">
                   <Link to="/docs/security">
-                    <Button variant="link" className="p-0 h-auto text-primary gap-1">
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto text-primary gap-1"
+                      title="Read security docs"
+                    >
                       Read more about our security model
                       <ArrowRight className="size-4" />
                     </Button>
@@ -313,6 +336,7 @@ function LandingPage() {
                     size="lg"
                     variant="secondary"
                     className="h-14 px-10 text-lg font-bold shadow-2xl"
+                    title="Get started now"
                   >
                     Get Started Now
                   </Button>
@@ -324,6 +348,7 @@ function LandingPage() {
                     size="lg"
                     variant="secondary"
                     className="h-14 px-10 text-lg font-bold shadow-2xl"
+                    title="Go to dashboard"
                   >
                     Go to Dashboard
                   </Button>
@@ -390,7 +415,7 @@ function LandingPage() {
         </div>
         <div className="container max-w-7xl mx-auto px-4 pt-8 mt-12 border-t border-border/20 text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} Tijori. Built by{" "}
-          <a href={META_DATA.twitter} className="underline hover:text-foreground">
+          <a href={SITE_CONFIG.links.twitter} className="underline hover:text-foreground">
             pantharshit007
           </a>
           . Released under AGPL-3.0.

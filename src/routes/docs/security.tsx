@@ -12,8 +12,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DocsHeader } from "@/components/docs-components";
+import { SITE_CONFIG } from "@/utilities/site-config";
 
 export const Route = createFileRoute("/docs/security")({
+  head: () => ({
+    meta: [
+      { title: SITE_CONFIG.pages.security },
+      { name: "description", content: SITE_CONFIG.description },
+      { property: "og:title", content: SITE_CONFIG.pages.security },
+      { property: "og:description", content: SITE_CONFIG.description },
+      { property: "og:url", content: `${SITE_CONFIG.siteUrl}/docs/security` },
+      { property: "og:image", content: SITE_CONFIG.ogImage },
+      { name: "twitter:title", content: SITE_CONFIG.pages.security },
+      { name: "twitter:description", content: SITE_CONFIG.description },
+      { name: "twitter:image", content: SITE_CONFIG.ogImage },
+    ],
+  }),
   component: SecurityDocsPage,
 });
 
@@ -247,14 +261,11 @@ function SecurityDocsPage() {
           responsibly through our security portal on GitHub.
         </p>
         <div className="pt-4">
-          <a
-            href="https://github.com/pantharshit007/tijori/security"
-            target="_blank"
-            rel="noreferrer"
-          >
+          <a href={SITE_CONFIG.links.githubSecurity} target="_blank" rel="noreferrer">
             <Button
               size="lg"
               className="rounded-xl gap-2 font-bold shadow-lg shadow-primary/10 transition-all hover:scale-105"
+              title="Open security policy"
             >
               <ExternalLink className="h-4 w-4" />
               Open Security Policy
@@ -268,6 +279,7 @@ function SecurityDocsPage() {
           <Button
             variant="ghost"
             className="text-muted-foreground hover:text-foreground font-medium"
+            title="Return to dashboard"
           >
             Return to Dashboard
           </Button>

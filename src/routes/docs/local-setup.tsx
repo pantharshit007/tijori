@@ -2,8 +2,22 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CheckCircle2, Code2, Info, Laptop, Terminal } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DocsCodeBlock, DocsStepHeader } from "@/components/docs-components";
+import { SITE_CONFIG } from "@/utilities/site-config";
 
 export const Route = createFileRoute("/docs/local-setup")({
+  head: () => ({
+    meta: [
+      { title: SITE_CONFIG.pages.localSetup },
+      { name: "description", content: SITE_CONFIG.description },
+      { property: "og:title", content: SITE_CONFIG.pages.localSetup },
+      { property: "og:description", content: SITE_CONFIG.description },
+      { property: "og:url", content: `${SITE_CONFIG.siteUrl}/docs/local-setup` },
+      { property: "og:image", content: SITE_CONFIG.ogImage },
+      { name: "twitter:title", content: SITE_CONFIG.pages.localSetup },
+      { name: "twitter:description", content: SITE_CONFIG.description },
+      { name: "twitter:image", content: SITE_CONFIG.ogImage },
+    ],
+  }),
   component: LocalSetupPage,
 });
 
@@ -77,7 +91,7 @@ function LocalSetupPage() {
           Get the source code and install the required packages.
         </p>
         <DocsCodeBlock
-          code={`git clone https://github.com/pantharshit007/tijori.git\ncd tijori\nbun install`}
+          code={`git clone ${SITE_CONFIG.links.githubRepo}.git\ncd tijori\nbun install`}
         />
       </section>
 
@@ -101,8 +115,9 @@ function LocalSetupPage() {
             Navigate here{" "}
             <a
               className="text-primary underline underline-offset-4"
-              href="https://dashboard.clerk.com/last-active?path=api-keys"
+              href={SITE_CONFIG.links.clerkApiKeys}
               target="_blank"
+              rel="noreferrer"
             >
               API Keys
             </a>
@@ -114,7 +129,7 @@ function LocalSetupPage() {
           <p className="doc-p-tag">
             For detail guide, check offical{" "}
             <a
-              href="https://docs.convex.dev/auth/clerk#tanstack-start?utm_source=tijori.hrshit.in&utm_medium=docs"
+              href={SITE_CONFIG.links.convexClerkGuide}
               target="_blank"
               rel="noreferrer"
               className="text-primary underline underline-offset-4"

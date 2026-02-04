@@ -8,9 +8,6 @@
 
 Tijori is a self-hosted secrets management tool that keeps your environment variables encrypted. The server **never** sees your plaintext secrets - all encryption happens client-side in your browser.
 
-> [!NOTE]
-> This is a semi-vibecoded version of Tijori.
-
 ### Key Features
 
 - 🔐 **Zero-Knowledge Architecture** - Server only stores encrypted data

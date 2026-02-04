@@ -14,7 +14,9 @@ import { Route as DRouteImport } from './routes/d'
 import { Route as CryptoTestRouteImport } from './routes/crypto-test'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
+import { Route as SitemapXmlRouteImport } from './routes/sitemap.xml'
 import { Route as ShareShareIdRouteImport } from './routes/share/$shareId'
+import { Route as RobotsTxtRouteImport } from './routes/robots.txt'
 import { Route as DocsSecurityRouteImport } from './routes/docs/security'
 import { Route as DocsLocalSetupRouteImport } from './routes/docs/local-setup'
 import { Route as DocsDeploymentRouteImport } from './routes/docs/deployment'
@@ -59,9 +61,19 @@ const DocsIndexRoute = DocsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DocsRoute,
 } as any)
+const SitemapXmlRoute = SitemapXmlRouteImport.update({
+  id: '/sitemap/xml',
+  path: '/sitemap/xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ShareShareIdRoute = ShareShareIdRouteImport.update({
   id: '/share/$shareId',
   path: '/share/$shareId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsTxtRoute = RobotsTxtRouteImport.update({
+  id: '/robots/txt',
+  path: '/robots/txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsSecurityRoute = DocsSecurityRouteImport.update({
@@ -168,7 +180,9 @@ export interface FileRoutesByFullPath {
   '/docs/deployment': typeof DocsDeploymentRoute
   '/docs/local-setup': typeof DocsLocalSetupRoute
   '/docs/security': typeof DocsSecurityRoute
+  '/robots/txt': typeof RobotsTxtRoute
   '/share/$shareId': typeof ShareShareIdRoute
+  '/sitemap/xml': typeof SitemapXmlRoute
   '/docs/': typeof DocsIndexRoute
   '/d/project/$projectId': typeof DProjectProjectIdRoute
   '/d/projects/new': typeof DProjectsNewRoute
@@ -193,7 +207,9 @@ export interface FileRoutesByTo {
   '/docs/deployment': typeof DocsDeploymentRoute
   '/docs/local-setup': typeof DocsLocalSetupRoute
   '/docs/security': typeof DocsSecurityRoute
+  '/robots/txt': typeof RobotsTxtRoute
   '/share/$shareId': typeof ShareShareIdRoute
+  '/sitemap/xml': typeof SitemapXmlRoute
   '/docs': typeof DocsIndexRoute
   '/d/project/$projectId': typeof DProjectProjectIdRoute
   '/d/projects/new': typeof DProjectsNewRoute
@@ -220,7 +236,9 @@ export interface FileRoutesById {
   '/docs/deployment': typeof DocsDeploymentRoute
   '/docs/local-setup': typeof DocsLocalSetupRoute
   '/docs/security': typeof DocsSecurityRoute
+  '/robots/txt': typeof RobotsTxtRoute
   '/share/$shareId': typeof ShareShareIdRoute
+  '/sitemap/xml': typeof SitemapXmlRoute
   '/docs/': typeof DocsIndexRoute
   '/d/project/$projectId': typeof DProjectProjectIdRoute
   '/d/projects/new': typeof DProjectsNewRoute
@@ -248,7 +266,9 @@ export interface FileRouteTypes {
     | '/docs/deployment'
     | '/docs/local-setup'
     | '/docs/security'
+    | '/robots/txt'
     | '/share/$shareId'
+    | '/sitemap/xml'
     | '/docs/'
     | '/d/project/$projectId'
     | '/d/projects/new'
@@ -273,7 +293,9 @@ export interface FileRouteTypes {
     | '/docs/deployment'
     | '/docs/local-setup'
     | '/docs/security'
+    | '/robots/txt'
     | '/share/$shareId'
+    | '/sitemap/xml'
     | '/docs'
     | '/d/project/$projectId'
     | '/d/projects/new'
@@ -299,7 +321,9 @@ export interface FileRouteTypes {
     | '/docs/deployment'
     | '/docs/local-setup'
     | '/docs/security'
+    | '/robots/txt'
     | '/share/$shareId'
+    | '/sitemap/xml'
     | '/docs/'
     | '/d/project/$projectId'
     | '/d/projects/new'
@@ -318,7 +342,9 @@ export interface RootRouteChildren {
   CryptoTestRoute: typeof CryptoTestRoute
   DRoute: typeof DRouteWithChildren
   DocsRoute: typeof DocsRouteWithChildren
+  RobotsTxtRoute: typeof RobotsTxtRoute
   ShareShareIdRoute: typeof ShareShareIdRoute
+  SitemapXmlRoute: typeof SitemapXmlRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
   DemoStartApiRequestRoute: typeof DemoStartApiRequestRoute
   DemoStartServerFuncsRoute: typeof DemoStartServerFuncsRoute
@@ -365,11 +391,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsIndexRouteImport
       parentRoute: typeof DocsRoute
     }
+    '/sitemap/xml': {
+      id: '/sitemap/xml'
+      path: '/sitemap/xml'
+      fullPath: '/sitemap/xml'
+      preLoaderRoute: typeof SitemapXmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/share/$shareId': {
       id: '/share/$shareId'
       path: '/share/$shareId'
       fullPath: '/share/$shareId'
       preLoaderRoute: typeof ShareShareIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots/txt': {
+      id: '/robots/txt'
+      path: '/robots/txt'
+      fullPath: '/robots/txt'
+      preLoaderRoute: typeof RobotsTxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/docs/security': {
@@ -546,7 +586,9 @@ const rootRouteChildren: RootRouteChildren = {
   CryptoTestRoute: CryptoTestRoute,
   DRoute: DRouteWithChildren,
   DocsRoute: DocsRouteWithChildren,
+  RobotsTxtRoute: RobotsTxtRoute,
   ShareShareIdRoute: ShareShareIdRoute,
+  SitemapXmlRoute: SitemapXmlRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,
   DemoStartApiRequestRoute: DemoStartApiRequestRoute,
   DemoStartServerFuncsRoute: DemoStartServerFuncsRoute,

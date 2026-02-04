@@ -5,16 +5,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { DOC_GROUPS } from "@/utilities/doc-config";
-import { META_DATA } from "@/lib/constants";
+import { SITE_CONFIG } from "@/utilities/site-config";
 import { useTheme } from "@/components/theme-provider";
 
 import { NotFound } from "@/components/not-found";
 
 export const Route = createFileRoute("/docs")({
+  head: () => ({
+    meta: [
+      { title: SITE_CONFIG.pages.docs },
+      { name: "description", content: SITE_CONFIG.description },
+      { property: "og:title", content: SITE_CONFIG.pages.docs },
+      { property: "og:description", content: SITE_CONFIG.description },
+      { property: "og:url", content: `${SITE_CONFIG.siteUrl}/docs` },
+      { property: "og:image", content: SITE_CONFIG.ogImage },
+      { name: "twitter:title", content: SITE_CONFIG.pages.docs },
+      { name: "twitter:description", content: SITE_CONFIG.description },
+      { name: "twitter:image", content: SITE_CONFIG.ogImage },
+    ],
+  }),
   component: DocsLayout,
   notFoundComponent: () => (
-    <NotFound 
-      title="Document Not Found" 
+    <NotFound
+      title="Document Not Found"
       description="The documentation page you're looking for doesn't exist or has been moved."
       backLink="/docs"
       backText="Back to Docs"
@@ -70,17 +83,23 @@ function DocsLayout() {
               variant="outline"
               className="h-8 w-8 border-none dark:bg-transparent"
               onClick={handleToggleTheme}
+              title="Toggle theme"
             >
               <Lightbulb className="h-4 w-4 fill-primary" />
               <span className="sr-only">Toggle Dark Mode</span>
             </Button>
             <Link to="/d/dashboard">
-              <Button variant="ghost" size="sm" className="hidden sm:flex text-sm font-medium">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hidden sm:flex text-sm font-medium"
+                title="Go to dashboard"
+              >
                 Dashboard
               </Button>
             </Link>
             <Link to="/">
-              <Button size="sm" className="shadow-lg shadow-primary/20">
+              <Button size="sm" className="shadow-lg shadow-primary/20" title="Back to home">
                 Back to Home
               </Button>
             </Link>
@@ -161,8 +180,13 @@ function DocsLayout() {
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Check out our GitHub for more information.
                 </p>
-                <a href={META_DATA.github_repo} target="_blank" rel="noreferrer">
-                  <Button variant="outline" size="sm" className="w-full text-[10px] h-7 rounded-lg">
+                <a href={SITE_CONFIG.links.githubRepo} target="_blank" rel="noreferrer">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-[10px] h-7 rounded-lg"
+                    title="Open GitHub repository"
+                  >
                     GitHub Repository
                   </Button>
                 </a>
