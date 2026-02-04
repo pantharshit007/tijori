@@ -1,9 +1,10 @@
 import { v } from "convex/values";
 import { MAX_LENGTHS } from "../src/lib/constants";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { TIER_LIMITS } from "./lib/roleLimits";
 import { throwError, validateLength } from "./lib/errors";
 import type { Tier } from "./lib/roleLimits";
+import type { Doc } from "./_generated/dataModel";
 
 /**
  * Sync or create a user profile from Clerk.
@@ -336,5 +337,140 @@ export const checkAndClearExceedsPlanLimits = mutation({
     }
 
     return { cleared: false, wasAlreadyClear: false, stillExceeds: true };
+  },
+});
+
+async function deleteUserData(ctx: any, user: Doc<"users">) {
+  const ownedProjects = await ctx.db
+    .query("projects")
+    .withIndex("by_ownerId", (q: any) => q.eq("ownerId", user._id))
+    .collect();
+
+  const ownedProjectIds = new Set(ownedProjects.map((project: any) => project._id));
+
+  // Remove membership in projects the user does not own
+  const memberships = await ctx.db
+    .query("projectMembers")
+    .withIndex("by_userId", (q: any) => q.eq("userId", user._id))
+    .collect();
+
+  for (const membership of memberships) {
+    if (!ownedProjectIds.has(membership.projectId)) {
+      await ctx.db.delete(membership._id);
+    }
+  }
+
+  // Remove shared secrets created by the user in projects they do not own
+  const sharedByUser = await ctx.db
+    .query("sharedSecrets")
+    .withIndex("by_createdBy", (q: any) => q.eq("createdBy", user._id))
+    .collect();
+
+  for (const shared of sharedByUser) {
+    if (!ownedProjectIds.has(shared.projectId)) {
+      await ctx.db.delete(shared._id);
+    }
+  }
+
+  // Delete owned projects and all dependent data
+  for (const project of ownedProjects) {
+    const environments = await ctx.db
+      .query("environments")
+      .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
+      .collect();
+
+    for (const environment of environments) {
+      const variables = await ctx.db
+        .query("variables")
+        .withIndex("by_environmentId", (q: any) => q.eq("environmentId", environment._id))
+        .collect();
+
+      for (const variable of variables) {
+        await ctx.db.delete(variable._id);
+      }
+
+      await ctx.db.delete(environment._id);
+    }
+
+    const projectShares = await ctx.db
+      .query("sharedSecrets")
+      .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
+      .collect();
+
+    for (const share of projectShares) {
+      await ctx.db.delete(share._id);
+    }
+
+    const quotas = await ctx.db
+      .query("quotas")
+      .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
+      .collect();
+
+    for (const quota of quotas) {
+      await ctx.db.delete(quota._id);
+    }
+
+    const projectMembers = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
+      .collect();
+
+    for (const member of projectMembers) {
+      await ctx.db.delete(member._id);
+    }
+
+    await ctx.db.delete(project._id);
+  }
+
+  await ctx.db.delete(user._id);
+}
+
+/**
+ * Delete the current user's account data from Convex.
+ * Intended to be called before deleting the user in Clerk.
+ */
+export const deleteAccount = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throwError("Unauthenticated", "UNAUTHENTICATED", 401);
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!user) {
+      throwError("User not found", "NOT_FOUND", 404);
+    }
+
+    await deleteUserData(ctx, user);
+
+    return { success: true };
+  },
+});
+
+/**
+ * Internal deletion path for Clerk webhooks (user.deleted).
+ */
+export const deleteAccountByTokenIdentifier = internalMutation({
+  args: {
+    tokenIdentifier: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", args.tokenIdentifier))
+      .unique();
+
+    if (!user) {
+      return { success: false, reason: "not_found" };
+    }
+
+    await deleteUserData(ctx, user);
+
+    return { success: true };
   },
 });

@@ -198,6 +198,49 @@ We learned to distinguish between **Master Key Rotation** and **Project Passcode
 
 ### ID Ownership Validation (Defense in Depth)
 
+---
+
+## 2026-02-03 - TanStack Start Routes (Post-demo Cleanup)
+
+We removed the bundled demo routes and data, but here is the quick knowledge base for how those
+worked in TanStack Start so we can reproduce patterns later.
+
+### Route File Pattern
+
+- Files under `src/routes/` map directly to URLs.
+- Each file exports `createFileRoute("/path")({ component, loader, beforeLoad })`.
+- Use `beforeLoad` for auth redirects and guardrails.
+- Use `loader` for data fetching that should run on the server.
+
+### Server Functions
+
+- Use TanStack Start server functions inside route files for server-only work.
+- This is ideal for secure data access or operations that must stay off the client.
+
+### API-Style Routes
+
+- You can create JSON endpoints by using a route file and returning a response in its handler.
+- Example (previous demo): `src/routes/demo/api.names.ts` backed `/demo/api/names`.
+
+---
+
+## 2026-02-03 - Account Deletion + Clerk Admin Panel
+
+We added an in-app “Delete Account” flow that:
+
+1. Deletes all user data in Convex.
+2. Deletes the Clerk user.
+3. Signs the user out and redirects home.
+
+### Handling Deletion From Clerk Admin Panel
+
+Clerk can delete users directly from its dashboard. To keep Convex in sync:
+
+- Add a Clerk webhook for `user.deleted`.
+- In the webhook handler, call the internal Convex mutation
+  `users.deleteAccountByTokenIdentifier` with the Clerk `user.id` as the token identifier.
+- This ensures Convex data is removed even if deletion happens outside the app UI.
+
 When performing mutations that take multiple IDs (e.g. `projectId` and `environmentId`), always verify that the sub-resource actually belongs to the parent-resource:
 
 ```typescript
