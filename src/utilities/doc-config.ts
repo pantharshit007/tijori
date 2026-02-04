@@ -1,4 +1,4 @@
-import { Layout, Shield, Rocket, Laptop } from "lucide-react";
+import { Laptop, Layout, Rocket, Shield } from "lucide-react";
 
 export const DOC_GROUPS = [
   {

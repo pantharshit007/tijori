@@ -1,5 +1,5 @@
 import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
-import { BookOpen, ChevronRight, Search, HelpCircle, Lightbulb } from "lucide-react";
+import { BookOpen, ChevronRight, HelpCircle, Lightbulb, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

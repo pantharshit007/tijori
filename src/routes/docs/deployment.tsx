@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { AlertCircle, CheckCircle2, ChevronRight, Terminal, ExternalLink } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronRight, ExternalLink, Terminal } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DocsCodeBlock, DocsStepHeader } from "@/components/docs-components";
 

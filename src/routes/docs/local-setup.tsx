@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Laptop, Code2, Terminal, Info, CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Code2, Info, Laptop, Terminal } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DocsCodeBlock, DocsStepHeader } from "@/components/docs-components";
 
 export const Route = createFileRoute("/docs/local-setup")({

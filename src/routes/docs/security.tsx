@@ -1,13 +1,13 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
+  AlertTriangle,
   Check,
   ExternalLink,
+  Info,
   Lock,
   Shield,
-  Zap,
-  Info,
   ShieldCheck,
-  AlertTriangle,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

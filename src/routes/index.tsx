@@ -2,11 +2,11 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { SignInButton, SignedIn, SignedOut } from "@clerk/tanstack-react-start";
 import {
   ArrowRight,
+  BookOpen,
   Github,
   KeyRound,
   Lightbulb,
   Lock,
-  BookOpen,
   Share2,
   Shield,
   Users,

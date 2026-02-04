@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Home, ArrowLeft, HelpCircle, FileText } from "lucide-react";
+import { ArrowLeft, FileText, HelpCircle, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
