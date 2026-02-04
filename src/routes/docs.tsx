@@ -1,17 +1,35 @@
 import { Link, Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
-import { BookOpen, ChevronRight, Search, HelpCircle } from "lucide-react";
+import { BookOpen, ChevronRight, Search, HelpCircle, Lightbulb } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { DOC_GROUPS } from "@/utilities/doc-config";
 import { META_DATA } from "@/lib/constants";
+import { useTheme } from "@/components/theme-provider";
+
+import { NotFound } from "@/components/not-found";
 
 export const Route = createFileRoute("/docs")({
   component: DocsLayout,
+  notFoundComponent: () => (
+    <NotFound 
+      title="Document Not Found" 
+      description="The documentation page you're looking for doesn't exist or has been moved."
+      backLink="/docs"
+      backText="Back to Docs"
+      isDocs
+    />
+  ),
 });
 
 function DocsLayout() {
+  const { setTheme, resolvedTheme } = useTheme();
+
+  const handleToggleTheme = () => {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+  };
+
   const location = useLocation();
   const [query, setQuery] = useState("");
 
@@ -48,6 +66,14 @@ function DocsLayout() {
             </Link>
           </div>
           <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              className="h-8 w-8 border-none dark:bg-transparent"
+              onClick={handleToggleTheme}
+            >
+              <Lightbulb className="h-4 w-4 fill-primary" />
+              <span className="sr-only">Toggle Dark Mode</span>
+            </Button>
             <Link to="/d/dashboard">
               <Button variant="ghost" size="sm" className="hidden sm:flex text-sm font-medium">
                 Dashboard

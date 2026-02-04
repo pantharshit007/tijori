@@ -6,6 +6,7 @@ import {
   KeyRound,
   Lightbulb,
   Lock,
+  BookOpen,
   Share2,
   Shield,
   Users,
@@ -139,16 +140,16 @@ function LandingPage() {
                   </Button>
                 </Link>
               </SignedIn>
-              <a href={META_DATA.github_repo} target="_blank" rel="noreferrer">
+              <Link to="/docs">
                 <Button
                   size="lg"
                   variant="outline"
                   className="h-12 px-8 text-md font-semibold gap-2 backdrop-blur-sm bg-background/50 border-white/10"
                 >
-                  <Github className="size-5" />
-                  View on Github
+                  <BookOpen className="size-5" />
+                  Read Documentation
                 </Button>
-              </a>
+              </Link>
             </div>
 
             {/* Dashboard Preview Mockup */}
