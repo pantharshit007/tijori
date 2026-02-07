@@ -43,11 +43,7 @@ export const create = mutation({
         throwError("maxViews must be a positive integer", "BAD_REQUEST", 400);
       }
       if (args.maxViews > SHARE_MAX_VIEWS_LIMIT) {
-        throwError(
-          `maxViews cannot exceed ${SHARE_MAX_VIEWS_LIMIT}`,
-          "BAD_REQUEST",
-          400
-        );
+        throwError(`maxViews cannot exceed ${SHARE_MAX_VIEWS_LIMIT}`, "BAD_REQUEST", 400);
       }
     }
 
@@ -255,14 +251,55 @@ export const get = query({
       return { expired: true };
     }
 
-    if (
-      sharedSecret.maxViews !== undefined &&
-      sharedSecret.views >= sharedSecret.maxViews
-    ) {
-      return { exhausted: true };
+    if (sharedSecret.maxViews !== undefined && sharedSecret.views >= sharedSecret.maxViews) {
+      return {
+        exhausted: true,
+        maxViews: sharedSecret.maxViews,
+        expiresAt: sharedSecret.expiresAt,
+      };
     }
 
-    // Return only what's needed for decryption
+    // Return only metadata (payload is fetched via mutation to atomically consume a view)
+    return {
+      isIndefinite: sharedSecret.isIndefinite,
+      expiresAt: sharedSecret.expiresAt,
+      maxViews: sharedSecret.maxViews,
+      views: sharedSecret.views,
+    };
+  },
+});
+
+/**
+ * Access a shared secret and atomically record a view.
+ * Public mutation that checks limits before returning encrypted payload.
+ */
+export const accessSecret = mutation({
+  args: {
+    id: v.id("sharedSecrets"),
+  },
+  handler: async (ctx, args) => {
+    const sharedSecret = await ctx.db.get(args.id);
+
+    if (!sharedSecret) {
+      throwError("Shared secret not found", "NOT_FOUND", 404);
+    }
+
+    if (sharedSecret.isDisabled) {
+      return { disabled: true };
+    }
+
+    if (sharedSecret.expiresAt && Date.now() > sharedSecret.expiresAt) {
+      return { expired: true };
+    }
+
+    if (sharedSecret.maxViews !== undefined && sharedSecret.views >= sharedSecret.maxViews) {
+      return { exhausted: true, expiresAt: sharedSecret.expiresAt };
+    }
+
+    await ctx.db.patch(args.id, {
+      views: sharedSecret.views + 1,
+    });
+
     return {
       encryptedPayload: sharedSecret.encryptedPayload,
       encryptedShareKey: sharedSecret.encryptedShareKey,
@@ -275,34 +312,6 @@ export const get = query({
       expiresAt: sharedSecret.expiresAt,
       maxViews: sharedSecret.maxViews,
     };
-  },
-});
-
-/**
- * Record a view of the shared secret.
- * Called after successful decryption.
- */
-export const recordView = mutation({
-  args: {
-    id: v.id("sharedSecrets"),
-  },
-  handler: async (ctx, args) => {
-    const sharedSecret = await ctx.db.get(args.id);
-
-    if (!sharedSecret) {
-      throwError("Shared secret not found", "NOT_FOUND", 404);
-    }
-
-    if (
-      sharedSecret.maxViews !== undefined &&
-      sharedSecret.views >= sharedSecret.maxViews
-    ) {
-      throwError("View limit reached", "FORBIDDEN", 403);
-    }
-
-    await ctx.db.patch(args.id, {
-      views: sharedSecret.views + 1,
-    });
   },
 });
 
@@ -582,11 +591,7 @@ export const updateMaxViews = mutation({
       throwError("maxViews must be a positive integer", "BAD_REQUEST", 400);
     }
     if (args.maxViews > SHARE_MAX_VIEWS_LIMIT) {
-      throwError(
-        `maxViews cannot exceed ${SHARE_MAX_VIEWS_LIMIT}`,
-        "BAD_REQUEST",
-        400
-      );
+      throwError(`maxViews cannot exceed ${SHARE_MAX_VIEWS_LIMIT}`, "BAD_REQUEST", 400);
     }
     if (args.maxViews < sharedSecret.views) {
       throwError("maxViews cannot be lower than current views", "BAD_REQUEST", 400);
@@ -731,7 +736,8 @@ export const paginatedListByUser = query({
     // Manual pagination using array slicing since we combined multiple queries
     const { numItems, cursor } = args.paginationOpts;
     const parsed = cursor ? parseInt(cursor, 10) : 0;
-    const startIndex = Number.isFinite(parsed) && Number.isInteger(parsed) ? Math.max(0, parsed) : 0;
+    const startIndex =
+      Number.isFinite(parsed) && Number.isInteger(parsed) ? Math.max(0, parsed) : 0;
     const endIndex = startIndex + numItems;
     const pageItems = allSharedSecrets.slice(startIndex, endIndex);
     const isDone = endIndex >= allSharedSecrets.length;

@@ -103,17 +103,23 @@ export function generateSharePasscode(minLength = 10, maxLength = 16): string {
     minLength,
     Math.min(maxLength, minLength + Math.floor(Math.random() * (maxLength - minLength + 1)))
   );
-  const buffer = new Uint8Array(length);
-  if (globalThis.crypto?.getRandomValues) {
+  if (!globalThis.crypto?.getRandomValues) {
+    throw new Error("Secure random generator is unavailable");
+  }
+
+  const maxUnbiased = 256 - (256 % chars.length);
+  let result = "";
+  const buffer = new Uint8Array(length * 2);
+
+  while (result.length < length) {
     globalThis.crypto.getRandomValues(buffer);
-  } else {
-    for (let i = 0; i < length; i++) {
-      buffer[i] = Math.floor(Math.random() * 256);
+    for (let i = 0; i < buffer.length && result.length < length; i++) {
+      const value = buffer[i];
+      if (value < maxUnbiased) {
+        result += chars[value % chars.length];
+      }
     }
   }
-  let result = "";
-  for (let i = 0; i < length; i++) {
-    result += chars[buffer[i] % chars.length];
-  }
+
   return result;
 }

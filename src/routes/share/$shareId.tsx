@@ -25,15 +25,9 @@ import { decrypt, deriveKey } from "@/lib/crypto";
 import { SHARE_PASSCODE_MAX_LENGTH, SHARE_PASSCODE_MIN_LENGTH } from "@/lib/constants";
 import { formatDateTime, formatRelativeTime } from "@/lib/time";
 import { getSharePasscodeError } from "@/lib/utils";
+import type { SharedVariable } from "@/lib/types";
 
-interface SharedVariable {
-  name: string;
-  value: string;
-}
-
-function isSharePayload(
-  sharedSecret: unknown
-): sharedSecret is {
+function isSharePayload(sharedSecret: unknown): sharedSecret is {
   encryptedPayload: string;
   encryptedShareKey: string;
   passcodeSalt: string;
@@ -47,9 +41,9 @@ function isSharePayload(
 } {
   return Boolean(
     sharedSecret &&
-      typeof sharedSecret === "object" &&
-      "encryptedPayload" in sharedSecret &&
-      "encryptedShareKey" in sharedSecret
+    typeof sharedSecret === "object" &&
+    "encryptedPayload" in sharedSecret &&
+    "encryptedShareKey" in sharedSecret
   );
 }
 
@@ -58,7 +52,7 @@ function ShareView() {
   const sharedSecret = useQuery(api.sharedSecrets.get, {
     id: shareId as Id<"sharedSecrets">,
   });
-  const recordView = useMutation(api.sharedSecrets.recordView);
+  const accessSecret = useMutation(api.sharedSecrets.accessSecret);
 
   const [passcode, setPasscode] = useState("");
   const [isUnlocking, setIsUnlocking] = useState(false);
@@ -69,7 +63,7 @@ function ShareView() {
   const [copiedAll, setCopiedAll] = useState(false);
 
   async function handleUnlock() {
-    if (!isSharePayload(sharedSecret)) return;
+    if (!sharedSecret || "expired" in sharedSecret || "disabled" in sharedSecret) return;
     const passcodeError = getSharePasscodeError(passcode);
     if (passcodeError) {
       setUnlockError(passcodeError);
@@ -80,14 +74,31 @@ function ShareView() {
     setUnlockError(null);
 
     try {
+      const secret = await accessSecret({ id: shareId as Id<"sharedSecrets"> });
+      if (!isSharePayload(secret)) {
+        if ("expired" in secret) {
+          setUnlockError("This link has expired.");
+          return;
+        }
+        if ("disabled" in secret) {
+          setUnlockError("This link has been disabled.");
+          return;
+        }
+        if ("exhausted" in secret) {
+          setUnlockError("This link has reached its view limit.");
+          return;
+        }
+        setUnlockError("Unable to access this link.");
+        return;
+      }
       // 1. Derive key from passcode
-      const key = await deriveKey(passcode, sharedSecret.passcodeSalt);
+      const key = await deriveKey(passcode, secret.passcodeSalt);
 
       // 2. Decrypt the ShareKey
       const shareKeyBase64 = await decrypt(
-        sharedSecret.encryptedShareKey,
-        sharedSecret.iv,
-        sharedSecret.authTag,
+        secret.encryptedShareKey,
+        secret.iv,
+        secret.authTag,
         key
       );
 
@@ -103,17 +114,14 @@ function ShareView() {
 
       // 4. Decrypt the payload
       const payloadJson = await decrypt(
-        sharedSecret.encryptedPayload,
-        sharedSecret.payloadIv,
-        sharedSecret.payloadAuthTag,
+        secret.encryptedPayload,
+        secret.payloadIv,
+        secret.payloadAuthTag,
         shareKey
       );
 
       const variables: Array<SharedVariable> = JSON.parse(payloadJson);
       setDecryptedVariables(variables);
-
-      // Record the view
-      await recordView({ id: shareId as Id<"sharedSecrets"> });
 
       setPasscode("");
     } catch (err: any) {
@@ -210,10 +218,6 @@ function ShareView() {
     );
   }
 
-  const data = isSharePayload(sharedSecret) ? sharedSecret : null;
-
-  console.log("****** expires At", { d: data?.expiresAt });
-
   // Decrypted view
   if (decryptedVariables) {
     return (
@@ -302,15 +306,18 @@ function ShareView() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="h-4 w-4" />
             <span>
-              {data?.isIndefinite
+              {sharedSecret?.isIndefinite
                 ? "Never expires"
-                : data?.expiresAt
-                  ? `Expires ${formatRelativeTime(data.expiresAt)}`
+                : sharedSecret?.expiresAt
+                  ? `Expires ${formatRelativeTime(sharedSecret.expiresAt)}`
                   : "Expiry not set"}
             </span>
-            {data?.maxViews && (
+            {sharedSecret?.maxViews && (
               <span className="ml-2">
-                • {data.maxViews === 1 ? "One-time link" : `Max views: ${data.maxViews}`}
+                •{" "}
+                {sharedSecret.maxViews === 1
+                  ? "One-time link"
+                  : `Max views: ${sharedSecret.maxViews}`}
               </span>
             )}
           </div>
