@@ -38,6 +38,31 @@ Date: 2026-02-01
 - `learning.md` - Added "Standardized Error Handling Patterns" section.
 - `TODO.md` - Marked error standardization as complete.
 
+### Task 8.3: Hardened Shared Link Security (Passcodes + View Limits) ✅
+
+#### Implementation Details:
+- **Stronger Passcodes**: Shared links now use longer alphanumeric passcodes (min length enforced) instead of fixed 6-digit codes.
+- **Optional View Limits**: Added optional max views and one-time link support for shared secrets.
+- **Public Zero-Knowledge Preserved**: No server-side verification or decryption added.
+
+#### Affected Areas:
+- Convex schema + shared secret mutations/queries updated with optional `maxViews`.
+- Share creation UI now supports alphanumeric passcodes and view limits.
+- Share view route handles exhausted links and validates stronger passcodes.
+
+### Task 8.4: Shared Link UX + View Limit Management ✅
+
+#### Implementation Details:
+- **Passcode UX**: Lowered share passcode minimum to 8 and added random passcode generation (10–16 chars).
+- **Shared Dashboard**: Truncated long passcodes with click-to-copy behavior.
+- **View Limit Controls**: Added per-link view limit management and removal from `/d/shared`.
+- **View Limit Bug Fix**: Prevented exhausted state from overriding decrypted view when the limit is reached.
+
+#### Affected Areas:
+- `/d/shared` table + actions.
+- Shared link view UI.
+- Public security docs updated for new passcode policy.
+
 ## Next Steps
 - [ ] Review frontend error extraction to ensure numeric codes are used for better UI feedback (e.g., customized toasts for specific status codes).
 - [ ] Implement global error boundary in TanStack Start to catch and format these standardized `ConvexError` payloads.
