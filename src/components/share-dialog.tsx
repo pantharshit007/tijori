@@ -5,7 +5,13 @@ import type { Id } from "../../convex/_generated/dataModel";
 
 import type { ShareExpiryValue } from "@/lib/constants";
 import type { Environment, Variable } from "@/lib/types";
-import { MAX_LENGTHS, SHARE_EXPIRY_OPTIONS  } from "@/lib/constants";
+import {
+  MAX_LENGTHS,
+  SHARE_EXPIRY_OPTIONS,
+  SHARE_MAX_VIEWS_LIMIT,
+  SHARE_PASSCODE_MAX_LENGTH,
+  SHARE_PASSCODE_MIN_LENGTH,
+} from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +34,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { decrypt, deriveKey, encrypt, generateSalt } from "@/lib/crypto";
 import { getErrorMessage } from "@/lib/errors";
+import { getSharePasscodeError } from "@/lib/utils";
 
 export interface ShareDialogProps {
   variables: Array<Variable>;
@@ -49,6 +56,7 @@ export interface ShareDialogProps {
     payloadAuthTag: string;
     expiresAt?: number;
     isIndefinite: boolean;
+    maxViews?: number;
   }) => Promise<Id<"sharedSecrets">>;
   trigger?: React.ReactNode;
 }
@@ -69,6 +77,10 @@ export function ShareDialog({
   const [isCreating, setIsCreating] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [limitViews, setLimitViews] = useState(false);
+  const [oneTime, setOneTime] = useState(false);
+  const [maxViews, setMaxViews] = useState("");
+  const [viewsError, setViewsError] = useState<string | null>(null);
 
   function toggleVar(varId: string) {
     setSelectedVars((prev: Set<string>) => {
@@ -93,11 +105,32 @@ export function ShareDialog({
   async function handleCreate() {
     if (selectedVars.size === 0) return;
 
-    if (!/^\d{6}$/.test(sharePasscode)) {
-      setPasscodeError("Passcode must be exactly 6 digits");
+    const passcodeValidation = getSharePasscodeError(sharePasscode);
+    if (passcodeValidation) {
+      setPasscodeError(passcodeValidation);
       return;
     }
     setPasscodeError(null);
+
+    let resolvedMaxViews: number | undefined;
+    if (oneTime) {
+      resolvedMaxViews = 1;
+      setViewsError(null);
+    } else if (limitViews) {
+      const parsed = Number.parseInt(maxViews, 10);
+      if (!Number.isFinite(parsed) || parsed < 1) {
+        setViewsError("Max views must be a positive number");
+        return;
+      }
+      if (parsed > SHARE_MAX_VIEWS_LIMIT) {
+        setViewsError(`Max views cannot exceed ${SHARE_MAX_VIEWS_LIMIT}`);
+        return;
+      }
+      resolvedMaxViews = parsed;
+      setViewsError(null);
+    } else {
+      setViewsError(null);
+    }
 
     setIsCreating(true);
 
@@ -191,6 +224,7 @@ export function ShareDialog({
         payloadAuthTag: btoa(String.fromCharCode(...payloadAuthTag)),
         expiresAt,
         isIndefinite,
+        maxViews: resolvedMaxViews,
       });
 
       // 10. Generate share URL
@@ -221,6 +255,10 @@ export function ShareDialog({
       setShareName("");
       setSharePasscode("");
       setPasscodeError(null);
+      setLimitViews(false);
+      setOneTime(false);
+      setMaxViews("");
+      setViewsError(null);
       setShareUrl(null);
       setCopied(false);
     }, 200);
@@ -232,7 +270,7 @@ export function ShareDialog({
         {React.isValidElement(trigger) ? (
           trigger
         ) : (
-          <Button variant="outline" size="sm" className="gap-1">
+          <Button variant="outline" size="sm" className="gap-1" title="Open share dialog">
             <Share2 className="h-3 w-3" />
             Share
           </Button>
@@ -254,10 +292,22 @@ export function ShareDialog({
                 <div className="flex items-center justify-between">
                   <Label>Select Variables</Label>
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={selectAll} className="h-7 text-xs">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={selectAll}
+                      className="h-7 text-xs"
+                      title="Select all variables"
+                    >
                       All
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={deselectAll} className="h-7 text-xs">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={deselectAll}
+                      className="h-7 text-xs"
+                      title="Deselect all variables"
+                    >
                       None
                     </Button>
                   </div>
@@ -302,17 +352,16 @@ export function ShareDialog({
                 <Label htmlFor="share-passcode">Share Passcode</Label>
                 <Input
                   id="share-passcode"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="\d{6}"
-                  maxLength={6}
-                  placeholder="Enter 6-digit passcode"
+                  type="password"
+                  maxLength={SHARE_PASSCODE_MAX_LENGTH}
+                  placeholder="Enter a strong passcode"
                   value={sharePasscode}
-                  onChange={(e) => setSharePasscode(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) => setSharePasscode(e.target.value)}
                 />
                 {passcodeError && <p className="text-xs text-destructive">{passcodeError}</p>}
                 <p className="text-xs text-muted-foreground">
-                  Recipients will need this passcode to view the secrets.
+                  Use {SHARE_PASSCODE_MIN_LENGTH}+ letters and numbers. Recipients will need this
+                  passcode to view the secrets.
                 </p>
               </div>
 
@@ -332,16 +381,74 @@ export function ShareDialog({
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* View limits */}
+              <div className="space-y-3">
+                <Label>View Limits (Optional)</Label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={oneTime}
+                    onCheckedChange={(checked) => {
+                      const next = Boolean(checked);
+                      setOneTime(next);
+                      if (next) {
+                        setLimitViews(false);
+                        setMaxViews("");
+                        setViewsError(null);
+                      }
+                    }}
+                  />
+                  One-time link (max 1 view)
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={limitViews}
+                    onCheckedChange={(checked) => {
+                      const next = Boolean(checked);
+                      setLimitViews(next);
+                      if (next) {
+                        setOneTime(false);
+                      } else {
+                        setMaxViews("");
+                        setViewsError(null);
+                      }
+                    }}
+                    disabled={oneTime}
+                  />
+                  Limit number of views
+                </label>
+                {limitViews && !oneTime && (
+                  <div className="space-y-2 pl-6">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={SHARE_MAX_VIEWS_LIMIT}
+                      placeholder="e.g., 3"
+                      value={maxViews}
+                      onChange={(e) => setMaxViews(e.target.value)}
+                    />
+                    {viewsError && <p className="text-xs text-destructive">{viewsError}</p>}
+                    <p className="text-xs text-muted-foreground">
+                      Max {SHARE_MAX_VIEWS_LIMIT} views.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={handleClose}>
+              <Button variant="outline" onClick={handleClose} title="Cancel share creation">
                 Cancel
               </Button>
               <Button
                 onClick={handleCreate}
-                disabled={isCreating || selectedVars.size === 0 || sharePasscode.length !== 6}
+                disabled={
+                  isCreating ||
+                  selectedVars.size === 0 ||
+                  Boolean(getSharePasscodeError(sharePasscode))
+                }
                 className="gap-2"
+                title="Create share link"
               >
                 {isCreating && <Loader2 className="h-4 w-4 animate-spin" />}
                 Create Link
@@ -363,7 +470,7 @@ export function ShareDialog({
                 <Label>Share Link</Label>
                 <div className="flex gap-2">
                   <Input readOnly value={shareUrl} className="font-mono text-xs" />
-                  <Button size="icon" variant="outline" onClick={handleCopy}>
+                  <Button size="icon" variant="outline" onClick={handleCopy} title="Copy share link">
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
@@ -377,7 +484,7 @@ export function ShareDialog({
                   </code>
                 </div>
                 <Separator className="opacity-50" />
-                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                <div className="space-y-1 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     <span>
@@ -386,18 +493,20 @@ export function ShareDialog({
                         : `Expires ${SHARE_EXPIRY_OPTIONS.find((o) => o.value === expiry)?.label}`}
                     </span>
                   </div>
-                  <span>{selectedVars.size} variables shared</span>
+                  {oneTime && <div>Max views: 1 (one-time link)</div>}
+                  {!oneTime && limitViews && maxViews && <div>Max views: {maxViews}</div>}
+                  <div>{selectedVars.size} variables shared</div>
                 </div>
               </div>
 
               <div className="flex flex-col gap-2">
-                <Button className="w-full gap-2" variant="outline" asChild>
+                <Button className="w-full gap-2" variant="outline" asChild title="Open share link">
                   <a href={shareUrl} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-4 w-4" />
                     Test Link
                   </a>
                 </Button>
-                <Button className="w-full" onClick={handleClose}>
+                <Button className="w-full" onClick={handleClose} title="Close share dialog">
                   Done
                 </Button>
               </div>

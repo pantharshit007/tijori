@@ -831,3 +831,13 @@ Since this project is dev-only (not in production), we used a simple migration a
 4. **Semantic Naming**: Choose field names that clearly express intent:
    - `tier` = subscription level (free, pro, pro_plus)
    - `role` = project permissions (owner, admin, member)
+
+## Shared Link Hardening (Zero-Knowledge Preserved)
+
+We hardened public shared links without introducing server-side passcode verification to preserve the
+zero-knowledge guarantee. The key decisions:
+
+1. **Stronger Passcodes**: Replace fixed 6-digit codes with longer alphanumeric passcodes (min length).
+2. **View Limits**: Add optional max views and one-time link support to reduce exposure.
+3. **Public Link Model**: Keep encrypted payload access public, and rely on passcode strength + expiry
+   + view limits rather than server gating.

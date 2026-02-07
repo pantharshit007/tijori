@@ -22,7 +22,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { decrypt, deriveKey } from "@/lib/crypto";
+import {
+  SHARE_PASSCODE_MAX_LENGTH,
+  SHARE_PASSCODE_MIN_LENGTH,
+} from "@/lib/constants";
 import { formatDateTime, formatRelativeTime } from "@/lib/time";
+import { getSharePasscodeError } from "@/lib/utils";
 
 interface SharedVariable {
   name: string;
@@ -46,8 +51,9 @@ function ShareView() {
 
   async function handleUnlock() {
     if (!sharedSecret || "expired" in sharedSecret) return;
-    if (!/^\d{6}$/.test(passcode)) {
-      setUnlockError("Passcode must be exactly 6 digits");
+    const passcodeError = getSharePasscodeError(passcode);
+    if (passcodeError) {
+      setUnlockError(passcodeError);
       return;
     }
 
@@ -185,6 +191,22 @@ function ShareView() {
     );
   }
 
+  if ("exhausted" in sharedSecret) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="max-w-md w-full border-amber-500/50">
+          <CardContent className="pt-6 text-center">
+            <EyeOff className="h-12 w-12 mx-auto text-amber-500 mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Link Used Up</h2>
+            <p className="text-muted-foreground">
+              This shared secret link has reached its maximum view limit.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // At this point sharedSecret is the success object
   const data = sharedSecret;
 
@@ -216,6 +238,7 @@ function ShareView() {
                   size="sm"
                   onClick={handleCopyAll}
                   className="gap-1"
+                  title="Copy all variables"
                 >
                   {copiedAll ? (
                     <>
@@ -249,6 +272,7 @@ function ShareView() {
                       size="icon"
                       className="h-8 w-8"
                       onClick={() => toggleReveal(index)}
+                      title={revealedVars.has(index) ? "Hide value" : "Reveal value"}
                     >
                       {revealedVars.has(index) ? (
                         <EyeOff className="h-4 w-4" />
@@ -261,6 +285,7 @@ function ShareView() {
                       size="icon"
                       className="h-8 w-8"
                       onClick={() => handleCopy(index, variable.value)}
+                      title="Copy value"
                     >
                       {copied === index ? (
                         <Check className="h-4 w-4 text-green-500" />
@@ -304,16 +329,14 @@ function ShareView() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="passcode">6-Digit Passcode</Label>
+            <Label htmlFor="passcode">Passcode</Label>
             <Input
               id="passcode"
               type="password"
-              inputMode="numeric"
-              pattern="\d{6}"
-              maxLength={6}
-              placeholder="Enter 6-digit passcode"
+              maxLength={SHARE_PASSCODE_MAX_LENGTH}
+              placeholder={`Enter ${SHARE_PASSCODE_MIN_LENGTH}+ character passcode`}
               value={passcode}
-              onChange={(e) => setPasscode(e.target.value.replace(/\D/g, ""))}
+              onChange={(e) => setPasscode(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleUnlock()}
             />
           </div>
@@ -328,7 +351,8 @@ function ShareView() {
           <Button
             className="w-full gap-2"
             onClick={handleUnlock}
-            disabled={isUnlocking || passcode.length !== 6}
+            disabled={isUnlocking || Boolean(getSharePasscodeError(passcode))}
+            title="Unlock shared secrets"
           >
             {isUnlocking ? (
               <Loader2 className="h-4 w-4 animate-spin" />

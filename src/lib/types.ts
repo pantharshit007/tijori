@@ -63,6 +63,7 @@ export interface SharedSecret {
   isIndefinite: boolean;
   isDisabled: boolean;
   views: number;
+  maxViews?: number;
   isExpired: boolean;
   canManage?: boolean;
   isCreator?: boolean;

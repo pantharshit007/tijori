@@ -3,6 +3,11 @@ import { twMerge } from "tailwind-merge";
 import type { ClassValue } from "clsx";
 
 import type { ParsedVariable } from "./types";
+import {
+  SHARE_PASSCODE_MAX_LENGTH,
+  SHARE_PASSCODE_MIN_LENGTH,
+  SHARE_PASSCODE_REGEX,
+} from "./constants";
 
 export function cn(...inputs: Array<ClassValue>) {
   return twMerge(clsx(inputs));
@@ -70,4 +75,24 @@ export function variablesToExport(vars: { name: string; value: string }[]): stri
     .filter((v) => v.name.trim())
     .map((v) => `${v.name}="${v.value}"`)
     .join("\n");
+}
+
+export function getSharePasscodeError(passcode: string): string | null {
+  if (!passcode.trim()) {
+    return "Passcode is required";
+  }
+
+  if (passcode.length < SHARE_PASSCODE_MIN_LENGTH) {
+    return `Passcode must be at least ${SHARE_PASSCODE_MIN_LENGTH} characters`;
+  }
+
+  if (passcode.length > SHARE_PASSCODE_MAX_LENGTH) {
+    return `Passcode must be ${SHARE_PASSCODE_MAX_LENGTH} characters or fewer`;
+  }
+
+  if (!SHARE_PASSCODE_REGEX.test(passcode)) {
+    return "Passcode can contain only letters and numbers";
+  }
+
+  return null;
 }
