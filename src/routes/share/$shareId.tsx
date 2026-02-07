@@ -16,6 +16,7 @@ import {
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 
+import type { SharedVariable } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +26,6 @@ import { decrypt, deriveKey } from "@/lib/crypto";
 import { SHARE_PASSCODE_MAX_LENGTH, SHARE_PASSCODE_MIN_LENGTH } from "@/lib/constants";
 import { formatDateTime, formatRelativeTime } from "@/lib/time";
 import { getSharePasscodeError } from "@/lib/utils";
-import type { SharedVariable } from "@/lib/types";
 
 function isSharePayload(sharedSecret: unknown): sharedSecret is {
   encryptedPayload: string;
