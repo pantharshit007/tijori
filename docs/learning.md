@@ -837,7 +837,11 @@ Since this project is dev-only (not in production), we used a simple migration a
 We hardened public shared links without introducing server-side passcode verification to preserve the
 zero-knowledge guarantee. The key decisions:
 
-1. **Stronger Passcodes**: Replace fixed 6-digit codes with longer alphanumeric passcodes (min length).
+1. **Stronger Passcodes**: Replace fixed 6-digit codes with longer alphanumeric passcodes (min length 8).
 2. **View Limits**: Add optional max views and one-time link support to reduce exposure.
 3. **Public Link Model**: Keep encrypted payload access public, and rely on passcode strength + expiry
    + view limits rather than server gating.
+
+Additional follow-ups:
+- Added random share passcode generation (10–16 chars) to reduce weak secrets.
+- Exposed view limit controls in `/d/shared` to manage limits after creation.

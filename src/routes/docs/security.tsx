@@ -202,7 +202,7 @@ function SecurityDocsPage() {
               {[
                 "Compromised user machine (keyloggers)",
                 "Physical access (shoulder surfing)",
-                "Weak 6-digit passcodes (high-entropy required)",
+                "Weak or short passcodes (high-entropy required)",
                 "Forgotten master key (no recovery possible)",
               ].map((item) => (
                 <li

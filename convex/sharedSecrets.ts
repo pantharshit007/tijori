@@ -560,6 +560,47 @@ export const updateExpiry = mutation({
 });
 
 /**
+ * Update view limit for a shared secret.
+ * Pass maxViews = -1 to remove limit.
+ */
+export const updateMaxViews = mutation({
+  args: {
+    id: v.id("sharedSecrets"),
+    maxViews: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { sharedSecret } = await checkSecretManagementAccess(ctx, args.id);
+
+    if (args.maxViews === -1) {
+      await ctx.db.patch(args.id, {
+        maxViews: undefined,
+      });
+      return { success: true };
+    }
+
+    if (!Number.isInteger(args.maxViews) || args.maxViews < 1) {
+      throwError("maxViews must be a positive integer", "BAD_REQUEST", 400);
+    }
+    if (args.maxViews > SHARE_MAX_VIEWS_LIMIT) {
+      throwError(
+        `maxViews cannot exceed ${SHARE_MAX_VIEWS_LIMIT}`,
+        "BAD_REQUEST",
+        400
+      );
+    }
+    if (args.maxViews < sharedSecret.views) {
+      throwError("maxViews cannot be lower than current views", "BAD_REQUEST", 400);
+    }
+
+    await ctx.db.patch(args.id, {
+      maxViews: args.maxViews,
+    });
+
+    return { success: true };
+  },
+});
+
+/**
  * Delete a shared secret.
  * Allowed for: project owner, OR creator who is still admin/owner.
  */

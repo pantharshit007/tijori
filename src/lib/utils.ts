@@ -1,13 +1,13 @@
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { ClassValue } from "clsx";
-
-import type { ParsedVariable } from "./types";
 import {
   SHARE_PASSCODE_MAX_LENGTH,
   SHARE_PASSCODE_MIN_LENGTH,
   SHARE_PASSCODE_REGEX,
 } from "./constants";
+import type { ClassValue } from "clsx";
+
+import type { ParsedVariable } from "./types";
 
 export function cn(...inputs: Array<ClassValue>) {
   return twMerge(clsx(inputs));
@@ -95,4 +95,25 @@ export function getSharePasscodeError(passcode: string): string | null {
   }
 
   return null;
+}
+
+export function generateSharePasscode(minLength = 10, maxLength = 16): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const length = Math.max(
+    minLength,
+    Math.min(maxLength, minLength + Math.floor(Math.random() * (maxLength - minLength + 1)))
+  );
+  const buffer = new Uint8Array(length);
+  if (globalThis.crypto?.getRandomValues) {
+    globalThis.crypto.getRandomValues(buffer);
+  } else {
+    for (let i = 0; i < length; i++) {
+      buffer[i] = Math.floor(Math.random() * 256);
+    }
+  }
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += chars[buffer[i] % chars.length];
+  }
+  return result;
 }

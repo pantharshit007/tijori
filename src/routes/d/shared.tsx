@@ -20,11 +20,12 @@ import type { Id } from "../../../convex/_generated/dataModel";
 
 import type { ShareExpiryValue } from "@/lib/constants";
 import type { SharedSecret } from "@/lib/types";
-import { PAGINATION_LIMIT, SHARE_EXPIRY_OPTIONS  } from "@/lib/constants";
+import { PAGINATION_LIMIT, SHARE_EXPIRY_OPTIONS, SHARE_MAX_VIEWS_LIMIT } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +34,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -75,11 +84,16 @@ function SharedDashboard() {
     results: sharedSecrets,
     status: paginationStatus,
     loadMore,
-  } = usePaginatedQuery(api.sharedSecrets.paginatedListByUser, {}, { initialNumItems: PAGINATION_LIMIT });
+  } = usePaginatedQuery(
+    api.sharedSecrets.paginatedListByUser,
+    {},
+    { initialNumItems: PAGINATION_LIMIT }
+  );
 
   const toggleDisabled = useMutation(api.sharedSecrets.toggleDisabled);
   const removeShare = useMutation(api.sharedSecrets.remove);
   const updateExpiry = useMutation(api.sharedSecrets.updateExpiry);
+  const updateMaxViews = useMutation(api.sharedSecrets.updateMaxViews);
 
   const bulkToggleDisabled = useMutation(api.sharedSecrets.bulkToggleDisabled);
   const bulkRemove = useMutation(api.sharedSecrets.bulkRemove);
@@ -89,7 +103,12 @@ function SharedDashboard() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [revealedPasscodes, setRevealedPasscodes] = useState<Set<string>>(new Set());
   const [decryptedPasscodes, setDecryptedPasscodes] = useState<Record<string, string>>({});
+  const [copiedPasscodeId, setCopiedPasscodeId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [viewLimitTarget, setViewLimitTarget] = useState<SharedSecret | null>(null);
+  const [viewLimitValue, setViewLimitValue] = useState("");
+  const [viewLimitError, setViewLimitError] = useState<string | null>(null);
+  const [isViewLimitOpen, setIsViewLimitOpen] = useState(false);
 
   // Initialize project filter from URL param once data is loaded
   useEffect(() => {
@@ -142,8 +161,7 @@ function SharedDashboard() {
   });
 
   const allSelected =
-    filteredShares.length > 0 &&
-    filteredShares.every((share) => selectedIds.has(share._id));
+    filteredShares.length > 0 && filteredShares.every((share) => selectedIds.has(share._id));
   const someSelected = selectedIds.size > 0;
 
   function handleSelectAll(checked: boolean) {
@@ -240,6 +258,13 @@ function SharedDashboard() {
     await navigator.clipboard.writeText(url);
   }
 
+  async function handleCopyPasscode(id: string, passcode: string) {
+    await navigator.clipboard.writeText(passcode);
+    setCopiedPasscodeId(id);
+    setTimeout(() => setCopiedPasscodeId(null), 2000);
+    toast.success("Passcode copied");
+  }
+
   async function handleExtendExpiry(id: string, value: ShareExpiryValue) {
     let expiresAt: number | undefined;
     const isIndefinite = value === "never";
@@ -257,8 +282,115 @@ function SharedDashboard() {
     });
   }
 
+  async function handleSaveViewLimit() {
+    if (!viewLimitTarget) return;
+    const trimmed = viewLimitValue.trim();
+
+    try {
+      if (!trimmed) {
+        await updateMaxViews({ id: viewLimitTarget._id, maxViews: -1 });
+        toast.success("View limit removed");
+      } else {
+        const parsed = Number.parseInt(trimmed, 10);
+        if (!Number.isFinite(parsed) || parsed < 1) {
+          setViewLimitError("Max views must be a positive number");
+          return;
+        }
+        if (parsed > SHARE_MAX_VIEWS_LIMIT) {
+          setViewLimitError(`Max views cannot exceed ${SHARE_MAX_VIEWS_LIMIT}`);
+          return;
+        }
+        if (parsed < viewLimitTarget.views) {
+          setViewLimitError("Max views cannot be lower than current views");
+          return;
+        }
+        await updateMaxViews({ id: viewLimitTarget._id, maxViews: parsed });
+        toast.success("View limit updated");
+      }
+      setIsViewLimitOpen(false);
+      setViewLimitTarget(null);
+      setViewLimitValue("");
+      setViewLimitError(null);
+    } catch (err: any) {
+      console.error("Failed to update view limit:", err);
+      toast.error(getErrorMessage(err, "Failed to update view limit"));
+    }
+  }
+
+  async function handleRemoveViewLimit(share: SharedSecret) {
+    try {
+      await updateMaxViews({ id: share._id, maxViews: -1 });
+      toast.success("View limit removed");
+    } catch (err: any) {
+      console.error("Failed to remove view limit:", err);
+      toast.error(getErrorMessage(err, "Failed to remove view limit"));
+    }
+  }
+
   return (
     <TooltipProvider>
+      <Dialog
+        open={isViewLimitOpen}
+        onOpenChange={(open) => {
+          setIsViewLimitOpen(open);
+          if (!open) {
+            setViewLimitTarget(null);
+            setViewLimitValue("");
+            setViewLimitError(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleSaveViewLimit();
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle>Set View Limit</DialogTitle>
+              <DialogDescription>
+                Limit how many times this shared link can be decrypted.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="view-limit">Max Views</Label>
+              <Input
+                id="view-limit"
+                type="number"
+                min={1}
+                max={SHARE_MAX_VIEWS_LIMIT}
+                placeholder={`Leave blank to remove limit (max ${SHARE_MAX_VIEWS_LIMIT})`}
+                value={viewLimitValue}
+                onChange={(e) => {
+                  setViewLimitValue(e.target.value);
+                  setViewLimitError(null);
+                }}
+              />
+              {viewLimitError && <p className="text-xs text-destructive">{viewLimitError}</p>}
+              {viewLimitTarget && (
+                <p className="text-xs text-muted-foreground">
+                  Current views: {viewLimitTarget.views}
+                  {viewLimitTarget.maxViews ? ` / ${viewLimitTarget.maxViews}` : ""}
+                </p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsViewLimitOpen(false)}
+                title="Cancel view limit changes"
+                type="button"
+              >
+                Cancel
+              </Button>
+              <Button type="submit" title="Save view limit">
+                Save
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold tracking-tight">Shared Secrets</h1>
@@ -417,11 +549,29 @@ function SharedDashboard() {
 
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">
-                          {revealedPasscodes.has(share._id)
-                            ? decryptedPasscodes[share._id] || "••••••"
-                            : "••••••"}
-                        </code>
+                        {revealedPasscodes.has(share._id) && decryptedPasscodes[share._id] ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleCopyPasscode(share._id, decryptedPasscodes[share._id])
+                                }
+                                className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono max-w-[160px] truncate hover:bg-muted/80 transition-colors"
+                                title="Click to copy passcode"
+                              >
+                                {decryptedPasscodes[share._id]}
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {copiedPasscodeId === share._id ? "Copied!" : "Click to copy"}
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">
+                            ••••••
+                          </code>
+                        )}
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
@@ -429,6 +579,13 @@ function SharedDashboard() {
                               size="icon"
                               className="h-6 w-6"
                               onClick={() => togglePasscode(share as SharedSecret)}
+                              title={
+                                !keyStore.getKey(share.projectId)
+                                  ? `Unlock project "${share.projectName}" to view passcode`
+                                  : revealedPasscodes.has(share._id)
+                                    ? "Hide passcode"
+                                    : "Reveal passcode"
+                              }
                             >
                               {!keyStore.getKey(share.projectId) ? (
                                 <Lock className="h-3 w-3 text-muted-foreground" />
@@ -463,7 +620,7 @@ function SharedDashboard() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="font-mono ">
-                        {share.views}
+                        {share.maxViews ? `${share.views}/${share.maxViews}` : share.views}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -529,6 +686,26 @@ function SharedDashboard() {
                                   </>
                                 )}
                               </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setViewLimitTarget(share as SharedSecret);
+                                  setViewLimitValue(share.maxViews ? String(share.maxViews) : "");
+                                  setViewLimitError(null);
+                                  setIsViewLimitOpen(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4 mr-2 text-primary" />
+                                Set view limit
+                              </DropdownMenuItem>
+                              {share.maxViews && (
+                                <DropdownMenuItem
+                                  onClick={() => handleRemoveViewLimit(share as SharedSecret)}
+                                >
+                                  <EyeOff className="h-4 w-4 mr-2 text-primary" />
+                                  Remove view limit
+                                </DropdownMenuItem>
+                              )}
 
                               <DropdownMenuSeparator />
                               <DropdownMenuLabel className="text-[10px] font-normal text-muted-foreground">

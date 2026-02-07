@@ -43,7 +43,7 @@ Share Creation (by owner/admin):
 1. Decrypt selected variables with Project CryptoKey
 2. Generate random 256-bit ShareKey
 3. Encrypt variables with ShareKey → encryptedPayload
-4. User enters 6-digit share passcode
+4. User enters 8+ character share passcode (alphanumeric)
 5. Derive SharePassKey from share passcode + new salt
 6. Encrypt ShareKey with SharePassKey → encryptedShareKey
 7. Store encrypted data in Convex
@@ -150,7 +150,7 @@ Implemented via Nitro middleware and config:
 
 ⚠️ Client-side keyloggers (user's machine compromised)
 ⚠️ Shoulder surfing (physical access)
-⚠️ Weak passcodes (6-digit provides ~1M combinations)
+⚠️ Weak passcodes (short or low-entropy)
 ⚠️ Forgotten master key (no recovery possible by design)
 
 ## Security Checklist for Contributors

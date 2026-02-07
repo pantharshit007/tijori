@@ -50,6 +50,19 @@ Date: 2026-02-01
 - Share creation UI now supports alphanumeric passcodes and view limits.
 - Share view route handles exhausted links and validates stronger passcodes.
 
+### Task 8.4: Shared Link UX + View Limit Management ✅
+
+#### Implementation Details:
+- **Passcode UX**: Lowered share passcode minimum to 8 and added random passcode generation (10–16 chars).
+- **Shared Dashboard**: Truncated long passcodes with click-to-copy behavior.
+- **View Limit Controls**: Added per-link view limit management and removal from `/d/shared`.
+- **View Limit Bug Fix**: Prevented exhausted state from overriding decrypted view when the limit is reached.
+
+#### Affected Areas:
+- `/d/shared` table + actions.
+- Shared link view UI.
+- Public security docs updated for new passcode policy.
+
 ## Next Steps
 - [ ] Review frontend error extraction to ensure numeric codes are used for better UI feedback (e.g., customized toasts for specific status codes).
 - [ ] Implement global error boundary in TanStack Start to catch and format these standardized `ConvexError` payloads.

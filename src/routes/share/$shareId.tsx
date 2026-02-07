@@ -22,16 +22,35 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { decrypt, deriveKey } from "@/lib/crypto";
-import {
-  SHARE_PASSCODE_MAX_LENGTH,
-  SHARE_PASSCODE_MIN_LENGTH,
-} from "@/lib/constants";
+import { SHARE_PASSCODE_MAX_LENGTH, SHARE_PASSCODE_MIN_LENGTH } from "@/lib/constants";
 import { formatDateTime, formatRelativeTime } from "@/lib/time";
 import { getSharePasscodeError } from "@/lib/utils";
 
 interface SharedVariable {
   name: string;
   value: string;
+}
+
+function isSharePayload(
+  sharedSecret: unknown
+): sharedSecret is {
+  encryptedPayload: string;
+  encryptedShareKey: string;
+  passcodeSalt: string;
+  iv: string;
+  authTag: string;
+  payloadIv: string;
+  payloadAuthTag: string;
+  isIndefinite: boolean;
+  expiresAt?: number;
+  maxViews?: number;
+} {
+  return Boolean(
+    sharedSecret &&
+      typeof sharedSecret === "object" &&
+      "encryptedPayload" in sharedSecret &&
+      "encryptedShareKey" in sharedSecret
+  );
 }
 
 function ShareView() {
@@ -50,7 +69,7 @@ function ShareView() {
   const [copiedAll, setCopiedAll] = useState(false);
 
   async function handleUnlock() {
-    if (!sharedSecret || "expired" in sharedSecret) return;
+    if (!isSharePayload(sharedSecret)) return;
     const passcodeError = getSharePasscodeError(passcode);
     if (passcodeError) {
       setUnlockError(passcodeError);
@@ -62,13 +81,13 @@ function ShareView() {
 
     try {
       // 1. Derive key from passcode
-      const key = await deriveKey(passcode, data.passcodeSalt);
+      const key = await deriveKey(passcode, sharedSecret.passcodeSalt);
 
       // 2. Decrypt the ShareKey
       const shareKeyBase64 = await decrypt(
-        data.encryptedShareKey,
-        data.iv,
-        data.authTag,
+        sharedSecret.encryptedShareKey,
+        sharedSecret.iv,
+        sharedSecret.authTag,
         key
       );
 
@@ -84,9 +103,9 @@ function ShareView() {
 
       // 4. Decrypt the payload
       const payloadJson = await decrypt(
-        data.encryptedPayload,
-        data.payloadIv,
-        data.payloadAuthTag,
+        sharedSecret.encryptedPayload,
+        sharedSecret.payloadIv,
+        sharedSecret.payloadAuthTag,
         shareKey
       );
 
@@ -191,25 +210,9 @@ function ShareView() {
     );
   }
 
-  if ("exhausted" in sharedSecret) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="max-w-md w-full border-amber-500/50">
-          <CardContent className="pt-6 text-center">
-            <EyeOff className="h-12 w-12 mx-auto text-amber-500 mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Link Used Up</h2>
-            <p className="text-muted-foreground">
-              This shared secret link has reached its maximum view limit.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const data = isSharePayload(sharedSecret) ? sharedSecret : null;
 
-  // At this point sharedSecret is the success object
-  const data = sharedSecret;
-
+  console.log("****** expires At", { d: data?.expiresAt });
 
   // Decrypted view
   if (decryptedVariables) {
@@ -256,10 +259,7 @@ function ShareView() {
             </CardHeader>
             <CardContent className="space-y-2">
               {decryptedVariables.map((variable, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-3 p-3 rounded-lg border bg-card"
-                >
+                <div key={index} className="flex items-center gap-3 p-3 rounded-lg border bg-card">
                   <div className="flex-1 min-w-0">
                     <code className="text-sm font-semibold font-mono">{variable.name}</code>
                     <div className="text-sm text-muted-foreground font-mono truncate mt-0.5">
@@ -302,12 +302,35 @@ function ShareView() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="h-4 w-4" />
             <span>
-              {data.isIndefinite
+              {data?.isIndefinite
                 ? "Never expires"
-                : `Expires ${formatRelativeTime(data.expiresAt!)}`}
+                : data?.expiresAt
+                  ? `Expires ${formatRelativeTime(data.expiresAt)}`
+                  : "Expiry not set"}
             </span>
+            {data?.maxViews && (
+              <span className="ml-2">
+                • {data.maxViews === 1 ? "One-time link" : `Max views: ${data.maxViews}`}
+              </span>
+            )}
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if ("exhausted" in sharedSecret) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="max-w-md w-full border-amber-500/50">
+          <CardContent className="pt-6 text-center">
+            <EyeOff className="h-12 w-12 mx-auto text-amber-500 mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Link Used Up</h2>
+            <p className="text-muted-foreground">
+              This shared secret link has reached its maximum view limit.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -323,9 +346,7 @@ function ShareView() {
             </div>
           </div>
           <CardTitle>Shared Secrets</CardTitle>
-          <CardDescription>
-            Enter the passcode to view the shared secrets.
-          </CardDescription>
+          <CardDescription>Enter the passcode to view the shared secrets.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -365,8 +386,10 @@ function ShareView() {
           <div className="text-center text-xs text-muted-foreground pt-2">
             {sharedSecret.isIndefinite ? (
               <p>This link does not expire.</p>
+            ) : !sharedSecret.expiresAt ? (
+              <p>Expiry not set.</p>
             ) : (
-              <p>Expires: {formatDateTime(sharedSecret.expiresAt!)}</p>
+              <p>Expires: {formatDateTime(sharedSecret.expiresAt)}</p>
             )}
           </div>
         </CardContent>

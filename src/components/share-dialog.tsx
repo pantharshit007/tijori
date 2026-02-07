@@ -34,7 +34,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { decrypt, deriveKey, encrypt, generateSalt } from "@/lib/crypto";
 import { getErrorMessage } from "@/lib/errors";
-import { getSharePasscodeError } from "@/lib/utils";
+import { generateSharePasscode, getSharePasscodeError } from "@/lib/utils";
 
 export interface ShareDialogProps {
   variables: Array<Variable>;
@@ -349,7 +349,21 @@ export function ShareDialog({
 
               {/* Passcode input */}
               <div className="space-y-2">
-                <Label htmlFor="share-passcode">Share Passcode</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="share-passcode">Share Passcode</Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setSharePasscode(generateSharePasscode(10, 16));
+                      setPasscodeError(null);
+                    }}
+                    title="Generate a random passcode"
+                  >
+                    Generate
+                  </Button>
+                </div>
                 <Input
                   id="share-passcode"
                   type="password"
