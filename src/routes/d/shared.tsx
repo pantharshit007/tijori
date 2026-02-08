@@ -265,10 +265,19 @@ function SharedDashboard() {
   }
 
   async function handleCopyPasscode(id: string, passcode: string) {
-    await navigator.clipboard.writeText(passcode);
-    setCopiedPasscodeId(id);
-    setTimeout(() => setCopiedPasscodeId(null), 2000);
-    toast.success("Passcode copied");
+    if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+      toast.error("Clipboard access is unavailable");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(passcode);
+      setCopiedPasscodeId(id);
+      setTimeout(() => setCopiedPasscodeId(null), 2000);
+      toast.success("Passcode copied");
+    } catch (err: any) {
+      console.error("Failed to copy passcode:", err);
+      toast.error(getErrorMessage(err, "Failed to copy passcode"));
+    }
   }
 
   async function handleExtendExpiry(id: string, value: ShareExpiryValue) {

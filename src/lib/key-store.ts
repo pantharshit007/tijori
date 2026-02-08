@@ -6,6 +6,7 @@ class ProjectKeyStore {
   private keys: Map<string, { key: CryptoKey; expiresAt: number }> = new Map();
   private readonly ttlMs = 60 * 60 * 1000; // 1 hour
   private listeners: Set<() => void> = new Set();
+  private version = 0;
 
   setKey(projectId: string, key: CryptoKey) {
     this.keys.set(projectId, { key, expiresAt: Date.now() + this.ttlMs });
@@ -17,6 +18,7 @@ class ProjectKeyStore {
     if (!entry) return null;
     if (Date.now() > entry.expiresAt) {
       this.keys.delete(projectId);
+      this.notify();
       return null;
     }
     return entry.key;
@@ -40,10 +42,11 @@ class ProjectKeyStore {
   }
 
   getSnapshot() {
-    return this.keys.size;
+    return this.version;
   }
 
   private notify() {
+    this.version += 1;
     for (const listener of this.listeners) {
       listener();
     }
@@ -51,7 +54,7 @@ class ProjectKeyStore {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __tijoriKeyStore: ProjectKeyStore | undefined;
 }
 
