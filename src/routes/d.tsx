@@ -13,6 +13,7 @@ import { PlanEnforcementBanner } from "@/components/PlanEnforcementBanner";
 import { OnboardingTutorial } from "@/components/onboarding-tutorial";
 
 import { NotFound } from "@/components/not-found";
+import { keyStore } from "@/lib/key-store";
 
 export const Route = createFileRoute("/d")({
   beforeLoad: ({ context, location }: { context: any; location: any }) => {
@@ -27,8 +28,8 @@ export const Route = createFileRoute("/d")({
   },
   component: DashboardLayout,
   notFoundComponent: () => (
-    <NotFound 
-      title="Feature Not Found" 
+    <NotFound
+      title="Feature Not Found"
       description="The dashboard feature or project you're looking for doesn't exist."
       backLink="/d/dashboard"
       backText="Back to Dashboard"
@@ -77,6 +78,7 @@ function DashboardLayout() {
                   className="w-full gap-2"
                   onClick={() =>
                     signOut(() => {
+                      keyStore.clear();
                       window.location.href = "/";
                     })
                   }
