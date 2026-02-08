@@ -39,6 +39,10 @@ class ProjectKeyStore {
     };
   }
 
+  getSnapshot() {
+    return this.keys.size;
+  }
+
   private notify() {
     for (const listener of this.listeners) {
       listener();

@@ -1,6 +1,6 @@
 import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useMutation, usePaginatedQuery } from "convex/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import {
   Clock,
@@ -99,7 +99,6 @@ function SharedDashboard() {
   const bulkRemove = useMutation(api.sharedSecrets.bulkRemove);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [keyStoreVersion, setKeyStoreVersion] = useState(0);
   const [projectFilter, setProjectFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [revealedPasscodes, setRevealedPasscodes] = useState<Set<string>>(new Set());
@@ -107,11 +106,10 @@ function SharedDashboard() {
   const [copiedPasscodeId, setCopiedPasscodeId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    return keyStore.subscribe(() => {
-      setKeyStoreVersion((prev) => prev + 1);
-    });
-  }, []);
+  const keyStoreVersion = useSyncExternalStore(
+    (listener) => keyStore.subscribe(listener),
+    () => keyStore.getSnapshot()
+  );
   const [viewLimitTarget, setViewLimitTarget] = useState<SharedSecret | null>(null);
   const [viewLimitValue, setViewLimitValue] = useState("");
   const [viewLimitError, setViewLimitError] = useState<string | null>(null);
