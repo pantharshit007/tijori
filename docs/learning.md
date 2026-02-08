@@ -845,3 +845,7 @@ zero-knowledge guarantee. The key decisions:
 Additional follow-ups:
 - Added random share passcode generation (10–16 chars) to reduce weak secrets.
 - Exposed view limit controls in `/d/shared` to manage limits after creation.
+
+Server-side verification update:
+- Project passcodes are now verified on the backend and passcode hashes are no longer sent to clients.
+- The server still never receives decrypted secret values; only passcodes for verification.

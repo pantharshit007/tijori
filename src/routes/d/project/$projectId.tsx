@@ -47,7 +47,7 @@ import { PasscodeRecovery } from "@/components/passcode-recovery";
 import { MembersDrawer } from "@/components/members-drawer";
 import { ProjectSettings } from "@/components/project-settings";
 import { UserAvatar } from "@/components/user-avatar";
-import { hash as cryptoHash, deriveKey } from "@/lib/crypto";
+import { deriveKey } from "@/lib/crypto";
 import { keyStore } from "@/lib/key-store";
 import { getErrorMessage } from "@/lib/errors";
 
@@ -110,17 +110,8 @@ function ProjectView() {
 
   // 2. Rehydrate from keyStore on mount or project switch
   useEffect(() => {
-    if (!derivedKey) {
-      const existing = keyStore.getKey(projectId);
-      if (existing) {
-        setDerivedKey(existing);
-      }
-    }
-  }, [projectId, derivedKey]);
-
-  // 3. Clear local state when project ID changes to prevent cross-project key leakage
-  useEffect(() => {
-    setDerivedKey(null);
+    const existing = keyStore.getKey(projectId);
+    setDerivedKey(existing);
   }, [projectId]);
 
   // Set first environment as active when loaded
@@ -498,6 +489,7 @@ function PasscodeUnlock({
   const [passcode, setPasscode] = useState("");
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
+  const verifyPasscode = useMutation(api.projects.verifyPasscode);
 
   async function handleUnlock() {
     if (!project || !passcode) return;
@@ -506,16 +498,18 @@ function PasscodeUnlock({
     setUnlockError(null);
 
     try {
-      // Verify passcode by comparing hash
-      const enteredHash = await cryptoHash(passcode, project.passcodeSalt);
-      if (enteredHash !== project.passcodeHash) {
+      const result = await verifyPasscode({
+        projectId: project._id,
+        passcode,
+      });
+      if (!result.ok) {
         setUnlockError("Invalid passcode. Please try again.");
         toast.error("Invalid passcode");
         setIsUnlocking(false);
         return;
       }
 
-      // Passcode verified, derive key for encryption/decryption
+      // Passcode verified on server, derive key for encryption/decryption
       const key = await deriveKey(passcode, project.passcodeSalt);
       onUnlockSuccess(key);
       setPasscode("");

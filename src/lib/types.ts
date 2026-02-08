@@ -34,7 +34,6 @@ export interface SharedVariable {
 
 export type ProjectPasscodeUpdate = {
   projectId: Id<"projects">;
-  passcodeHash: string;
   encryptedPasscode: string;
   passcodeSalt: string;
   iv: string;

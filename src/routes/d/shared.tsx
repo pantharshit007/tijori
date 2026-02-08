@@ -99,12 +99,19 @@ function SharedDashboard() {
   const bulkRemove = useMutation(api.sharedSecrets.bulkRemove);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [keyStoreVersion, setKeyStoreVersion] = useState(0);
   const [projectFilter, setProjectFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [revealedPasscodes, setRevealedPasscodes] = useState<Set<string>>(new Set());
   const [decryptedPasscodes, setDecryptedPasscodes] = useState<Record<string, string>>({});
   const [copiedPasscodeId, setCopiedPasscodeId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    return keyStore.subscribe(() => {
+      setKeyStoreVersion((prev) => prev + 1);
+    });
+  }, []);
   const [viewLimitTarget, setViewLimitTarget] = useState<SharedSecret | null>(null);
   const [viewLimitValue, setViewLimitValue] = useState("");
   const [viewLimitError, setViewLimitError] = useState<string | null>(null);
@@ -159,6 +166,7 @@ function SharedDashboard() {
 
     return matchesSearch && matchesProject && matchesStatus;
   });
+  void keyStoreVersion;
 
   const allSelected =
     filteredShares.length > 0 && filteredShares.every((share) => selectedIds.has(share._id));

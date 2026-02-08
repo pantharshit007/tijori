@@ -15,7 +15,6 @@ interface PasscodeRecoveryProps {
   project: {
     name: string;
     passcodeSalt: string;
-    passcodeHash: string;
     encryptedPasscode: string;
     iv: string;
     authTag: string;
