@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { MAX_LENGTHS } from "../src/lib/constants";
+
+import { CRYPTO, MAX_LENGTHS } from "../src/lib/constants";
 import { mutation, query } from "./_generated/server";
 import {
   checkAndClearPlanEnforcementFlag,
@@ -26,6 +27,23 @@ async function getUserId(ctx: QueryCtx) {
   }
   return user._id;
 }
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+async function hashPasscode(passcode: string, salt: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const combined = encoder.encode(salt + passcode);
+  const digest = await crypto.subtle.digest(CRYPTO.HASH_ALGORITHM, combined);
+  return arrayBufferToBase64(digest);
+}
+
 
 /**
  * Create a new project.
@@ -167,8 +185,10 @@ export const list = query({
     for (const membership of memberships) {
       const project = await ctx.db.get(membership.projectId);
       if (project) {
+        // Never return passcodeHash to clients
+        const { passcodeHash: _passcodeHash, ...safeProject } = project;
         projects.push({
-          ...project,
+          ...safeProject,
           role: membership.role,
         });
       }
@@ -210,7 +230,9 @@ export const get = query({
     const owner = await ctx.db.get(project.ownerId);
 
     return {
-      ...project,
+      ...(Object.fromEntries(
+        Object.entries(project).filter(([key]) => key !== "passcodeHash")
+      ) as typeof project),
       role: membership.role,
       ownerTier: owner?.tier ?? "free",
     };
@@ -241,7 +263,10 @@ export const listOwned = query({
       .withIndex("by_ownerId", (q) => q.eq("ownerId", user._id))
       .collect();
 
-    return projects;
+    return projects.map((project) => {
+      const { passcodeHash: _passcodeHash, ...safeProject } = project;
+      return safeProject;
+    });
   },
 });
 
@@ -252,15 +277,15 @@ export const listOwned = query({
  * This mutation is ATOMIC: both the project passcodes and the master key hash/salt
  * are updated in a single transaction. If any part fails, everything rolls back.
  *
- * IMPORTANT: When passcodeSalt changes, passcodeHash must also be re-computed
- * because the hash uses the salt for verification.
+ * IMPORTANT: passcodeSalt should remain unchanged during rotation.
+ * Changing passcodeSalt requires recomputing passcodeHash, which is not available
+ * in this flow because plaintext passcodes are never stored server-side.
  */
 export const batchUpdatePasscodes = mutation({
   args: {
     updates: v.array(
       v.object({
         projectId: v.id("projects"),
-        passcodeHash: v.string(),
         encryptedPasscode: v.string(),
         passcodeSalt: v.string(),
         iv: v.string(),
@@ -310,7 +335,6 @@ export const batchUpdatePasscodes = mutation({
     // Phase 2: Perform project updates once all ownerships are confirmed
     for (const update of args.updates) {
       await ctx.db.patch(update.projectId, {
-        passcodeHash: update.passcodeHash,
         encryptedPasscode: update.encryptedPasscode,
         passcodeSalt: update.passcodeSalt,
         iv: update.iv,
@@ -330,6 +354,7 @@ export const batchUpdatePasscodes = mutation({
     return { success: true, updatedCount };
   },
 });
+
 
 /**
  * List all members of a project.
@@ -810,5 +835,45 @@ export const deleteProject = mutation({
     await checkAndClearPlanEnforcementFlag(ctx, userId);
 
     return { success: true };
+  },
+});
+
+/**
+ * Verify a project's passcode on the server.
+ * Returns { ok: true } when passcode is correct.
+ */
+export const verifyPasscode = mutation({
+  args: {
+    projectId: v.id("projects"),
+    passcode: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
+
+    const membership = await ctx.db
+      .query("projectMembers")
+      .withIndex("by_project_user", (q) =>
+        q.eq("projectId", args.projectId).eq("userId", userId)
+      )
+      .unique();
+
+    if (!membership) {
+      throwError("Access denied: Not a member of this project", "FORBIDDEN", 403, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
+    }
+
+    const project = await ctx.db.get(args.projectId);
+    if (!project) {
+      throwError("Project not found", "NOT_FOUND", 404, {
+        user_id: userId,
+        project_id: args.projectId,
+      });
+    }
+
+    const enteredHash = await hashPasscode(args.passcode, project.passcodeSalt);
+    const ok = enteredHash === project.passcodeHash;
+    return { ok };
   },
 });

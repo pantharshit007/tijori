@@ -4,7 +4,8 @@
 
 ## Overview
 
-Tijori employs a **zero-knowledge architecture** where the server never sees plaintext secrets. All encryption and decryption happens client-side in the browser using the Web Crypto API.
+Tijori employs a **zero-knowledge architecture** where the server never sees plaintext secrets. All encryption and decryption happens client-side in the browser using the Web Crypto API.  
+**Note**: Project passcodes are verified server-side (the passcode is sent for verification but never stored), while secret values remain client-only.
 
 ## Encryption Stack
 
@@ -43,7 +44,7 @@ Share Creation (by owner/admin):
 1. Decrypt selected variables with Project CryptoKey
 2. Generate random 256-bit ShareKey
 3. Encrypt variables with ShareKey → encryptedPayload
-4. User enters 6-digit share passcode
+4. User enters 8+ character share passcode (alphanumeric)
 5. Derive SharePassKey from share passcode + new salt
 6. Encrypt ShareKey with SharePassKey → encryptedShareKey
 7. Store encrypted data in Convex
@@ -120,11 +121,12 @@ Implemented via Nitro middleware and config:
 | `Referrer-Policy`         | `strict-origin-when-cross-origin`        | Control referrer leakage |
 | `Permissions-Policy`      | Disable camera, mic, geo                 | Limit browser APIs       |
 
-## Input Validation
+## Input Validation & Verification
 
 ### Client-Side
 
-- Passcodes: Regex `/^\d{6}$/` + `maxLength={6}` + non-digit stripping
+- Project passcodes: Regex `/^\d{6}$/` + `maxLength={6}` + non-digit stripping
+- Share passcodes: 8+ alphanumeric characters
 - Form validation before API calls
 
 ### Server-Side (Convex)
@@ -132,6 +134,7 @@ Implemented via Nitro middleware and config:
 - All arguments use strict `v.*` validators
 - Type-safe document IDs with `v.id("table")`
 - No raw SQL (document database)
+- Project passcodes are verified on the server using stored hashes; plaintext passcodes are not persisted
 
 ## Threat Model
 
@@ -150,7 +153,7 @@ Implemented via Nitro middleware and config:
 
 ⚠️ Client-side keyloggers (user's machine compromised)
 ⚠️ Shoulder surfing (physical access)
-⚠️ Weak passcodes (6-digit provides ~1M combinations)
+⚠️ Weak passcodes (short or low-entropy)
 ⚠️ Forgotten master key (no recovery possible by design)
 
 ## Security Checklist for Contributors

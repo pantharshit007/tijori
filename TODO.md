@@ -28,8 +28,6 @@
 - [ ] check if Bulk add dialog and Bulk edit dialog can use a common logic instead of duplicating the code.
 - [ ] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
 - [ ] add in account deletion option, also need to think of how to handle the case when user deletes their account from clerk, panel.
+- [ ] add rate-limiting for `verifyPasscode`: track failed attempts per user+project, lockout for 15 minutes after 5 failures, apply exponential backoff, and reset on success.
 
 ---
-
-- [ ] before going prod, [configure Google social connection in Clerk](https://clerk.com/docs/guides/configure/auth-strategies/social-connections/google)
-- [ ] pagination in convex [paginationOptsValidator](https://docs.convex.dev/database/pagination)

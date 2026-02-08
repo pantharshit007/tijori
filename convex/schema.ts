@@ -81,6 +81,7 @@ export default defineSchema({
     isIndefinite: v.boolean(),
     isDisabled: v.boolean(),
     views: v.number(),
+    maxViews: v.optional(v.number()),
   })
     .index("by_projectId", ["projectId"])
     .index("by_createdBy", ["createdBy"])

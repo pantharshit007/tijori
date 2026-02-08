@@ -45,7 +45,8 @@ function SecurityDocsPage() {
         </h1>
         <p className="sm:text-lg text-sm text-muted-foreground max-w-3xl leading-relaxed">
           Tijori is built on the principle that we should never have access to your secrets. All
-          encryption and decryption happens exclusively in your browser.
+          encryption and decryption happens exclusively in your browser. Project passcodes are
+          verified server-side (passcodes are never stored), while secret values remain client-only.
         </p>
       </section>
 
@@ -60,7 +61,7 @@ function SecurityDocsPage() {
             <CardDescription className="text-base text-foreground/70 leading-relaxed max-w-2xl">
               Even if our database were fully compromised, your secrets would remain encrypted and
               unusable. We store only salted hashes of your passcodes and strongly encrypted blobs
-              of data.
+              of data, and verify project passcodes on the server without persisting them.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -202,7 +203,7 @@ function SecurityDocsPage() {
               {[
                 "Compromised user machine (keyloggers)",
                 "Physical access (shoulder surfing)",
-                "Weak 6-digit passcodes (high-entropy required)",
+                "Weak or short passcodes (high-entropy required)",
                 "Forgotten master key (no recovery possible)",
               ].map((item) => (
                 <li

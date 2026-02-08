@@ -229,7 +229,6 @@ function Settings() {
 
         updates.push({
           projectId: project._id,
-          passcodeHash: project.passcodeHash,
           encryptedPasscode: encryptedValue,
           passcodeSalt: project.passcodeSalt,
           iv,

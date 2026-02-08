@@ -40,6 +40,16 @@ export const SHARE_EXPIRY_OPTIONS = [
 
 export type ShareExpiryValue = (typeof SHARE_EXPIRY_OPTIONS)[number]["value"];
 
+export const SHARE_PASSCODE_MIN_LENGTH = 8;
+export const SHARE_PASSCODE_MAX_LENGTH = 64;
+export const SHARE_PASSCODE_REGEX = /^[A-Za-z0-9]+$/;
+export const SHARE_MAX_VIEWS_LIMIT = 1000;
+
+export const META_DATA = {
+  github: "https://github.com/pantharshit007/tijori",
+  twitter: "https://x.com/pantharshit007",
+};
+
 export const PAGINATION_LIMIT = 10;
 
 /**

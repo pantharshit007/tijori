@@ -3,23 +3,60 @@
  * This persists keys across route changes during a single session.
  */
 class ProjectKeyStore {
-  private keys: Map<string, CryptoKey> = new Map();
+  private keys: Map<string, { key: CryptoKey; expiresAt: number }> = new Map();
+  private readonly ttlMs = 60 * 60 * 1000; // 1 hour
+  private listeners: Set<() => void> = new Set();
+  private version = 0;
 
   setKey(projectId: string, key: CryptoKey) {
-    this.keys.set(projectId, key);
+    this.keys.set(projectId, { key, expiresAt: Date.now() + this.ttlMs });
+    this.notify();
   }
 
   getKey(projectId: string): CryptoKey | null {
-    return this.keys.get(projectId) || null;
+    const entry = this.keys.get(projectId);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.keys.delete(projectId);
+      this.notify();
+      return null;
+    }
+    return entry.key;
   }
 
   removeKey(projectId: string) {
     this.keys.delete(projectId);
+    this.notify();
   }
 
   clear() {
     this.keys.clear();
+    this.notify();
+  }
+
+  subscribe(listener: () => void) {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  getSnapshot() {
+    return this.version;
+  }
+
+  private notify() {
+    this.version += 1;
+    for (const listener of this.listeners) {
+      listener();
+    }
   }
 }
 
-export const keyStore = new ProjectKeyStore();
+declare global {
+   
+  var __tijoriKeyStore: ProjectKeyStore | undefined;
+}
+
+export const keyStore = globalThis.__tijoriKeyStore ?? new ProjectKeyStore();
+globalThis.__tijoriKeyStore = keyStore;

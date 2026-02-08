@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
-import { MAX_LENGTHS } from "../src/lib/constants";
+import { MAX_LENGTHS, SHARE_MAX_VIEWS_LIMIT } from "../src/lib/constants";
 import { mutation, query } from "./_generated/server";
 import { checkAndClearPlanEnforcementFlag, getProjectOwnerLimits } from "./lib/roleLimits";
 import { throwError, validateLength } from "./lib/errors";
@@ -28,6 +28,7 @@ export const create = mutation({
     payloadAuthTag: v.string(),
     expiresAt: v.optional(v.number()),
     isIndefinite: v.boolean(),
+    maxViews: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     if (!args.isIndefinite && !args.expiresAt) {
@@ -36,6 +37,15 @@ export const create = mutation({
     const normalizedExpiresAt = args.isIndefinite ? undefined : args.expiresAt;
 
     validateLength(args.name, MAX_LENGTHS.SECRET_NAME, "Secret name");
+
+    if (args.maxViews !== undefined) {
+      if (!Number.isInteger(args.maxViews) || args.maxViews < 1) {
+        throwError("maxViews must be a positive integer", "BAD_REQUEST", 400);
+      }
+      if (args.maxViews > SHARE_MAX_VIEWS_LIMIT) {
+        throwError(`maxViews cannot exceed ${SHARE_MAX_VIEWS_LIMIT}`, "BAD_REQUEST", 400);
+      }
+    }
 
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
@@ -151,6 +161,7 @@ export const create = mutation({
       isIndefinite: args.isIndefinite,
       isDisabled: false,
       views: 0,
+      maxViews: args.maxViews,
     });
 
     // Increment quota if using atomic quota pattern
@@ -240,26 +251,29 @@ export const get = query({
       return { expired: true };
     }
 
-    // Return only what's needed for decryption
+    if (sharedSecret.maxViews !== undefined && sharedSecret.views >= sharedSecret.maxViews) {
+      return {
+        exhausted: true,
+        maxViews: sharedSecret.maxViews,
+        expiresAt: sharedSecret.expiresAt,
+      };
+    }
+
+    // Return only metadata (payload is fetched via mutation to atomically consume a view)
     return {
-      encryptedPayload: sharedSecret.encryptedPayload,
-      encryptedShareKey: sharedSecret.encryptedShareKey,
-      passcodeSalt: sharedSecret.passcodeSalt,
-      iv: sharedSecret.iv,
-      authTag: sharedSecret.authTag,
-      payloadIv: sharedSecret.payloadIv,
-      payloadAuthTag: sharedSecret.payloadAuthTag,
       isIndefinite: sharedSecret.isIndefinite,
       expiresAt: sharedSecret.expiresAt,
+      maxViews: sharedSecret.maxViews,
+      views: sharedSecret.views,
     };
   },
 });
 
 /**
- * Record a view of the shared secret.
- * Called after successful decryption.
+ * Access a shared secret and atomically record a view.
+ * Public mutation that checks limits before returning encrypted payload.
  */
-export const recordView = mutation({
+export const accessSecret = mutation({
   args: {
     id: v.id("sharedSecrets"),
   },
@@ -270,9 +284,34 @@ export const recordView = mutation({
       throwError("Shared secret not found", "NOT_FOUND", 404);
     }
 
+    if (sharedSecret.isDisabled) {
+      return { disabled: true };
+    }
+
+    if (sharedSecret.expiresAt && Date.now() > sharedSecret.expiresAt) {
+      return { expired: true };
+    }
+
+    if (sharedSecret.maxViews !== undefined && sharedSecret.views >= sharedSecret.maxViews) {
+      return { exhausted: true, expiresAt: sharedSecret.expiresAt };
+    }
+
     await ctx.db.patch(args.id, {
       views: sharedSecret.views + 1,
     });
+
+    return {
+      encryptedPayload: sharedSecret.encryptedPayload,
+      encryptedShareKey: sharedSecret.encryptedShareKey,
+      passcodeSalt: sharedSecret.passcodeSalt,
+      iv: sharedSecret.iv,
+      authTag: sharedSecret.authTag,
+      payloadIv: sharedSecret.payloadIv,
+      payloadAuthTag: sharedSecret.payloadAuthTag,
+      isIndefinite: sharedSecret.isIndefinite,
+      expiresAt: sharedSecret.expiresAt,
+      maxViews: sharedSecret.maxViews,
+    };
   },
 });
 
@@ -379,6 +418,7 @@ export const listByUser = query({
         isDisabled: s.isDisabled,
         expiresAt: s.expiresAt,
         views: s.views,
+        maxViews: s.maxViews,
         isExpired: s.expiresAt ? Date.now() > s.expiresAt : false,
         creatorName: creatorMap[s.createdBy]?.name,
         creatorImage: creatorMap[s.createdBy]?.image,
@@ -450,6 +490,7 @@ export const listByProject = query({
       isDisabled: s.isDisabled,
       expiresAt: s.expiresAt,
       views: s.views,
+      maxViews: s.maxViews,
       isExpired: s.expiresAt ? Date.now() > s.expiresAt : false,
       creatorName: creatorMap[s.createdBy]?.name,
       creatorImage: creatorMap[s.createdBy]?.image,
@@ -524,6 +565,43 @@ export const updateExpiry = mutation({
       expiresAt: normalizedExpiresAt,
       isIndefinite: args.isIndefinite,
     });
+  },
+});
+
+/**
+ * Update view limit for a shared secret.
+ * Pass maxViews = -1 to remove limit.
+ */
+export const updateMaxViews = mutation({
+  args: {
+    id: v.id("sharedSecrets"),
+    maxViews: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { sharedSecret } = await checkSecretManagementAccess(ctx, args.id);
+
+    if (args.maxViews === -1) {
+      await ctx.db.patch(args.id, {
+        maxViews: undefined,
+      });
+      return { success: true };
+    }
+
+    if (!Number.isInteger(args.maxViews) || args.maxViews < 1) {
+      throwError("maxViews must be a positive integer", "BAD_REQUEST", 400);
+    }
+    if (args.maxViews > SHARE_MAX_VIEWS_LIMIT) {
+      throwError(`maxViews cannot exceed ${SHARE_MAX_VIEWS_LIMIT}`, "BAD_REQUEST", 400);
+    }
+    if (args.maxViews < sharedSecret.views) {
+      throwError("maxViews cannot be lower than current views", "BAD_REQUEST", 400);
+    }
+
+    await ctx.db.patch(args.id, {
+      maxViews: args.maxViews,
+    });
+
+    return { success: true };
   },
 });
 
@@ -658,7 +736,8 @@ export const paginatedListByUser = query({
     // Manual pagination using array slicing since we combined multiple queries
     const { numItems, cursor } = args.paginationOpts;
     const parsed = cursor ? parseInt(cursor, 10) : 0;
-    const startIndex = Number.isFinite(parsed) && Number.isInteger(parsed) ? Math.max(0, parsed) : 0;
+    const startIndex =
+      Number.isFinite(parsed) && Number.isInteger(parsed) ? Math.max(0, parsed) : 0;
     const endIndex = startIndex + numItems;
     const pageItems = allSharedSecrets.slice(startIndex, endIndex);
     const isDone = endIndex >= allSharedSecrets.length;
@@ -701,6 +780,7 @@ export const paginatedListByUser = query({
         isDisabled: s.isDisabled,
         expiresAt: s.expiresAt,
         views: s.views,
+        maxViews: s.maxViews,
         isExpired: s.expiresAt ? Date.now() > s.expiresAt : false,
         creatorName: creatorMap[s.createdBy]?.name,
         creatorImage: creatorMap[s.createdBy]?.image,
