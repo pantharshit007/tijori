@@ -50,6 +50,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { deriveKey } from "@/lib/crypto";
 import { keyStore } from "@/lib/key-store";
 import { getErrorMessage } from "@/lib/errors";
+import { toastStyle } from "@/utilities/toast-style";
 
 function ProjectView() {
   const { projectId } = useParams({ from: "/d/project/$projectId" });
@@ -139,10 +140,10 @@ function ProjectView() {
       setNewEnvName("");
       setNewEnvDescription("");
       setShowNewEnvDialog(false);
-      toast.success("Environment created successfully");
+      toast.success("Environment created successfully", toastStyle.success);
     } catch (err: any) {
       console.error("Failed to create environment:", { err });
-      toast.error(getErrorMessage(err, "Failed to create environment"));
+      toast.error(getErrorMessage(err, "Failed to create environment"), toastStyle.error);
     } finally {
       setIsCreatingEnv(false);
     }
@@ -504,7 +505,7 @@ function PasscodeUnlock({
       });
       if (!result.ok) {
         setUnlockError("Invalid passcode. Please try again.");
-        toast.error("Invalid passcode");
+        toast.error("Invalid passcode", toastStyle.error);
         setIsUnlocking(false);
         return;
       }
@@ -513,11 +514,11 @@ function PasscodeUnlock({
       const key = await deriveKey(passcode, project.passcodeSalt);
       onUnlockSuccess(key);
       setPasscode("");
-      toast.success("Project unlocked");
+      toast.success("Project unlocked", toastStyle.success);
     } catch (err: any) {
       console.error("Unlock failed:", err);
       setUnlockError("Failed to unlock. Please check your passcode.");
-      toast.error(getErrorMessage(err, "Failed to unlock"));
+      toast.error(getErrorMessage(err, "Failed to unlock"), toastStyle.error);
     } finally {
       setIsUnlocking(false);
     }

@@ -33,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/time";
 import { UserAvatar } from "@/components/user-avatar";
+import { toastStyle } from "@/utilities/toast-style";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,18 +79,18 @@ function AdminDashboard() {
       await updateUserRole({ userId, tier });
       setCursor(null);
       setHistory([]);
-      toast.success(`User tier updated to ${tier}`);
+      toast.success(`User tier updated to ${tier}`, toastStyle.success);
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Failed to update tier"));
+      toast.error(getErrorMessage(err, "Failed to update tier"), toastStyle.error);
     }
   };
 
   const handleToggleStatus = async (userId: any, isDeactivated: boolean) => {
     try {
       await toggleUserStatus({ userId, isDeactivated });
-      toast.success(`User ${isDeactivated ? "deactivated" : "reactivated"}`);
+      toast.success(`User ${isDeactivated ? "deactivated" : "reactivated"}`, toastStyle.success);
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Failed to toggle status"));
+      toast.error(getErrorMessage(err, "Failed to toggle status"), toastStyle.error);
     }
   };
 

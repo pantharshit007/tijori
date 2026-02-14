@@ -7,7 +7,7 @@
 - [ ] add toast notifications for successful actions, ex: copy, delete, etc.
 - [x] Standardized error handling using `throwError` utility with numeric status codes and contextual server-side logging. (Implemented via `ConvexError` for frontend compatibility).
 - [ ] when the / loads, initially there is no sign in , get started and get started free button, they appear after a delay most probably network call to the clerk server, instead of waiting for the response and showing nothing add a suspense component to show get started, sign in until we get the response if we get user is logged in, we will just update the component in place else it will stay the same, just not via the suspense component.
-- [ ] update the toast ui.
+- [x] update the toast ui.
 - [x] **Plan Downgrade Enforcement**: Users who downgrade keep paid privileges — need to implement enforcement:
   - [x] **On downgrade**: Check if user's current usage exceeds the new tier's limits:
     - Compare `User.projectCount` against new tier's `maxProjects` limit, along with other limits such as environment count, members count, shared secret count, etc.

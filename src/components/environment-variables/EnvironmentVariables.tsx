@@ -29,6 +29,7 @@ import { variablesToExport } from "@/lib/utils";
 import { decrypt, encrypt } from "@/lib/crypto";
 import { formatRelativeTime } from "@/lib/time";
 import { getErrorMessage } from "@/lib/errors";
+import { toastStyle } from "@/utilities/toast-style";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -178,10 +179,10 @@ export function EnvironmentVariables({
       setNewName("");
       setNewValue("");
       setShowNewVar(false);
-      toast.success("Variable saved successfully");
+      toast.success("Variable saved successfully", toastStyle.success);
     } catch (err: any) {
       console.error("Failed to save:", err);
-      toast.error(getErrorMessage(err, "Failed to save variable"));
+      toast.error(getErrorMessage(err, "Failed to save variable"), toastStyle.error);
     } finally {
       setIsSaving(false);
     }
@@ -230,10 +231,10 @@ export function EnvironmentVariables({
       setEditingVarId(null);
       setEditName("");
       setEditValue("");
-      toast.success("Variable updated successfully");
+      toast.success("Variable updated successfully", toastStyle.success);
     } catch (err: any) {
       console.error("Failed to update:", err);
-      toast.error(getErrorMessage(err, "Failed to update variable"));
+      toast.error(getErrorMessage(err, "Failed to update variable"), toastStyle.error);
     } finally {
       setIsEditSaving(false);
     }
@@ -254,10 +255,10 @@ export function EnvironmentVariables({
 
     try {
       await removeVariable({ id: deletingVarId });
-      toast.success("Variable deleted");
+      toast.success("Variable deleted", toastStyle.success);
     } catch (err: any) {
       console.error("Failed to delete variable:", err?.data);
-      toast.error(getErrorMessage(err, "Failed to delete variable"));
+      toast.error(getErrorMessage(err, "Failed to delete variable"), toastStyle.error);
     } finally {
       setDeletingVarId(null);
     }
@@ -319,7 +320,8 @@ export function EnvironmentVariables({
     } catch (err) {
       console.error("Failed to bulk edit:", err);
       toast.error(
-        getErrorMessage(err, "Failed to save changes. Some variables may not have been updated.")
+        getErrorMessage(err, "Failed to save changes. Some variables may not have been updated."),
+        toastStyle.error
       );
     } finally {
       setIsBulkEditSaving(false);

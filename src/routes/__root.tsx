@@ -8,10 +8,11 @@ import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/react";
 
 import appCss from "../styles.css?url";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider, useTheme } from "@/components/theme-provider";
 import { convex, queryClient } from "@/lib/convex";
 import { NotFound as PremiumNotFound } from "@/components/not-found";
 import { SITE_CONFIG } from "@/utilities/site-config";
+import { toastStyle } from "@/utilities/toast-style";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -169,7 +170,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               </head>
               <body className="min-h-screen bg-background font-sans antialiased">
                 <main className="flex flex-1 flex-col">{children}</main>
-                <Toaster position="top-right" richColors />
+                <AppToaster />
                 <Analytics />
                 <TanStackDevtools
                   config={{
@@ -189,5 +190,18 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         </QueryClientProvider>
       </ConvexProviderWithClerk>
     </ClerkProvider>
+  );
+}
+
+function AppToaster() {
+  const { resolvedTheme } = useTheme();
+
+  return (
+    <Toaster
+      position="top-right"
+      richColors
+      theme={resolvedTheme}
+      toastOptions={toastStyle.base}
+    />
   );
 }

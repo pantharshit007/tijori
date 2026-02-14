@@ -227,3 +227,21 @@ code {
 .docs-step-number::before {
   content: counter(step-counter);
 }
+
+/* ─── Premium toast styling ─────────────────────────────────── */
+.toast-elevated {
+  transition: box-shadow 0.3s ease, transform 0.3s ease !important;
+}
+
+.toast-elevated:hover {
+  box-shadow: 0 8px 32px -6px rgba(0, 0, 0, 0.18),
+    0 0 0 1px rgba(0, 0, 0, 0.04) !important;
+  transform: translateY(-1px) !important;
+}
+
+.toast-elevated [data-icon] svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.5;
+  opacity: 1;
+}
