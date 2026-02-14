@@ -3,7 +3,6 @@
   - **Reasoning**: It is a high-cost operation. Changing the passcode changes the PBKDF2 derived key, which would require re-encrypting EVERY variable in EVERY environment for that project, as well as re-encrypting all shared passcodes in the `sharedSecrets` table.
   - **Implementation Note**: If implemented, it must be performed as a client-side batch job (decrypt with old key, re-encrypt with new key) with a progress indicator and warning to the user.
 - [ ] update the enums such as "admin" and "member" to be "owner" and "member" in react files to types directly from convex.
-- [ ] remove mutation in variable.ts `const variable = await ctx.db.get(args.id);` why are we querying the whole db again, instead of that specific table?
 - [ ] Transfer ownership of project, pending.
 - [ ] add toast notifications for successful actions, ex: copy, delete, etc.
 - [x] Standardized error handling using `throwError` utility with numeric status codes and contextual server-side logging. (Implemented via `ConvexError` for frontend compatibility).
@@ -26,8 +25,8 @@
   - **TODO (Future)**: Implement cron job `enforcePlanLimits` to run daily and reconcile excess after deadline passes
 - [ ] re-check save mutation thoroughly in @convex/variable.ts, seems something is wrong there.
 - [ ] check if Bulk add dialog and Bulk edit dialog can use a common logic instead of duplicating the code.
-- [ ] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
-- [ ] add in account deletion option, also need to think of how to handle the case when user deletes their account from clerk, panel.
+- [x] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
+- [x] add in account deletion option, also need to think of how to handle the case when user deletes their account from clerk, panel.
 - [ ] add rate-limiting for `verifyPasscode`: track failed attempts per user+project, lockout for 15 minutes after 5 failures, apply exponential backoff, and reset on success.
 
 ---

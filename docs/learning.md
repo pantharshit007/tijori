@@ -83,6 +83,24 @@ bunx convex env list
 - The `auth.config.ts` file must use `process.env.CLERK_JWT_ISSUER_DOMAIN` (Convex-provided).
 - The JWT issuer domain is found in Clerk Dashboard → API Keys or JWT Templates.
 
+#### Optional: Clerk Webhooks for User Deletion
+
+If you allow users to delete accounts from the **Clerk Admin Dashboard**, you need to set up a webhook to keep Convex in sync:
+
+1. In Clerk Dashboard → Webhooks → Add Webhook:
+   - **Endpoint URL**: `https://your-convex-deployment.convex.cloud/webhooks/clerk`
+   - **Events**: Select `user.deleted`
+
+2. Set the webhook signing secret in Convex:
+
+   ```bash
+   bunx convex env set CLERK_WEBHOOK_SIGNING_SECRET "whsec_..."
+   ```
+
+3. The webhook handler (`convex/http.ts`) will call `users.deleteAccountByTokenIdentifier` to clean up Convex data.
+
+**If users can only delete accounts through the Tijori UI (not Clerk Dashboard)**, you can skip this webhook setup - the UI handles cleanup internally.
+
 ### shadcn/ui with TanStack Start
 
 - Use `bunx shadcn@latest init --template start` for proper TanStack Start configuration.
@@ -240,6 +258,8 @@ Clerk can delete users directly from its dashboard. To keep Convex in sync:
 - In the webhook handler, call the internal Convex mutation
   `users.deleteAccountByTokenIdentifier` with the Clerk `user.id` as the token identifier.
 - This ensures Convex data is removed even if deletion happens outside the app UI.
+
+> **Note**: This webhook setup is **optional** if you don't allow deletions from the Clerk dashboard or admin panel. If users can only delete their accounts through the Tijori UI (which handles cleanup internally), you can skip the webhook configuration.
 
 When performing mutations that take multiple IDs (e.g. `projectId` and `environmentId`), always verify that the sub-resource actually belongs to the parent-resource:
 
@@ -883,12 +903,14 @@ zero-knowledge guarantee. The key decisions:
 1. **Stronger Passcodes**: Replace fixed 6-digit codes with longer alphanumeric passcodes (min length 8).
 2. **View Limits**: Add optional max views and one-time link support to reduce exposure.
 3. **Public Link Model**: Keep encrypted payload access public, and rely on passcode strength + expiry
-   + view limits rather than server gating.
+   - view limits rather than server gating.
 
 Additional follow-ups:
+
 - Added random share passcode generation (10–16 chars) to reduce weak secrets.
 - Exposed view limit controls in `/d/shared` to manage limits after creation.
 
 Server-side verification update:
+
 - Project passcodes are now verified on the backend and passcode hashes are no longer sent to clients.
 - The server still never receives decrypted secret values; only passcodes for verification.

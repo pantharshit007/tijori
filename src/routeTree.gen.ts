@@ -8,415 +8,408 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root";
-import { Route as DocsRouteImport } from "./routes/docs";
-import { Route as DRouteImport } from "./routes/d";
-import { Route as CryptoTestRouteImport } from "./routes/crypto-test";
-import { Route as IndexRouteImport } from "./routes/index";
-import { Route as DocsIndexRouteImport } from "./routes/docs/index";
-import { Route as SitemapXmlRouteImport } from "./routes/sitemap.xml";
-import { Route as ShareShareIdRouteImport } from "./routes/share/$shareId";
-import { Route as RobotsTxtRouteImport } from "./routes/robots.txt";
-import { Route as DocsSecurityRouteImport } from "./routes/docs/security";
-import { Route as DocsLocalSetupRouteImport } from "./routes/docs/local-setup";
-import { Route as DocsDeploymentRouteImport } from "./routes/docs/deployment";
-import { Route as DSharedRouteImport } from "./routes/d/shared";
-import { Route as DSettingsRouteImport } from "./routes/d/settings";
-import { Route as DProfileRouteImport } from "./routes/d/profile";
-import { Route as DDashboardRouteImport } from "./routes/d/dashboard";
-import { Route as DAdminRouteImport } from "./routes/d/admin";
-import { Route as DProjectsIndexRouteImport } from "./routes/d/projects/index";
-import { Route as DProjectsNewRouteImport } from "./routes/d/projects/new";
-import { Route as DProjectProjectIdRouteImport } from "./routes/d/project/$projectId";
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as DocsRouteImport } from './routes/docs'
+import { Route as DRouteImport } from './routes/d'
+import { Route as CryptoTestRouteImport } from './routes/crypto-test'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as DocsIndexRouteImport } from './routes/docs/index'
+import { Route as SitemapXmlRouteImport } from './routes/sitemap.xml'
+import { Route as ShareShareIdRouteImport } from './routes/share/$shareId'
+import { Route as RobotsTxtRouteImport } from './routes/robots.txt'
+import { Route as DocsSecurityRouteImport } from './routes/docs/security'
+import { Route as DocsLocalSetupRouteImport } from './routes/docs/local-setup'
+import { Route as DocsDeploymentRouteImport } from './routes/docs/deployment'
+import { Route as DSharedRouteImport } from './routes/d/shared'
+import { Route as DSettingsRouteImport } from './routes/d/settings'
+import { Route as DProfileRouteImport } from './routes/d/profile'
+import { Route as DDashboardRouteImport } from './routes/d/dashboard'
+import { Route as DAdminRouteImport } from './routes/d/admin'
+import { Route as DProjectsIndexRouteImport } from './routes/d/projects/index'
+import { Route as DProjectsNewRouteImport } from './routes/d/projects/new'
+import { Route as DProjectProjectIdRouteImport } from './routes/d/project/$projectId'
 
 const DocsRoute = DocsRouteImport.update({
-  id: "/docs",
-  path: "/docs",
+  id: '/docs',
+  path: '/docs',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const DRoute = DRouteImport.update({
-  id: "/d",
-  path: "/d",
+  id: '/d',
+  path: '/d',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const CryptoTestRoute = CryptoTestRouteImport.update({
-  id: "/crypto-test",
-  path: "/crypto-test",
+  id: '/crypto-test',
+  path: '/crypto-test',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const DocsIndexRoute = DocsIndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => DocsRoute,
-} as any);
+} as any)
 const SitemapXmlRoute = SitemapXmlRouteImport.update({
-  id: "/sitemap/xml",
-  path: "/sitemap/xml",
+  id: '/sitemap/xml',
+  path: '/sitemap/xml',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const ShareShareIdRoute = ShareShareIdRouteImport.update({
-  id: "/share/$shareId",
-  path: "/share/$shareId",
+  id: '/share/$shareId',
+  path: '/share/$shareId',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const RobotsTxtRoute = RobotsTxtRouteImport.update({
-  id: "/robots/txt",
-  path: "/robots/txt",
+  id: '/robots/txt',
+  path: '/robots/txt',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const DocsSecurityRoute = DocsSecurityRouteImport.update({
-  id: "/security",
-  path: "/security",
+  id: '/security',
+  path: '/security',
   getParentRoute: () => DocsRoute,
-} as any);
+} as any)
 const DocsLocalSetupRoute = DocsLocalSetupRouteImport.update({
-  id: "/local-setup",
-  path: "/local-setup",
+  id: '/local-setup',
+  path: '/local-setup',
   getParentRoute: () => DocsRoute,
-} as any);
+} as any)
 const DocsDeploymentRoute = DocsDeploymentRouteImport.update({
-  id: "/deployment",
-  path: "/deployment",
+  id: '/deployment',
+  path: '/deployment',
   getParentRoute: () => DocsRoute,
-} as any);
+} as any)
 const DSharedRoute = DSharedRouteImport.update({
-  id: "/shared",
-  path: "/shared",
+  id: '/shared',
+  path: '/shared',
   getParentRoute: () => DRoute,
-} as any);
+} as any)
 const DSettingsRoute = DSettingsRouteImport.update({
-  id: "/settings",
-  path: "/settings",
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => DRoute,
-} as any);
+} as any)
 const DProfileRoute = DProfileRouteImport.update({
-  id: "/profile",
-  path: "/profile",
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => DRoute,
-} as any);
+} as any)
 const DDashboardRoute = DDashboardRouteImport.update({
-  id: "/dashboard",
-  path: "/dashboard",
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => DRoute,
-} as any);
+} as any)
 const DAdminRoute = DAdminRouteImport.update({
-  id: "/admin",
-  path: "/admin",
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => DRoute,
-} as any);
+} as any)
 const DProjectsIndexRoute = DProjectsIndexRouteImport.update({
-  id: "/projects/",
-  path: "/projects/",
+  id: '/projects/',
+  path: '/projects/',
   getParentRoute: () => DRoute,
-} as any);
+} as any)
 const DProjectsNewRoute = DProjectsNewRouteImport.update({
-  id: "/projects/new",
-  path: "/projects/new",
+  id: '/projects/new',
+  path: '/projects/new',
   getParentRoute: () => DRoute,
-} as any);
+} as any)
 const DProjectProjectIdRoute = DProjectProjectIdRouteImport.update({
-  id: "/project/$projectId",
-  path: "/project/$projectId",
+  id: '/project/$projectId',
+  path: '/project/$projectId',
   getParentRoute: () => DRoute,
-} as any);
+} as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute;
-  "/crypto-test": typeof CryptoTestRoute;
-  "/d": typeof DRouteWithChildren;
-  "/docs": typeof DocsRouteWithChildren;
-  "/d/admin": typeof DAdminRoute;
-  "/d/dashboard": typeof DDashboardRoute;
-  "/d/profile": typeof DProfileRoute;
-  "/d/settings": typeof DSettingsRoute;
-  "/d/shared": typeof DSharedRoute;
-  "/docs/deployment": typeof DocsDeploymentRoute;
-  "/docs/local-setup": typeof DocsLocalSetupRoute;
-  "/docs/security": typeof DocsSecurityRoute;
-  "/robots/txt": typeof RobotsTxtRoute;
-  "/share/$shareId": typeof ShareShareIdRoute;
-  "/sitemap/xml": typeof SitemapXmlRoute;
-  "/docs/": typeof DocsIndexRoute;
-  "/d/project/$projectId": typeof DProjectProjectIdRoute;
-  "/d/projects/new": typeof DProjectsNewRoute;
-  "/d/projects": typeof DProjectsIndexRoute;
+  '/': typeof IndexRoute
+  '/crypto-test': typeof CryptoTestRoute
+  '/d': typeof DRouteWithChildren
+  '/docs': typeof DocsRouteWithChildren
+  '/d/admin': typeof DAdminRoute
+  '/d/dashboard': typeof DDashboardRoute
+  '/d/profile': typeof DProfileRoute
+  '/d/settings': typeof DSettingsRoute
+  '/d/shared': typeof DSharedRoute
+  '/docs/deployment': typeof DocsDeploymentRoute
+  '/docs/local-setup': typeof DocsLocalSetupRoute
+  '/docs/security': typeof DocsSecurityRoute
+  '/robots/txt': typeof RobotsTxtRoute
+  '/share/$shareId': typeof ShareShareIdRoute
+  '/sitemap/xml': typeof SitemapXmlRoute
+  '/docs/': typeof DocsIndexRoute
+  '/d/project/$projectId': typeof DProjectProjectIdRoute
+  '/d/projects/new': typeof DProjectsNewRoute
+  '/d/projects': typeof DProjectsIndexRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute;
-  "/crypto-test": typeof CryptoTestRoute;
-  "/d": typeof DRouteWithChildren;
-  "/d/admin": typeof DAdminRoute;
-  "/d/dashboard": typeof DDashboardRoute;
-  "/d/profile": typeof DProfileRoute;
-  "/d/settings": typeof DSettingsRoute;
-  "/d/shared": typeof DSharedRoute;
-  "/docs/deployment": typeof DocsDeploymentRoute;
-  "/docs/local-setup": typeof DocsLocalSetupRoute;
-  "/docs/security": typeof DocsSecurityRoute;
-  "/robots/txt": typeof RobotsTxtRoute;
-  "/share/$shareId": typeof ShareShareIdRoute;
-  "/sitemap/xml": typeof SitemapXmlRoute;
-  "/docs": typeof DocsIndexRoute;
-  "/d/project/$projectId": typeof DProjectProjectIdRoute;
-  "/d/projects/new": typeof DProjectsNewRoute;
-  "/d/projects": typeof DProjectsIndexRoute;
+  '/': typeof IndexRoute
+  '/crypto-test': typeof CryptoTestRoute
+  '/d': typeof DRouteWithChildren
+  '/d/admin': typeof DAdminRoute
+  '/d/dashboard': typeof DDashboardRoute
+  '/d/profile': typeof DProfileRoute
+  '/d/settings': typeof DSettingsRoute
+  '/d/shared': typeof DSharedRoute
+  '/docs/deployment': typeof DocsDeploymentRoute
+  '/docs/local-setup': typeof DocsLocalSetupRoute
+  '/docs/security': typeof DocsSecurityRoute
+  '/robots/txt': typeof RobotsTxtRoute
+  '/share/$shareId': typeof ShareShareIdRoute
+  '/sitemap/xml': typeof SitemapXmlRoute
+  '/docs': typeof DocsIndexRoute
+  '/d/project/$projectId': typeof DProjectProjectIdRoute
+  '/d/projects/new': typeof DProjectsNewRoute
+  '/d/projects': typeof DProjectsIndexRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  "/": typeof IndexRoute;
-  "/crypto-test": typeof CryptoTestRoute;
-  "/d": typeof DRouteWithChildren;
-  "/docs": typeof DocsRouteWithChildren;
-  "/d/admin": typeof DAdminRoute;
-  "/d/dashboard": typeof DDashboardRoute;
-  "/d/profile": typeof DProfileRoute;
-  "/d/settings": typeof DSettingsRoute;
-  "/d/shared": typeof DSharedRoute;
-  "/docs/deployment": typeof DocsDeploymentRoute;
-  "/docs/local-setup": typeof DocsLocalSetupRoute;
-  "/docs/security": typeof DocsSecurityRoute;
-  "/robots/txt": typeof RobotsTxtRoute;
-  "/share/$shareId": typeof ShareShareIdRoute;
-  "/sitemap/xml": typeof SitemapXmlRoute;
-  "/docs/": typeof DocsIndexRoute;
-  "/d/project/$projectId": typeof DProjectProjectIdRoute;
-  "/d/projects/new": typeof DProjectsNewRoute;
-  "/d/projects/": typeof DProjectsIndexRoute;
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/crypto-test': typeof CryptoTestRoute
+  '/d': typeof DRouteWithChildren
+  '/docs': typeof DocsRouteWithChildren
+  '/d/admin': typeof DAdminRoute
+  '/d/dashboard': typeof DDashboardRoute
+  '/d/profile': typeof DProfileRoute
+  '/d/settings': typeof DSettingsRoute
+  '/d/shared': typeof DSharedRoute
+  '/docs/deployment': typeof DocsDeploymentRoute
+  '/docs/local-setup': typeof DocsLocalSetupRoute
+  '/docs/security': typeof DocsSecurityRoute
+  '/robots/txt': typeof RobotsTxtRoute
+  '/share/$shareId': typeof ShareShareIdRoute
+  '/sitemap/xml': typeof SitemapXmlRoute
+  '/docs/': typeof DocsIndexRoute
+  '/d/project/$projectId': typeof DProjectProjectIdRoute
+  '/d/projects/new': typeof DProjectsNewRoute
+  '/d/projects/': typeof DProjectsIndexRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
+  fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | "/"
-    | "/crypto-test"
-    | "/d"
-    | "/docs"
-    | "/d/admin"
-    | "/d/dashboard"
-    | "/d/profile"
-    | "/d/settings"
-    | "/d/shared"
-    | "/docs/deployment"
-    | "/docs/local-setup"
-    | "/docs/security"
-    | "/robots/txt"
-    | "/share/$shareId"
-    | "/sitemap/xml"
-    | "/docs/"
-    | "/d/project/$projectId"
-    | "/d/projects/new"
-    | "/d/projects";
-  fileRoutesByTo: FileRoutesByTo;
+    | '/'
+    | '/crypto-test'
+    | '/d'
+    | '/docs'
+    | '/d/admin'
+    | '/d/dashboard'
+    | '/d/profile'
+    | '/d/settings'
+    | '/d/shared'
+    | '/docs/deployment'
+    | '/docs/local-setup'
+    | '/docs/security'
+    | '/robots/txt'
+    | '/share/$shareId'
+    | '/sitemap/xml'
+    | '/docs/'
+    | '/d/project/$projectId'
+    | '/d/projects/new'
+    | '/d/projects'
+  fileRoutesByTo: FileRoutesByTo
   to:
-    | "/"
-    | "/crypto-test"
-    | "/d"
-    | "/d/admin"
-    | "/d/dashboard"
-    | "/d/profile"
-    | "/d/settings"
-    | "/d/shared"
-    | "/docs/deployment"
-    | "/docs/local-setup"
-    | "/docs/security"
-    | "/robots/txt"
-    | "/share/$shareId"
-    | "/sitemap/xml"
-    | "/docs"
-    | "/d/project/$projectId"
-    | "/d/projects/new"
-    | "/d/projects";
+    | '/'
+    | '/crypto-test'
+    | '/d'
+    | '/d/admin'
+    | '/d/dashboard'
+    | '/d/profile'
+    | '/d/settings'
+    | '/d/shared'
+    | '/docs/deployment'
+    | '/docs/local-setup'
+    | '/docs/security'
+    | '/robots/txt'
+    | '/share/$shareId'
+    | '/sitemap/xml'
+    | '/docs'
+    | '/d/project/$projectId'
+    | '/d/projects/new'
+    | '/d/projects'
   id:
-    | "__root__"
-    | "/"
-    | "/crypto-test"
-    | "/d"
-    | "/docs"
-    | "/d/admin"
-    | "/d/dashboard"
-    | "/d/profile"
-    | "/d/settings"
-    | "/d/shared"
-    | "/docs/deployment"
-    | "/docs/local-setup"
-    | "/docs/security"
-    | "/robots/txt"
-    | "/share/$shareId"
-    | "/sitemap/xml"
-    | "/docs/"
-    | "/d/project/$projectId"
-    | "/d/projects/new"
-    | "/d/projects/";
-  fileRoutesById: FileRoutesById;
+    | '__root__'
+    | '/'
+    | '/crypto-test'
+    | '/d'
+    | '/docs'
+    | '/d/admin'
+    | '/d/dashboard'
+    | '/d/profile'
+    | '/d/settings'
+    | '/d/shared'
+    | '/docs/deployment'
+    | '/docs/local-setup'
+    | '/docs/security'
+    | '/robots/txt'
+    | '/share/$shareId'
+    | '/sitemap/xml'
+    | '/docs/'
+    | '/d/project/$projectId'
+    | '/d/projects/new'
+    | '/d/projects/'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  CryptoTestRoute: typeof CryptoTestRoute;
-  DRoute: typeof DRouteWithChildren;
-  DocsRoute: typeof DocsRouteWithChildren;
-  RobotsTxtRoute: typeof RobotsTxtRoute;
-  ShareShareIdRoute: typeof ShareShareIdRoute;
-  SitemapXmlRoute: typeof SitemapXmlRoute;
-  DemoApiNamesRoute: typeof DemoApiNamesRoute;
-  DemoStartApiRequestRoute: typeof DemoStartApiRequestRoute;
-  DemoStartServerFuncsRoute: typeof DemoStartServerFuncsRoute;
-  DemoStartSsrDataOnlyRoute: typeof DemoStartSsrDataOnlyRoute;
-  DemoStartSsrFullSsrRoute: typeof DemoStartSsrFullSsrRoute;
-  DemoStartSsrSpaModeRoute: typeof DemoStartSsrSpaModeRoute;
-  DemoStartSsrIndexRoute: typeof DemoStartSsrIndexRoute;
+  IndexRoute: typeof IndexRoute
+  CryptoTestRoute: typeof CryptoTestRoute
+  DRoute: typeof DRouteWithChildren
+  DocsRoute: typeof DocsRouteWithChildren
+  RobotsTxtRoute: typeof RobotsTxtRoute
+  ShareShareIdRoute: typeof ShareShareIdRoute
+  SitemapXmlRoute: typeof SitemapXmlRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/docs": {
-      id: "/docs";
-      path: "/docs";
-      fullPath: "/docs";
-      preLoaderRoute: typeof DocsRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/d": {
-      id: "/d";
-      path: "/d";
-      fullPath: "/d";
-      preLoaderRoute: typeof DRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/crypto-test": {
-      id: "/crypto-test";
-      path: "/crypto-test";
-      fullPath: "/crypto-test";
-      preLoaderRoute: typeof CryptoTestRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/": {
-      id: "/";
-      path: "/";
-      fullPath: "/";
-      preLoaderRoute: typeof IndexRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/docs/": {
-      id: "/docs/";
-      path: "/";
-      fullPath: "/docs/";
-      preLoaderRoute: typeof DocsIndexRouteImport;
-      parentRoute: typeof DocsRoute;
-    };
-    "/sitemap/xml": {
-      id: "/sitemap/xml";
-      path: "/sitemap/xml";
-      fullPath: "/sitemap/xml";
-      preLoaderRoute: typeof SitemapXmlRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/share/$shareId": {
-      id: "/share/$shareId";
-      path: "/share/$shareId";
-      fullPath: "/share/$shareId";
-      preLoaderRoute: typeof ShareShareIdRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/robots/txt": {
-      id: "/robots/txt";
-      path: "/robots/txt";
-      fullPath: "/robots/txt";
-      preLoaderRoute: typeof RobotsTxtRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/docs/security": {
-      id: "/docs/security";
-      path: "/security";
-      fullPath: "/docs/security";
-      preLoaderRoute: typeof DocsSecurityRouteImport;
-      parentRoute: typeof DocsRoute;
-    };
-    "/docs/local-setup": {
-      id: "/docs/local-setup";
-      path: "/local-setup";
-      fullPath: "/docs/local-setup";
-      preLoaderRoute: typeof DocsLocalSetupRouteImport;
-      parentRoute: typeof DocsRoute;
-    };
-    "/docs/deployment": {
-      id: "/docs/deployment";
-      path: "/deployment";
-      fullPath: "/docs/deployment";
-      preLoaderRoute: typeof DocsDeploymentRouteImport;
-      parentRoute: typeof DocsRoute;
-    };
-    "/d/shared": {
-      id: "/d/shared";
-      path: "/shared";
-      fullPath: "/d/shared";
-      preLoaderRoute: typeof DSharedRouteImport;
-      parentRoute: typeof DRoute;
-    };
-    "/d/settings": {
-      id: "/d/settings";
-      path: "/settings";
-      fullPath: "/d/settings";
-      preLoaderRoute: typeof DSettingsRouteImport;
-      parentRoute: typeof DRoute;
-    };
-    "/d/profile": {
-      id: "/d/profile";
-      path: "/profile";
-      fullPath: "/d/profile";
-      preLoaderRoute: typeof DProfileRouteImport;
-      parentRoute: typeof DRoute;
-    };
-    "/d/dashboard": {
-      id: "/d/dashboard";
-      path: "/dashboard";
-      fullPath: "/d/dashboard";
-      preLoaderRoute: typeof DDashboardRouteImport;
-      parentRoute: typeof DRoute;
-    };
-    "/d/admin": {
-      id: "/d/admin";
-      path: "/admin";
-      fullPath: "/d/admin";
-      preLoaderRoute: typeof DAdminRouteImport;
-      parentRoute: typeof DRoute;
-    };
-    "/d/projects/": {
-      id: "/d/projects/";
-      path: "/projects";
-      fullPath: "/d/projects";
-      preLoaderRoute: typeof DProjectsIndexRouteImport;
-      parentRoute: typeof DRoute;
-    };
-    "/d/projects/new": {
-      id: "/d/projects/new";
-      path: "/projects/new";
-      fullPath: "/d/projects/new";
-      preLoaderRoute: typeof DProjectsNewRouteImport;
-      parentRoute: typeof DRoute;
-    };
-    "/d/project/$projectId": {
-      id: "/d/project/$projectId";
-      path: "/project/$projectId";
-      fullPath: "/d/project/$projectId";
-      preLoaderRoute: typeof DProjectProjectIdRouteImport;
-      parentRoute: typeof DRoute;
-    };
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/d': {
+      id: '/d'
+      path: '/d'
+      fullPath: '/d'
+      preLoaderRoute: typeof DRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crypto-test': {
+      id: '/crypto-test'
+      path: '/crypto-test'
+      fullPath: '/crypto-test'
+      preLoaderRoute: typeof CryptoTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/': {
+      id: '/docs/'
+      path: '/'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/sitemap/xml': {
+      id: '/sitemap/xml'
+      path: '/sitemap/xml'
+      fullPath: '/sitemap/xml'
+      preLoaderRoute: typeof SitemapXmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/share/$shareId': {
+      id: '/share/$shareId'
+      path: '/share/$shareId'
+      fullPath: '/share/$shareId'
+      preLoaderRoute: typeof ShareShareIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots/txt': {
+      id: '/robots/txt'
+      path: '/robots/txt'
+      fullPath: '/robots/txt'
+      preLoaderRoute: typeof RobotsTxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/security': {
+      id: '/docs/security'
+      path: '/security'
+      fullPath: '/docs/security'
+      preLoaderRoute: typeof DocsSecurityRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/docs/local-setup': {
+      id: '/docs/local-setup'
+      path: '/local-setup'
+      fullPath: '/docs/local-setup'
+      preLoaderRoute: typeof DocsLocalSetupRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/docs/deployment': {
+      id: '/docs/deployment'
+      path: '/deployment'
+      fullPath: '/docs/deployment'
+      preLoaderRoute: typeof DocsDeploymentRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/d/shared': {
+      id: '/d/shared'
+      path: '/shared'
+      fullPath: '/d/shared'
+      preLoaderRoute: typeof DSharedRouteImport
+      parentRoute: typeof DRoute
+    }
+    '/d/settings': {
+      id: '/d/settings'
+      path: '/settings'
+      fullPath: '/d/settings'
+      preLoaderRoute: typeof DSettingsRouteImport
+      parentRoute: typeof DRoute
+    }
+    '/d/profile': {
+      id: '/d/profile'
+      path: '/profile'
+      fullPath: '/d/profile'
+      preLoaderRoute: typeof DProfileRouteImport
+      parentRoute: typeof DRoute
+    }
+    '/d/dashboard': {
+      id: '/d/dashboard'
+      path: '/dashboard'
+      fullPath: '/d/dashboard'
+      preLoaderRoute: typeof DDashboardRouteImport
+      parentRoute: typeof DRoute
+    }
+    '/d/admin': {
+      id: '/d/admin'
+      path: '/admin'
+      fullPath: '/d/admin'
+      preLoaderRoute: typeof DAdminRouteImport
+      parentRoute: typeof DRoute
+    }
+    '/d/projects/': {
+      id: '/d/projects/'
+      path: '/projects'
+      fullPath: '/d/projects'
+      preLoaderRoute: typeof DProjectsIndexRouteImport
+      parentRoute: typeof DRoute
+    }
+    '/d/projects/new': {
+      id: '/d/projects/new'
+      path: '/projects/new'
+      fullPath: '/d/projects/new'
+      preLoaderRoute: typeof DProjectsNewRouteImport
+      parentRoute: typeof DRoute
+    }
+    '/d/project/$projectId': {
+      id: '/d/project/$projectId'
+      path: '/project/$projectId'
+      fullPath: '/d/project/$projectId'
+      preLoaderRoute: typeof DProjectProjectIdRouteImport
+      parentRoute: typeof DRoute
+    }
   }
 }
 
 interface DRouteChildren {
-  DAdminRoute: typeof DAdminRoute;
-  DDashboardRoute: typeof DDashboardRoute;
-  DProfileRoute: typeof DProfileRoute;
-  DSettingsRoute: typeof DSettingsRoute;
-  DSharedRoute: typeof DSharedRoute;
-  DProjectProjectIdRoute: typeof DProjectProjectIdRoute;
-  DProjectsNewRoute: typeof DProjectsNewRoute;
-  DProjectsIndexRoute: typeof DProjectsIndexRoute;
+  DAdminRoute: typeof DAdminRoute
+  DDashboardRoute: typeof DDashboardRoute
+  DProfileRoute: typeof DProfileRoute
+  DSettingsRoute: typeof DSettingsRoute
+  DSharedRoute: typeof DSharedRoute
+  DProjectProjectIdRoute: typeof DProjectProjectIdRoute
+  DProjectsNewRoute: typeof DProjectsNewRoute
+  DProjectsIndexRoute: typeof DProjectsIndexRoute
 }
 
 const DRouteChildren: DRouteChildren = {
@@ -428,15 +421,15 @@ const DRouteChildren: DRouteChildren = {
   DProjectProjectIdRoute: DProjectProjectIdRoute,
   DProjectsNewRoute: DProjectsNewRoute,
   DProjectsIndexRoute: DProjectsIndexRoute,
-};
+}
 
-const DRouteWithChildren = DRoute._addFileChildren(DRouteChildren);
+const DRouteWithChildren = DRoute._addFileChildren(DRouteChildren)
 
 interface DocsRouteChildren {
-  DocsDeploymentRoute: typeof DocsDeploymentRoute;
-  DocsLocalSetupRoute: typeof DocsLocalSetupRoute;
-  DocsSecurityRoute: typeof DocsSecurityRoute;
-  DocsIndexRoute: typeof DocsIndexRoute;
+  DocsDeploymentRoute: typeof DocsDeploymentRoute
+  DocsLocalSetupRoute: typeof DocsLocalSetupRoute
+  DocsSecurityRoute: typeof DocsSecurityRoute
+  DocsIndexRoute: typeof DocsIndexRoute
 }
 
 const DocsRouteChildren: DocsRouteChildren = {
@@ -444,9 +437,9 @@ const DocsRouteChildren: DocsRouteChildren = {
   DocsLocalSetupRoute: DocsLocalSetupRoute,
   DocsSecurityRoute: DocsSecurityRoute,
   DocsIndexRoute: DocsIndexRoute,
-};
+}
 
-const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren);
+const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -456,23 +449,16 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsTxtRoute: RobotsTxtRoute,
   ShareShareIdRoute: ShareShareIdRoute,
   SitemapXmlRoute: SitemapXmlRoute,
-  DemoApiNamesRoute: DemoApiNamesRoute,
-  DemoStartApiRequestRoute: DemoStartApiRequestRoute,
-  DemoStartServerFuncsRoute: DemoStartServerFuncsRoute,
-  DemoStartSsrDataOnlyRoute: DemoStartSsrDataOnlyRoute,
-  DemoStartSsrFullSsrRoute: DemoStartSsrFullSsrRoute,
-  DemoStartSsrSpaModeRoute: DemoStartSsrSpaModeRoute,
-  DemoStartSsrIndexRoute: DemoStartSsrIndexRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from "./router.tsx";
-import type { createStart } from "@tanstack/react-start";
-declare module "@tanstack/react-start" {
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
   interface Register {
-    ssr: true;
-    router: Awaited<ReturnType<typeof getRouter>>;
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
   }
 }
