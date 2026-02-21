@@ -2,7 +2,7 @@ import { Outlet, createFileRoute, redirect, useLocation } from "@tanstack/react-
 import { SignedIn, SignedOut, UserButton, useClerk } from "@clerk/tanstack-react-start";
 import { useQuery } from "convex/react";
 import { BookOpen, LogOut, ShieldAlert } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -36,6 +36,22 @@ export const Route = createFileRoute("/d")({
     />
   ),
 });
+
+function SignedOutRedirect() {
+  useEffect(() => {
+    window.location.href = "/";
+  }, []);
+
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="text-center space-y-4">
+        <h1 className="text-2xl font-bold">Authentication Required</h1>
+        <p className="text-muted-foreground">Redirecting to home...</p>
+        <Button onClick={() => (window.location.href = "/")}>Go back to Home</Button>
+      </div>
+    </div>
+  );
+}
 
 function DashboardLayout() {
   const user = useQuery(api.users.me);
@@ -137,15 +153,7 @@ function DashboardLayout() {
         )}
       </SignedIn>
       <SignedOut>
-        {/* Redirecting to home or login page if signed out */}
-        {/* In TanStack Start with Clerk, we can use redirect() in beforeLoad or just show a message */}
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="text-center space-y-4">
-            <h1 className="text-2xl font-bold">Authentication Required</h1>
-            <p className="text-muted-foreground">Please sign in to access the dashboard.</p>
-            <Button onClick={() => (window.location.href = "/")}>Go back to Home</Button>
-          </div>
-        </div>
+        <SignedOutRedirect />
       </SignedOut>
     </>
   );

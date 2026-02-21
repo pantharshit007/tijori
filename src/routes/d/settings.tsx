@@ -305,6 +305,28 @@ function Settings() {
     }
   }
 
+  function isDeleteAccountNotFoundError(err: unknown): boolean {
+    if (!err || typeof err !== "object") {
+      return false;
+    }
+
+    const maybeError = err as { data?: unknown; message?: unknown };
+    const data = maybeError.data;
+
+    if (data && typeof data === "object") {
+      const code = (data as { code?: unknown }).code;
+      const type = (data as { type?: unknown }).type;
+      if (code === 404 || type === "NOT_FOUND") {
+        return true;
+      }
+    }
+
+    const message = typeof maybeError.message === "string" ? maybeError.message : "";
+    return (
+      message.includes("NOT_FOUND") || message.includes("User not found") || message.includes("404")
+    );
+  }
+
   async function handleDeleteAccount() {
     setDeleteError(null);
 
@@ -323,18 +345,28 @@ function Settings() {
     try {
       await clerkUser.delete();
       deletedInClerk = true;
-      await deleteAccount();
-      await signOut(() => {
+
+      try {
+        await deleteAccount();
+      } catch (err) {
+        if (!isDeleteAccountNotFoundError(err)) {
+          throw err;
+        }
+      }
+
+      try {
+        await signOut();
+      } finally {
         window.location.href = "/";
-      });
+      }
     } catch (err: any) {
       setDeleteError(getErrorMessage(err, "Failed to delete account"));
       if (deletedInClerk) {
         try {
-          await signOut(() => {
-            window.location.href = "/";
-          });
+          await signOut();
         } catch {
+          // Ignore sign-out errors here: Clerk user is already deleted.
+        } finally {
           window.location.href = "/";
         }
       }

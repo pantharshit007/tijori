@@ -447,6 +447,10 @@ export const deleteAccount = mutation({
       throwError("User not found", "NOT_FOUND", 404);
     }
 
+    if (user.isDeactivated) {
+      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
+    }
+
     await deleteUserData(ctx, user);
 
     return { success: true };
