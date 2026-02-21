@@ -428,7 +428,9 @@ async function deleteUserData(ctx: GenericMutationCtx<DataModel>, user: Doc<"use
 
 /**
  * Delete the current user's account data from Convex.
- * Intended to be called before deleting the user in Clerk.
+ * Called after the Clerk user is deleted; the webhook may also trigger
+ * deleteAccountByTokenIdentifier, so this call may race and find the
+ * user already removed.
  */
 export const deleteAccount = mutation({
   args: {},

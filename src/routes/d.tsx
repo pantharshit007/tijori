@@ -1,8 +1,8 @@
 import { Outlet, createFileRoute, redirect, useLocation } from "@tanstack/react-router";
-import { SignedIn, SignedOut, UserButton, useClerk } from "@clerk/tanstack-react-start";
+import { SignedIn, UserButton, useClerk } from "@clerk/tanstack-react-start";
 import { useQuery } from "convex/react";
 import { BookOpen, LogOut, ShieldAlert } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "../../convex/_generated/api";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -17,7 +17,7 @@ import { keyStore } from "@/lib/key-store";
 
 export const Route = createFileRoute("/d")({
   beforeLoad: ({ context, location }: { context: any; location: any }) => {
-    if (context.auth?.userId === null) {
+    if (!context.auth?.userId) {
       throw redirect({
         to: "/",
         search: {
@@ -37,22 +37,6 @@ export const Route = createFileRoute("/d")({
   ),
 });
 
-function SignedOutRedirect() {
-  useEffect(() => {
-    window.location.href = "/";
-  }, []);
-
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-center space-y-4">
-        <h1 className="text-2xl font-bold">Authentication Required</h1>
-        <p className="text-muted-foreground">Redirecting to home...</p>
-        <Button onClick={() => (window.location.href = "/")}>Go back to Home</Button>
-      </div>
-    </div>
-  );
-}
-
 function DashboardLayout() {
   const user = useQuery(api.users.me);
   const { signOut } = useClerk();
@@ -63,98 +47,93 @@ function DashboardLayout() {
     location.pathname === "/d/dashboard" || location.pathname.startsWith("/d/project/");
 
   return (
-    <>
-      <SignedIn>
-        {user === undefined ? (
-          <div className="flex min-h-screen items-center justify-center">
-            <div className="animate-pulse flex flex-col items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-muted" />
-              <div className="h-4 w-32 bg-muted rounded" />
-            </div>
+    <SignedIn>
+      {user === undefined ? (
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="animate-pulse flex flex-col items-center gap-4">
+            <div className="h-12 w-12 rounded-full bg-muted" />
+            <div className="h-4 w-32 bg-muted rounded" />
           </div>
-        ) : user?.isDeactivated ? (
-          <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 text-center">
-            <div className="max-w-md space-y-6">
-              <div className="flex justify-center">
-                <div className="rounded-full bg-destructive/10 p-6">
-                  <ShieldAlert className="h-16 w-16 text-destructive" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tighter">Account Deactivated</h1>
-                <p className="text-muted-foreground">
-                  Your access to Tijori has been suspended by a platform administrator. If you
-                  believe this is a mistake, please contact your organization's admin or our support
-                  team.
-                </p>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Button
-                  variant="outline"
-                  className="w-full gap-2"
-                  onClick={() =>
-                    signOut(() => {
-                      keyStore.clear();
-                      window.location.href = "/";
-                    })
-                  }
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sign Out
-                </Button>
-                <Button
-                  variant="link"
-                  className="w-full text-muted-foreground"
-                  onClick={() => (window.location.href = "/")}
-                >
-                  Return to Landing Page
-                </Button>
+        </div>
+      ) : user?.isDeactivated ? (
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 text-center">
+          <div className="max-w-md space-y-6">
+            <div className="flex justify-center">
+              <div className="rounded-full bg-destructive/10 p-6">
+                <ShieldAlert className="h-16 w-16 text-destructive" />
               </div>
             </div>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold tracking-tighter">Account Deactivated</h1>
+              <p className="text-muted-foreground">
+                Your access to Tijori has been suspended by a platform administrator. If you
+                believe this is a mistake, please contact your organization's admin or our support
+                team.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() =>
+                  signOut(() => {
+                    keyStore.clear();
+                    window.location.href = "/";
+                  })
+                }
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </Button>
+              <Button
+                variant="link"
+                className="w-full text-muted-foreground"
+                onClick={() => (window.location.href = "/")}
+              >
+                Return to Landing Page
+              </Button>
+            </div>
           </div>
-        ) : (
-          <AuthenticatedLayout>
-            <SidebarProvider>
-              <AppSidebar />
-              <SidebarInset>
-                <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
-                  <SidebarTrigger className="-ml-1" />
-                  <Separator orientation="vertical" className="mr-2 h-4" />
-                  <div className="flex-1" />
-                  {showTutorialButton && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-2"
-                      data-tutorial-id="tutorial-restart"
-                      title="Restart tutorial"
-                      onClick={() => setTutorialRestartSignal((value) => value + 1)}
-                    >
-                      <BookOpen className="h-4 w-4" />
-                      Tutorial
-                    </Button>
-                  )}
-                  <UserButton
-                    appearance={{
-                      elements: {
-                        avatarBox: "h-8 w-8",
-                      },
-                    }}
-                  />
-                </header>
-                <main className="flex flex-1 flex-col p-4">
-                  <PlanEnforcementBanner />
-                  <Outlet />
-                </main>
-              </SidebarInset>
-              <OnboardingTutorial enabled={Boolean(user)} restartSignal={tutorialRestartSignal} />
-            </SidebarProvider>
-          </AuthenticatedLayout>
-        )}
-      </SignedIn>
-      <SignedOut>
-        <SignedOutRedirect />
-      </SignedOut>
-    </>
+        </div>
+      ) : (
+        <AuthenticatedLayout>
+          <SidebarProvider>
+            <AppSidebar />
+            <SidebarInset>
+              <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+                <SidebarTrigger className="-ml-1" />
+                <Separator orientation="vertical" className="mr-2 h-4" />
+                <div className="flex-1" />
+                {showTutorialButton && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2"
+                    data-tutorial-id="tutorial-restart"
+                    title="Restart tutorial"
+                    onClick={() => setTutorialRestartSignal((value) => value + 1)}
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    Tutorial
+                  </Button>
+                )}
+                <UserButton
+                  appearance={{
+                    elements: {
+                      avatarBox: "h-8 w-8",
+                    },
+                  }}
+                />
+              </header>
+              <main className="flex flex-1 flex-col p-4">
+                <PlanEnforcementBanner />
+                <Outlet />
+              </main>
+            </SidebarInset>
+            <OnboardingTutorial enabled={Boolean(user)} restartSignal={tutorialRestartSignal} />
+          </SidebarProvider>
+        </AuthenticatedLayout>
+      )}
+    </SignedIn>
   );
 }
