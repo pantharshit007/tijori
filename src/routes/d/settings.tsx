@@ -319,14 +319,25 @@ function Settings() {
     }
 
     setIsDeleting(true);
+    let deletedInClerk = false;
     try {
-      await deleteAccount();
       await clerkUser.delete();
+      deletedInClerk = true;
+      await deleteAccount();
       await signOut(() => {
         window.location.href = "/";
       });
     } catch (err: any) {
       setDeleteError(getErrorMessage(err, "Failed to delete account"));
+      if (deletedInClerk) {
+        try {
+          await signOut(() => {
+            window.location.href = "/";
+          });
+        } catch {
+          window.location.href = "/";
+        }
+      }
     } finally {
       setIsDeleting(false);
     }

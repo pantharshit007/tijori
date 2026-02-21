@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useUser } from "@clerk/tanstack-react-start";
 import { Calendar, Mail, Shield, User } from "lucide-react";
 import { useQuery } from "convex/react";
-import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
 import { TIER_LIMITS } from "@/lib/role-limits";
 import {
@@ -18,8 +17,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatDateTime } from "@/lib/time";
-import { Button } from "@/components/ui/button";
-import { toastStyle } from "@/utilities/toast-style";
 
 export const Route = createFileRoute("/d/profile")({
   component: ProfilePage,

@@ -3,8 +3,9 @@ import { MAX_LENGTHS } from "../src/lib/constants";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { TIER_LIMITS } from "./lib/roleLimits";
 import { throwError, validateLength } from "./lib/errors";
+import type { GenericMutationCtx } from "convex/server";
 import type { Tier } from "./lib/roleLimits";
-import type { Doc } from "./_generated/dataModel";
+import type { DataModel, Doc } from "./_generated/dataModel";
 
 /**
  * Sync or create a user profile from Clerk.
@@ -340,18 +341,18 @@ export const checkAndClearExceedsPlanLimits = mutation({
   },
 });
 
-async function deleteUserData(ctx: any, user: Doc<"users">) {
+async function deleteUserData(ctx: GenericMutationCtx<DataModel>, user: Doc<"users">) {
   const ownedProjects = await ctx.db
     .query("projects")
-    .withIndex("by_ownerId", (q: any) => q.eq("ownerId", user._id))
+    .withIndex("by_ownerId", (q) => q.eq("ownerId", user._id))
     .collect();
 
-  const ownedProjectIds = new Set(ownedProjects.map((project: any) => project._id));
+  const ownedProjectIds = new Set(ownedProjects.map((project) => project._id));
 
   // Remove membership in projects the user does not own
   const memberships = await ctx.db
     .query("projectMembers")
-    .withIndex("by_userId", (q: any) => q.eq("userId", user._id))
+    .withIndex("by_userId", (q) => q.eq("userId", user._id))
     .collect();
 
   for (const membership of memberships) {
@@ -363,7 +364,7 @@ async function deleteUserData(ctx: any, user: Doc<"users">) {
   // Remove shared secrets created by the user in projects they do not own
   const sharedByUser = await ctx.db
     .query("sharedSecrets")
-    .withIndex("by_createdBy", (q: any) => q.eq("createdBy", user._id))
+    .withIndex("by_createdBy", (q) => q.eq("createdBy", user._id))
     .collect();
 
   for (const shared of sharedByUser) {
@@ -376,13 +377,13 @@ async function deleteUserData(ctx: any, user: Doc<"users">) {
   for (const project of ownedProjects) {
     const environments = await ctx.db
       .query("environments")
-      .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
+      .withIndex("by_projectId", (q) => q.eq("projectId", project._id))
       .collect();
 
     for (const environment of environments) {
       const variables = await ctx.db
         .query("variables")
-        .withIndex("by_environmentId", (q: any) => q.eq("environmentId", environment._id))
+        .withIndex("by_environmentId", (q) => q.eq("environmentId", environment._id))
         .collect();
 
       for (const variable of variables) {
@@ -394,7 +395,7 @@ async function deleteUserData(ctx: any, user: Doc<"users">) {
 
     const projectShares = await ctx.db
       .query("sharedSecrets")
-      .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
+      .withIndex("by_projectId", (q) => q.eq("projectId", project._id))
       .collect();
 
     for (const share of projectShares) {
@@ -403,7 +404,7 @@ async function deleteUserData(ctx: any, user: Doc<"users">) {
 
     const quotas = await ctx.db
       .query("quotas")
-      .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
+      .withIndex("by_projectId", (q) => q.eq("projectId", project._id))
       .collect();
 
     for (const quota of quotas) {
@@ -412,7 +413,7 @@ async function deleteUserData(ctx: any, user: Doc<"users">) {
 
     const projectMembers = await ctx.db
       .query("projectMembers")
-      .withIndex("by_projectId", (q: any) => q.eq("projectId", project._id))
+      .withIndex("by_projectId", (q) => q.eq("projectId", project._id))
       .collect();
 
     for (const member of projectMembers) {

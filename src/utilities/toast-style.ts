@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { ExternalToast } from "sonner";
 
 type ToastStyleOptions = Pick<ExternalToast, "style" | "classNames" | "duration">;
@@ -12,7 +13,7 @@ const baseClassNames: NonNullable<ToastStyleOptions["classNames"]> = {
     "bg-transparent border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors",
 };
 
-const baseStyle: React.CSSProperties = {
+const baseStyle: CSSProperties = {
   background: "var(--card)",
   color: "var(--card-foreground)",
   border: "1px solid var(--border)",
