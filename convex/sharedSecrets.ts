@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { MAX_LENGTHS, SHARE_MAX_VIEWS_LIMIT } from "../src/lib/constants";
 import { mutation, query } from "./_generated/server";
+import { isUserBlocked } from "./lib/accountStatus";
 import { checkAndClearPlanEnforcementFlag, getProjectOwnerLimits } from "./lib/roleLimits";
 import { throwError, validateLength } from "./lib/errors";
 import type { QueryCtx } from "./_generated/server";
@@ -61,7 +62,7 @@ export const create = mutation({
       throwError("User not found", "NOT_FOUND", 404);
     }
 
-    if (user.isDeactivated) {
+    if (isUserBlocked(user)) {
       throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
@@ -187,7 +188,7 @@ async function checkSecretManagementAccess(ctx: QueryCtx, secretId: Id<"sharedSe
     .unique();
 
   if (!user) throwError("User not found", "NOT_FOUND", 404);
-  if (user.isDeactivated) {
+  if (isUserBlocked(user)) {
     throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
   }
 
@@ -337,7 +338,7 @@ export const listByUser = query({
       return [];
     }
 
-    if (user.isDeactivated) {
+    if (isUserBlocked(user)) {
       throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
@@ -452,7 +453,7 @@ export const listByProject = query({
       return [];
     }
 
-    if (user.isDeactivated) {
+    if (isUserBlocked(user)) {
       throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
@@ -690,7 +691,7 @@ export const paginatedListByUser = query({
       .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
 
-    if (!user || user.isDeactivated) {
+    if (!user || isUserBlocked(user)) {
       return { page: [], isDone: true, continueCursor: "" };
     }
 

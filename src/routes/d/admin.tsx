@@ -61,6 +61,17 @@ function AdminDashboard() {
   const updateUserRole = useMutation(api.admin.updateUserRole);
   const toggleUserStatus = useMutation(api.admin.toggleUserStatus);
 
+  function isUserDeactivated(user: { accountStatus?: string; isDeactivated?: boolean }) {
+    return (
+      user.accountStatus === "DEACTIVATED" ||
+      (Boolean(user.isDeactivated) && user.accountStatus !== "DELETION_QUEUED")
+    );
+  }
+
+  function isDeletionQueued(user: { accountStatus?: string }) {
+    return user.accountStatus === "DELETION_QUEUED";
+  }
+
   const handleNextPage = () => {
     if (usersPaginated?.continueCursor) {
       setHistory([...history, cursor]);
@@ -304,9 +315,14 @@ function AdminDashboard() {
                           No Vault
                         </Badge>
                       )}
-                      {user.isDeactivated && (
+                      {isUserDeactivated(user) && (
                         <Badge variant="destructive" className="gap-1">
                           Deactivated
+                        </Badge>
+                      )}
+                      {isDeletionQueued(user) && (
+                        <Badge variant="secondary" className="gap-1">
+                          Deletion Queued
                         </Badge>
                       )}
                     </div>
@@ -335,10 +351,15 @@ function AdminDashboard() {
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          className={user.isDeactivated ? "text-green-600" : "text-destructive"}
-                          onSelect={() => handleToggleStatus(user._id, !user.isDeactivated)}
+                          disabled={isDeletionQueued(user)}
+                          className={isUserDeactivated(user) ? "text-green-600" : "text-destructive"}
+                          onSelect={() => handleToggleStatus(user._id, !isUserDeactivated(user))}
                         >
-                          {user.isDeactivated ? "Reactivate User" : "Deactivate User"}
+                          {isDeletionQueued(user)
+                            ? "Deletion in Progress"
+                            : isUserDeactivated(user)
+                              ? "Reactivate User"
+                              : "Deactivate User"}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

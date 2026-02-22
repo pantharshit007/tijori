@@ -2,8 +2,13 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { TIER_LIMITS } from "./lib/roleLimits";
+import { isUserBlocked } from "./lib/accountStatus";
 import { throwError } from "./lib/errors";
 import type { QueryCtx } from "./_generated/server";
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
 
 /**
  * Helper to verify that the current user is a super_admin.
@@ -23,7 +28,7 @@ async function checkSuperAdmin(ctx: QueryCtx) {
     });
   }
 
-  if (user.isDeactivated) {
+  if (isUserBlocked(user)) {
     throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
   }
 
@@ -261,6 +266,10 @@ export const toggleUserStatus = mutation({
       );
     }
 
-    await ctx.db.patch(args.userId, { isDeactivated: args.isDeactivated });
+    await ctx.db.patch(args.userId, {
+      isDeactivated: args.isDeactivated || undefined,
+      accountStatus: args.isDeactivated ? "DEACTIVATED" : "ACTIVE",
+      emailLookupKey: normalizeEmail(targetUser.email),
+    });
   },
 });

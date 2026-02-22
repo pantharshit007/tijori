@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { MAX_LENGTHS } from "../src/lib/constants";
 import { mutation, query } from "./_generated/server";
+import { isUserBlocked } from "./lib/accountStatus";
 import { getProjectOwnerLimits } from "./lib/roleLimits";
 import { throwError, validateLength } from "./lib/errors";
 import type { QueryCtx } from "./_generated/server";
@@ -19,7 +20,7 @@ async function checkEnvironmentAccess(ctx: QueryCtx, environmentId: Id<"environm
     .unique();
 
   if (!user) throwError("User not found", "NOT_FOUND", 404);
-  if (user.isDeactivated) {
+  if (isUserBlocked(user)) {
     throwError("User account is deactivated", "USER_DEACTIVATED", 403, {
       user_id: user._id,
       environment_id: environmentId,

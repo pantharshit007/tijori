@@ -518,6 +518,46 @@ if (!membership || membership.role === "member") {
 }
 ```
 
+---
+
+## 2026-02-22 - Account Status + Deferred Deletion Queue
+
+### Account State Model Is Clearer Than Boolean Flags
+
+Using a dedicated account state is more robust than relying on a single boolean:
+
+- `ACTIVE`
+- `DEACTIVATED`
+- `DELETION_QUEUED`
+
+We still keep `isDeactivated` for backward compatibility, but runtime checks should prefer state-driven logic. A shared helper (`convex/lib/accountStatus.ts`) avoids drift across modules.
+
+### Email Reuse Policy Needs a Separate Lookup Key
+
+To support "deleted users can re-register with the same email" while still blocking deactivated users:
+
+- Add `users.emailLookupKey` + `by_emailLookupKey` index.
+- Keep deactivated users with `emailLookupKey = normalizedEmail` (blocks reuse).
+- On deletion request, set `emailLookupKey = deleted:<userId>` (frees original email immediately).
+
+This avoids conflating admin deactivation with account deletion semantics.
+
+### Deferred Deletion Should Use Jobs + Bounded Sweeps
+
+Deep nested deletes in one mutation are risky for Convex limits. A safer pattern:
+
+1. Mark user `DELETION_QUEUED`.
+2. Insert/update a `deletionJobs` row.
+3. Process in bounded sweeps (`take(...)` batches + reschedule).
+4. Use cron as a backstop to pick queued/in-progress jobs.
+
+For low-volume deployments, biweekly cron is acceptable; immediate scheduling can still be used for faster cleanup.
+
+### Convex Module Path Constraint
+
+Convex module path components cannot contain hyphens in importable module segments.  
+`convex/lib/account-status.ts` caused deploy push errors; rename to `convex/lib/accountStatus.ts`.
+
 **Both layers are required**: UI restrictions improve UX, backend restrictions prevent bypass.
 
 ### Master Key Binding and Passcode Recovery

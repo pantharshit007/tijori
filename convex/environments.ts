@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { FALLBACK_USER_DATA, MAX_LENGTHS } from "../src/lib/constants";
 import { mutation, query } from "./_generated/server";
+import { isUserBlocked } from "./lib/accountStatus";
 import { checkAndClearPlanEnforcementFlag, getProjectOwnerLimits } from "./lib/roleLimits";
 import { throwError, validateLength } from "./lib/errors";
 import type { QueryCtx } from "./_generated/server";
@@ -19,7 +20,7 @@ async function checkProjectAccess(ctx: QueryCtx, projectId: Id<"projects">) {
     .unique();
 
   if (!user) throwError("User not found", "NOT_FOUND", 404);
-  if (user.isDeactivated) {
+  if (isUserBlocked(user)) {
     throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
   }
 
