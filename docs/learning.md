@@ -954,3 +954,12 @@ Server-side verification update:
 
 - Project passcodes are now verified on the backend and passcode hashes are no longer sent to clients.
 - The server still never receives decrypted secret values; only passcodes for verification.
+
+## 2026-02-22 - Shared Link Safety During Deferred Deletion
+
+When account cleanup moved to queued/deferred deletion, shared links could remain technically valid until
+the cleanup worker removed `sharedSecrets`. To avoid that gap, public shared-link reads now also check
+the creator account status and treat the link as disabled when the creator is blocked (`DEACTIVATED` or
+`DELETION_QUEUED`) or missing.
+
+This gives immediate access revocation without forcing heavy synchronous deletes inside account deletion.

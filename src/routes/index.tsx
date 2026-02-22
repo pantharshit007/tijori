@@ -88,12 +88,20 @@ function LandingPage() {
               <span className="sr-only">Toggle Dark Mode</span>
             </Button>
             <SignedOut>
-              <SignInButton mode="modal">
+              <SignInButton
+                mode="modal"
+                forceRedirectUrl="/d/dashboard"
+                fallbackRedirectUrl="/d/dashboard"
+              >
                 <Button variant="ghost" className="hidden sm:inline-flex" title="Sign in">
                   Sign In
                 </Button>
               </SignInButton>
-              <SignInButton mode="modal">
+              <SignInButton
+                mode="modal"
+                forceRedirectUrl="/d/dashboard"
+                fallbackRedirectUrl="/d/dashboard"
+              >
                 <Button className="shadow-lg shadow-primary/20" title="Get started">
                   Get Started
                 </Button>
@@ -135,7 +143,11 @@ function LandingPage() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
               <SignedOut>
-                <SignInButton mode="modal">
+                <SignInButton
+                  mode="modal"
+                  forceRedirectUrl="/d/dashboard"
+                  fallbackRedirectUrl="/d/dashboard"
+                >
                   <Button
                     size="lg"
                     className="h-12 px-8 text-md font-semibold gap-2 shadow-xl shadow-primary/20"
@@ -331,7 +343,11 @@ function LandingPage() {
             </p>
             <div className="flex justify-center gap-4">
               <SignedOut>
-                <SignInButton mode="modal">
+                <SignInButton
+                  mode="modal"
+                  forceRedirectUrl="/d/dashboard"
+                  fallbackRedirectUrl="/d/dashboard"
+                >
                   <Button
                     size="lg"
                     variant="secondary"

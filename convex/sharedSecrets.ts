@@ -242,6 +242,11 @@ export const get = query({
       return null;
     }
 
+    const creator = await ctx.db.get(sharedSecret.createdBy);
+    if (!creator || isUserBlocked(creator)) {
+      return { disabled: true };
+    }
+
     // Check if disabled
     if (sharedSecret.isDisabled) {
       return { disabled: true };
@@ -283,6 +288,11 @@ export const accessSecret = mutation({
 
     if (!sharedSecret) {
       throwError("Shared secret not found", "NOT_FOUND", 404);
+    }
+
+    const creator = await ctx.db.get(sharedSecret.createdBy);
+    if (!creator || isUserBlocked(creator)) {
+      return { disabled: true };
     }
 
     if (sharedSecret.isDisabled) {
