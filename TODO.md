@@ -28,6 +28,7 @@
 - [x] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
 - [x] add in account deletion option, also need to think of how to handle the case when user deletes their account from clerk, panel.
 - [ ] add rate-limiting for `verifyPasscode`: track failed attempts per user+project, lockout for 15 minutes after 5 failures, apply exponential backoff, and reset on success.
-- [ ] break up the @setting.tsx file since its quite large now.
+- [ ] break up the `@setting.tsx` file since its quite large now.
+- [ ] we can add option for -> invite user to project, which once they accepts, they can access the project, this setting can also be paused by the user if he wants to directly access the project, without the need to invite
 
 ---

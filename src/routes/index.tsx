@@ -150,7 +150,7 @@ function LandingPage() {
                 >
                   <Button
                     size="lg"
-                    className="h-12 px-8 text-md font-semibold gap-2 shadow-xl shadow-primary/20"
+                    className="h-12 px-8 text-md font-semibold gap-2 shadow-xl shadow-primary/20 cursor-pointer"
                     title="Get started free"
                   >
                     Get Started Free

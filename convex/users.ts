@@ -50,7 +50,13 @@ export const store = mutation({
     if (user !== null) {
       // If we've seen this user before but their name or picture has changed, update them.
       const inferredStatus =
-        user.accountStatus ?? (user.isDeactivated ? ACCOUNT_STATUS.DEACTIVATED : ACCOUNT_STATUS.ACTIVE);
+        user.accountStatus ??
+        (user.isDeactivated ? ACCOUNT_STATUS.DEACTIVATED : ACCOUNT_STATUS.ACTIVE);
+
+      if (isUserBlocked(user)) {
+        throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
+      }
+
       const needsMetadataPatch =
         user.emailLookupKey !== normalizedEmail || user.accountStatus !== inferredStatus;
 
@@ -69,9 +75,6 @@ export const store = mutation({
           image: args.image,
         });
       }
-      if (isUserBlocked(user)) {
-        throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
-      }
       return user._id;
     }
 
@@ -81,7 +84,10 @@ export const store = mutation({
       .unique();
     const legacyExistingByEmail = existingByEmail
       ? null
-      : await ctx.db.query("users").withIndex("by_email", (q) => q.eq("email", normalizedEmail)).unique();
+      : await ctx.db
+          .query("users")
+          .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+          .unique();
     const existingUserWithEmail = existingByEmail ?? legacyExistingByEmail;
 
     if (existingUserWithEmail) {
@@ -93,7 +99,9 @@ export const store = mutation({
           user_id: existingUserWithEmail._id,
         });
       }
-      throwError("Email is already in use", "CONFLICT", 409, { user_id: existingUserWithEmail._id });
+      throwError("Email is already in use", "CONFLICT", 409, {
+        user_id: existingUserWithEmail._id,
+      });
     }
 
     // If it's a new identity, create a new User with default 'user' role.
@@ -388,6 +396,7 @@ const USER_DELETE_BATCH_SIZE = 25;
 const USER_DELETE_PROJECT_BATCH_SIZE = 5;
 const USER_DELETE_MAX_DELETES_PER_RUN = 120;
 const USER_DELETE_JOBS_PER_CRON_RUN = 20;
+const MAX_DELETION_ATTEMPTS = 10;
 
 async function deleteUserData(ctx: GenericMutationCtx<DataModel>, user: Doc<"users">) {
   const now = Date.now();
@@ -443,6 +452,16 @@ export const processUserDeletionSweep = internalMutation({
       return { done: true, reason: "job_missing" };
     }
 
+    // Fail the job permanently if it has exceeded the max attempts.
+    if (job.attempts >= MAX_DELETION_ATTEMPTS) {
+      await ctx.db.patch(job._id, {
+        status: "failed",
+        lastError: `Exceeded max attempts (${MAX_DELETION_ATTEMPTS})`,
+        updatedAt: Date.now(),
+      });
+      return { done: false, reason: "max_attempts_exceeded" };
+    }
+
     const user = await ctx.db.get(job.userId);
     if (!user) {
       await ctx.db.patch(job._id, {
@@ -461,10 +480,31 @@ export const processUserDeletionSweep = internalMutation({
 
     let deletedCount = 0;
 
+    // Collect owned project IDs so we can distinguish non-owned projects below.
+    const ownedProjectIds = new Set(
+      (
+        await ctx.db
+          .query("projects")
+          .withIndex("by_ownerId", (q) => q.eq("ownerId", user._id))
+          .collect()
+      ).map((p) => p._id)
+    );
+
+    // Track non-owned projectIds whose quotas need decrementing.
+    const affectedMemberProjects = new Set<Id<"projects">>();
+    const affectedSharedSecretProjects = new Set<Id<"projects">>();
+
     const membershipBatch = await ctx.db
       .query("projectMembers")
       .withIndex("by_userId", (q) => q.eq("userId", user._id))
       .take(USER_DELETE_BATCH_SIZE);
+
+    for (const membership of membershipBatch) {
+      if (!ownedProjectIds.has(membership.projectId)) {
+        affectedMemberProjects.add(membership.projectId);
+      }
+    }
+
     await deleteDocsById(
       ctx,
       membershipBatch.map((membership) => membership._id)
@@ -476,11 +516,42 @@ export const processUserDeletionSweep = internalMutation({
         .query("sharedSecrets")
         .withIndex("by_createdBy", (q) => q.eq("createdBy", user._id))
         .take(Math.min(USER_DELETE_BATCH_SIZE, USER_DELETE_MAX_DELETES_PER_RUN - deletedCount));
+
+      for (const shared of sharedByUserBatch) {
+        if (!ownedProjectIds.has(shared.projectId)) {
+          affectedSharedSecretProjects.add(shared.projectId);
+        }
+      }
+
       await deleteDocsById(
         ctx,
         sharedByUserBatch.map((shared) => shared._id)
       );
       deletedCount += sharedByUserBatch.length;
+    }
+
+    // Decrement quotas for non-owned projects whose members/sharedSecrets were removed.
+    for (const projectId of affectedMemberProjects) {
+      const quota = await ctx.db
+        .query("quotas")
+        .withIndex("by_project_resource", (q) =>
+          q.eq("projectId", projectId).eq("resourceType", "members")
+        )
+        .unique();
+      if (quota && quota.used > 0) {
+        await ctx.db.patch(quota._id, { used: quota.used - 1 });
+      }
+    }
+    for (const projectId of affectedSharedSecretProjects) {
+      const quota = await ctx.db
+        .query("quotas")
+        .withIndex("by_project_resource", (q) =>
+          q.eq("projectId", projectId).eq("resourceType", "sharedSecrets")
+        )
+        .unique();
+      if (quota && quota.used > 0) {
+        await ctx.db.patch(quota._id, { used: quota.used - 1 });
+      }
     }
 
     const ownedProjects =

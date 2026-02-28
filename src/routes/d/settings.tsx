@@ -711,11 +711,7 @@ function Settings() {
                   onChange={(event) => setDeleteConfirmText(event.target.value)}
                   disabled={isDeleting}
                 />
-                {deleteError && (
-                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                    {deleteError}
-                  </div>
-                )}
+                {renderDeleteErrorMessage(deleteError)}
               </div>
               <DialogFooter>
                 <Button
@@ -740,6 +736,22 @@ function Settings() {
           </Dialog>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function renderDeleteErrorMessage(deleteError: string | null) {
+  if (!deleteError) return null;
+  if (deleteError === "You need to provide additional verification to perform this operation") {
+    return (
+      <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+        Please <b>re-login</b> to continue.
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+      {deleteError}
     </div>
   );
 }

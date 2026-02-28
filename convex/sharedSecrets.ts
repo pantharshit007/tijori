@@ -327,121 +327,6 @@ export const accessSecret = mutation({
 });
 
 /**
- * List shared secrets visible to the current user.
- * Shows shares created by user OR from projects where user is owner.
- * For the /shared dashboard.
- */
-export const listByUser = query({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return [];
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_tokenIdentifier", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
-      .unique();
-
-    if (!user) {
-      return [];
-    }
-
-    if (isUserBlocked(user)) {
-      throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
-    }
-
-    // Get ALL memberships for the user (to check roles)
-    const allMemberships = await ctx.db
-      .query("projectMembers")
-      .filter((q) => q.eq(q.field("userId"), user._id))
-      .collect();
-
-    // Build role map and identify owner projects
-    const roleMap = new Map<string, string>();
-    const ownerProjectIds: Id<"projects">[] = [];
-    for (const m of allMemberships) {
-      roleMap.set(m.projectId, m.role);
-      if (m.role === "owner") {
-        ownerProjectIds.push(m.projectId);
-      }
-    }
-
-    // **OPTIMIZATION: Parallel queries for user secrets + all owner project secrets**
-    const [userSharedSecrets, ...ownerProjectSecrets] = await Promise.all([
-      ctx.db
-        .query("sharedSecrets")
-        .withIndex("by_createdBy", (q) => q.eq("createdBy", user._id))
-        .collect(),
-      ...ownerProjectIds.map((projectId) =>
-        ctx.db
-          .query("sharedSecrets")
-          .withIndex("by_projectId", (q) => q.eq("projectId", projectId))
-          .collect()
-      ),
-    ]);
-
-    // Deduplicate and combine
-    const userSecretIds = new Set(userSharedSecrets.map((s) => s._id));
-    const ownerSharedSecrets = ownerProjectSecrets
-      .flat()
-      .filter((secret) => !userSecretIds.has(secret._id));
-
-    const allSharedSecrets = [...userSharedSecrets, ...ownerSharedSecrets];
-
-    // **OPTIMIZATION: Parallel queries for all related data**
-    const projectIds = [...new Set(allSharedSecrets.map((s) => s.projectId))];
-    const environmentIds = [...new Set(allSharedSecrets.map((s) => s.environmentId))];
-    const creatorIds = [...new Set(allSharedSecrets.map((s) => s.createdBy))];
-
-    const [projects, environments, creators] = await Promise.all([
-      Promise.all(projectIds.map((id) => ctx.db.get(id))),
-      Promise.all(environmentIds.map((id) => ctx.db.get(id))),
-      Promise.all(creatorIds.map((id) => ctx.db.get(id))),
-    ]);
-
-    // Build lookup maps
-    const projectMap = Object.fromEntries(projects.filter(Boolean).map((p) => [p!._id, p!.name]));
-    const envMap = Object.fromEntries(environments.filter(Boolean).map((e) => [e!._id, e!.name]));
-    const creatorMap = Object.fromEntries(
-      creators.filter(Boolean).map((c) => [c!._id, { name: c!.name, image: c!.image }])
-    );
-
-    // Map to final response shape
-    return allSharedSecrets.map((s) => {
-      const userRole = roleMap.get(s.projectId) || null;
-      const isOwner = userRole === "owner";
-      const isCreator = s.createdBy === user._id;
-      const canManage = isOwner || (isCreator && (userRole === "owner" || userRole === "admin"));
-
-      return {
-        _id: s._id,
-        _creationTime: s._creationTime,
-        projectId: s.projectId,
-        projectName: projectMap[s.projectId] || "Unknown",
-        environmentName: envMap[s.environmentId] || "Unknown",
-        name: s.name,
-        encryptedPasscode: s.encryptedPasscode,
-        passcodeIv: s.passcodeIv,
-        passcodeAuthTag: s.passcodeAuthTag,
-        isIndefinite: s.isIndefinite,
-        isDisabled: s.isDisabled,
-        expiresAt: s.expiresAt,
-        views: s.views,
-        maxViews: s.maxViews,
-        isExpired: s.expiresAt ? Date.now() > s.expiresAt : false,
-        creatorName: creatorMap[s.createdBy]?.name,
-        creatorImage: creatorMap[s.createdBy]?.image,
-        isOwner,
-        isCreator,
-        canManage,
-      };
-    });
-  },
-});
-
-/**
  * List shared secrets for a project.
  */
 export const listByProject = query({
@@ -705,7 +590,6 @@ export const paginatedListByUser = query({
       return { page: [], isDone: true, continueCursor: "" };
     }
 
-    // Get ALL memberships to identify projects the user has access to
     const allMemberships = await ctx.db
       .query("projectMembers")
       .withIndex("by_userId", (q) => q.eq("userId", user._id))

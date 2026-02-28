@@ -39,7 +39,6 @@ export default defineSchema({
     authTag: v.string(),
     ownerId: v.id("users"),
     updatedAt: v.number(),
-    deleted: v.optional(v.boolean()),
   }).index("by_ownerId", ["ownerId"]),
 
   projectMembers: defineTable({
@@ -115,7 +114,12 @@ export default defineSchema({
 
   deletionJobs: defineTable({
     userId: v.id("users"),
-    status: v.union(v.literal("queued"), v.literal("in_progress"), v.literal("done"), v.literal("failed")),
+    status: v.union(
+      v.literal("queued"),
+      v.literal("in_progress"),
+      v.literal("done"),
+      v.literal("failed")
+    ),
     attempts: v.number(),
     lastError: v.optional(v.string()),
     nextRunAt: v.optional(v.number()),
