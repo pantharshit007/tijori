@@ -492,7 +492,7 @@ export const processUserDeletionSweep = internalMutation({
 
     // Track non-owned projectIds whose quotas need decrementing.
     const affectedMemberProjects = new Set<Id<"projects">>();
-    const affectedSharedSecretProjects = new Set<Id<"projects">>();
+    const affectedSecretCountByProject = new Map<Id<"projects">, number>();
 
     const membershipBatch = await ctx.db
       .query("projectMembers")
@@ -519,7 +519,10 @@ export const processUserDeletionSweep = internalMutation({
 
       for (const shared of sharedByUserBatch) {
         if (!ownedProjectIds.has(shared.projectId)) {
-          affectedSharedSecretProjects.add(shared.projectId);
+          affectedSecretCountByProject.set(
+            shared.projectId,
+            (affectedSecretCountByProject.get(shared.projectId) ?? 0) + 1
+          );
         }
       }
 
@@ -530,7 +533,7 @@ export const processUserDeletionSweep = internalMutation({
       deletedCount += sharedByUserBatch.length;
     }
 
-    // Decrement quotas for non-owned projects whose members/sharedSecrets were removed.
+    // Decrement quotas for non-owned projects.
     for (const projectId of affectedMemberProjects) {
       const quota = await ctx.db
         .query("quotas")
@@ -542,7 +545,7 @@ export const processUserDeletionSweep = internalMutation({
         await ctx.db.patch(quota._id, { used: quota.used - 1 });
       }
     }
-    for (const projectId of affectedSharedSecretProjects) {
+    for (const [projectId, count] of affectedSecretCountByProject) {
       const quota = await ctx.db
         .query("quotas")
         .withIndex("by_project_resource", (q) =>
@@ -550,7 +553,7 @@ export const processUserDeletionSweep = internalMutation({
         )
         .unique();
       if (quota && quota.used > 0) {
-        await ctx.db.patch(quota._id, { used: quota.used - 1 });
+        await ctx.db.patch(quota._id, { used: Math.max(0, quota.used - count) });
       }
     }
 
