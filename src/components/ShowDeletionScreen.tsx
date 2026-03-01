@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, LogOut, Mail, Copy, Check } from "lucide-react";
+import { Check, Clock, Copy, LogOut, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { keyStore } from "@/lib/key-store";

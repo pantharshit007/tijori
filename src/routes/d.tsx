@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { BookOpen } from "lucide-react";
 import { useState } from "react";
 import { api } from "../../convex/_generated/api";
+import type { StoreUserStatus } from "@/lib/types";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AuthenticatedLayout } from "@/components/authenticated-layout";
@@ -15,7 +16,6 @@ import { OnboardingTutorial } from "@/components/onboarding-tutorial";
 import { NotFound } from "@/components/not-found";
 import { ShowDeactivationScreen } from "@/components/ShowDeactivationScreen";
 import { ShowDeletionScreen } from "@/components/ShowDeletionScreen";
-import type { StoreUserStatus } from "@/lib/types";
 
 export const Route = createFileRoute("/d")({
   component: DashboardLayout,
