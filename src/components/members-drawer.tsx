@@ -54,6 +54,14 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
   const canManageMembers = userRole === "owner" || userRole === "admin";
   const canUpdateRoles = userRole === "owner";
 
+  function isMemberUnavailable(member: { accountStatus?: string; isDeactivated?: boolean }) {
+    return (
+      member.accountStatus === "DELETION_QUEUED" ||
+      member.accountStatus === "DEACTIVATED" ||
+      Boolean(member.isDeactivated)
+    );
+  }
+
   const filteredMembers = members?.filter((m) => {
     const query = searchQuery.toLowerCase();
     const name = m.name.toLowerCase();
@@ -185,7 +193,7 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
                         <TooltipTrigger asChild>
                           <Avatar
                             className={`h-10 w-10 ${
-                              member.isDeactivated ? "grayscale opacity-50" : ""
+                              isMemberUnavailable(member) ? "grayscale opacity-50" : ""
                             }`}
                           >
                             <AvatarImage src={member.image} alt={member.name || ""} />
@@ -196,9 +204,13 @@ export function MembersDrawer({ projectId, userRole, trigger }: MembersDrawerPro
                             </AvatarFallback>
                           </Avatar>
                         </TooltipTrigger>
-                        {member.isDeactivated && (
+                        {isMemberUnavailable(member) && (
                           <TooltipContent>
-                            <p>User is deactivated</p>
+                            <p>
+                              {member.accountStatus === "DELETION_QUEUED"
+                                ? "User deletion is queued"
+                                : "User is deactivated"}
+                            </p>
                           </TooltipContent>
                         )}
                       </Tooltip>

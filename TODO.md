@@ -3,12 +3,11 @@
   - **Reasoning**: It is a high-cost operation. Changing the passcode changes the PBKDF2 derived key, which would require re-encrypting EVERY variable in EVERY environment for that project, as well as re-encrypting all shared passcodes in the `sharedSecrets` table.
   - **Implementation Note**: If implemented, it must be performed as a client-side batch job (decrypt with old key, re-encrypt with new key) with a progress indicator and warning to the user.
 - [ ] update the enums such as "admin" and "member" to be "owner" and "member" in react files to types directly from convex.
-- [ ] remove mutation in variable.ts `const variable = await ctx.db.get(args.id);` why are we querying the whole db again, instead of that specific table?
 - [ ] Transfer ownership of project, pending.
 - [ ] add toast notifications for successful actions, ex: copy, delete, etc.
 - [x] Standardized error handling using `throwError` utility with numeric status codes and contextual server-side logging. (Implemented via `ConvexError` for frontend compatibility).
 - [ ] when the / loads, initially there is no sign in , get started and get started free button, they appear after a delay most probably network call to the clerk server, instead of waiting for the response and showing nothing add a suspense component to show get started, sign in until we get the response if we get user is logged in, we will just update the component in place else it will stay the same, just not via the suspense component.
-- [ ] update the toast ui.
+- [x] update the toast ui.
 - [x] **Plan Downgrade Enforcement**: Users who downgrade keep paid privileges — need to implement enforcement:
   - [x] **On downgrade**: Check if user's current usage exceeds the new tier's limits:
     - Compare `User.projectCount` against new tier's `maxProjects` limit, along with other limits such as environment count, members count, shared secret count, etc.
@@ -26,8 +25,10 @@
   - **TODO (Future)**: Implement cron job `enforcePlanLimits` to run daily and reconcile excess after deadline passes
 - [ ] re-check save mutation thoroughly in @convex/variable.ts, seems something is wrong there.
 - [ ] check if Bulk add dialog and Bulk edit dialog can use a common logic instead of duplicating the code.
-- [ ] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
-- [ ] add in account deletion option, also need to think of how to handle the case when user deletes their account from clerk, panel.
+- [x] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
+- [x] add in account deletion option, also need to think of how to handle the case when user deletes their account from clerk, panel.
 - [ ] add rate-limiting for `verifyPasscode`: track failed attempts per user+project, lockout for 15 minutes after 5 failures, apply exponential backoff, and reset on success.
+- [ ] break up the `@setting.tsx` file since its quite large now.
+- [ ] we can add option for -> invite user to project, which once they accepts, they can access the project, this setting can also be paused by the user if he wants to directly access the project, without the need to invite
 
 ---

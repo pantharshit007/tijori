@@ -4,7 +4,14 @@ import { Calendar, Mail, Shield, User } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { TIER_LIMITS } from "@/lib/role-limits";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -143,15 +150,18 @@ function ProfilePage() {
               </div>
             </div>
           </div>
-
-          <div className="flex items-center justify-between text-xs text-muted-foreground pt-4 border-t">
-            <div className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              Joined {user.createdAt ? formatDate(new Date(user.createdAt).getTime()) : "Unknown"}
-            </div>
-            <div>ID: {user.id}</div>
-          </div>
         </CardContent>
+        <CardFooter>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 w-full text-xs text-muted-foreground pt-4 border-t">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              <span>
+                Joined {user.createdAt ? formatDate(new Date(user.createdAt).getTime()) : "Unknown"}
+              </span>
+            </div>
+            <div className="truncate">ID: {user.id}</div>
+          </div>
+        </CardFooter>
       </Card>
     </div>
   );

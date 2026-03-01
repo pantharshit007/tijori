@@ -34,7 +34,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { decrypt, deriveKey, encrypt, generateSalt } from "@/lib/crypto";
 import { getErrorMessage } from "@/lib/errors";
-import { generateSharePasscode, getSharePasscodeError } from "@/lib/utils";
+import { cn, generateSharePasscode, getSharePasscodeError } from "@/lib/utils";
+import { toastStyle } from "@/utilities/toast-style";
 
 export interface ShareDialogProps {
   variables: Array<Variable>;
@@ -74,6 +75,7 @@ export function ShareDialog({
   const [shareName, setShareName] = useState("");
   const [sharePasscode, setSharePasscode] = useState("");
   const [passcodeError, setPasscodeError] = useState<string | null>(null);
+  const [passcodeTouched, setPasscodeTouched] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -107,6 +109,7 @@ export function ShareDialog({
 
     const passcodeValidation = getSharePasscodeError(sharePasscode);
     if (passcodeValidation) {
+      setPasscodeTouched(true);
       setPasscodeError(passcodeValidation);
       return;
     }
@@ -230,10 +233,10 @@ export function ShareDialog({
       // 10. Generate share URL
       const url = `${window.location.origin}/share/${shareId}`;
       setShareUrl(url);
-      toast.success("Share link created");
+      toast.success("Share link created", toastStyle.success);
     } catch (err: any) {
       console.error("Failed to create share:", err);
-      toast.error(getErrorMessage(err, "Failed to create share"));
+      toast.error(getErrorMessage(err, "Failed to create share"), toastStyle.error);
     } finally {
       setIsCreating(false);
     }
@@ -255,6 +258,7 @@ export function ShareDialog({
       setShareName("");
       setSharePasscode("");
       setPasscodeError(null);
+      setPasscodeTouched(false);
       setLimitViews(false);
       setOneTime(false);
       setMaxViews("");
@@ -357,6 +361,7 @@ export function ShareDialog({
                     variant="ghost"
                     onClick={() => {
                       setSharePasscode(generateSharePasscode(10, 16));
+                      setPasscodeTouched(true);
                       setPasscodeError(null);
                     }}
                     title="Generate a random passcode"
@@ -370,10 +375,26 @@ export function ShareDialog({
                   maxLength={SHARE_PASSCODE_MAX_LENGTH}
                   placeholder="Enter a strong passcode"
                   value={sharePasscode}
-                  onChange={(e) => setSharePasscode(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSharePasscode(value);
+                    if (passcodeTouched) {
+                      setPasscodeError(getSharePasscodeError(value));
+                    }
+                  }}
+                  onBlur={() => {
+                    setPasscodeTouched(true);
+                    setPasscodeError(getSharePasscodeError(sharePasscode));
+                  }}
+                  className={cn(passcodeTouched && passcodeError && "border-destructive")}
                 />
                 {passcodeError && <p className="text-xs text-destructive">{passcodeError}</p>}
-                <p className="text-xs text-muted-foreground">
+                <p
+                  className={cn(
+                    "text-xs text-muted-foreground",
+                    passcodeTouched && passcodeError && "text-destructive"
+                  )}
+                >
                   Use {SHARE_PASSCODE_MIN_LENGTH}+ letters and numbers. Recipients will need this
                   passcode to view the secrets.
                 </p>

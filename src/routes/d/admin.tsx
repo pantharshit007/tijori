@@ -6,12 +6,14 @@ import {
   Database,
   FolderKey,
   LayoutDashboard,
+  Loader2,
   MoreHorizontal,
   Plus,
   Search,
   Share2,
   ShieldAlert,
   ShieldCheck,
+  Trash2,
   Users,
 } from "lucide-react";
 import { useState } from "react";
@@ -33,6 +35,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/time";
 import { UserAvatar } from "@/components/user-avatar";
+import { toastStyle } from "@/utilities/toast-style";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,6 +62,20 @@ function AdminDashboard() {
 
   const updateUserRole = useMutation(api.admin.updateUserRole);
   const toggleUserStatus = useMutation(api.admin.toggleUserStatus);
+  const triggerDeletion = useMutation(api.admin.triggerUserDeletion);
+  const [deletionEmail, setDeletionEmail] = useState("");
+  const [isDeletionLoading, setIsDeletionLoading] = useState(false);
+
+  function isUserDeactivated(user: { accountStatus?: string; isDeactivated?: boolean }) {
+    return (
+      user.accountStatus === "DEACTIVATED" ||
+      (Boolean(user.isDeactivated) && user.accountStatus !== "DELETION_QUEUED")
+    );
+  }
+
+  function isDeletionQueued(user: { accountStatus?: string }) {
+    return user.accountStatus === "DELETION_QUEUED";
+  }
 
   const handleNextPage = () => {
     if (usersPaginated?.continueCursor) {
@@ -78,18 +95,36 @@ function AdminDashboard() {
       await updateUserRole({ userId, tier });
       setCursor(null);
       setHistory([]);
-      toast.success(`User tier updated to ${tier}`);
+      toast.success(`User tier updated to ${tier}`, toastStyle.success);
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Failed to update tier"));
+      toast.error(getErrorMessage(err, "Failed to update tier"), toastStyle.error);
     }
   };
 
   const handleToggleStatus = async (userId: any, isDeactivated: boolean) => {
     try {
       await toggleUserStatus({ userId, isDeactivated });
-      toast.success(`User ${isDeactivated ? "deactivated" : "reactivated"}`);
+      toast.success(`User ${isDeactivated ? "deactivated" : "reactivated"}`, toastStyle.success);
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Failed to toggle status"));
+      toast.error(getErrorMessage(err, "Failed to toggle status"), toastStyle.error);
+    }
+  };
+
+  const handleTriggerDeletion = async (email?: string) => {
+    const targetEmail = email || deletionEmail.trim();
+    if (!targetEmail) {
+      toast.error("Please enter an email address", toastStyle.error);
+      return;
+    }
+    setIsDeletionLoading(true);
+    try {
+      await triggerDeletion({ email: targetEmail });
+      toast.success(`Deletion sweep triggered for ${targetEmail}`, toastStyle.success);
+      setDeletionEmail("");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to trigger deletion"), toastStyle.error);
+    } finally {
+      setIsDeletionLoading(false);
     }
   };
 
@@ -303,9 +338,14 @@ function AdminDashboard() {
                           No Vault
                         </Badge>
                       )}
-                      {user.isDeactivated && (
+                      {isUserDeactivated(user) && (
                         <Badge variant="destructive" className="gap-1">
                           Deactivated
+                        </Badge>
+                      )}
+                      {isDeletionQueued(user) && (
+                        <Badge variant="secondary" className="gap-1">
+                          Deletion Queued
                         </Badge>
                       )}
                     </div>
@@ -334,11 +374,28 @@ function AdminDashboard() {
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          className={user.isDeactivated ? "text-green-600" : "text-destructive"}
-                          onSelect={() => handleToggleStatus(user._id, !user.isDeactivated)}
+                          disabled={isDeletionQueued(user)}
+                          className={isUserDeactivated(user) ? "text-green-600" : "text-destructive"}
+                          onSelect={() => handleToggleStatus(user._id, !isUserDeactivated(user))}
                         >
-                          {user.isDeactivated ? "Reactivate User" : "Deactivate User"}
+                          {isDeletionQueued(user)
+                            ? "Deletion in Progress"
+                            : isUserDeactivated(user)
+                              ? "Reactivate User"
+                              : "Deactivate User"}
                         </DropdownMenuItem>
+                        {isDeletionQueued(user) && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-amber-600 gap-2"
+                              onSelect={() => handleTriggerDeletion(user.email)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Expedite Deletion
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -366,6 +423,47 @@ function AdminDashboard() {
             >
               Next
               <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      {/* Trigger Deletion Sweep */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trash2 className="h-5 w-5" />
+            Trigger Deletion Sweep
+          </CardTitle>
+          <CardDescription>
+            Manually trigger or re-trigger a user data deletion sweep by email.
+            This resets a failed or stalled job and runs it immediately.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <Input
+              type="email"
+              placeholder="user@example.com"
+              value={deletionEmail}
+              onChange={(e) => setDeletionEmail(e.target.value)}
+              className="max-w-sm"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleTriggerDeletion();
+              }}
+            />
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-2"
+              disabled={isDeletionLoading || !deletionEmail.trim()}
+              onClick={() => handleTriggerDeletion()}
+            >
+              {isDeletionLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Trigger Sweep
             </Button>
           </div>
         </CardContent>

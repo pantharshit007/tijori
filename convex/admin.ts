@@ -1,9 +1,15 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { TIER_LIMITS } from "./lib/roleLimits";
+import { isUserBlocked } from "./lib/accountStatus";
 import { throwError } from "./lib/errors";
 import type { QueryCtx } from "./_generated/server";
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
 
 /**
  * Helper to verify that the current user is a super_admin.
@@ -23,7 +29,7 @@ async function checkSuperAdmin(ctx: QueryCtx) {
     });
   }
 
-  if (user.isDeactivated) {
+  if (isUserBlocked(user)) {
     throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
   }
 
@@ -261,6 +267,97 @@ export const toggleUserStatus = mutation({
       );
     }
 
-    await ctx.db.patch(args.userId, { isDeactivated: args.isDeactivated });
+    await ctx.db.patch(args.userId, {
+      isDeactivated: args.isDeactivated || undefined,
+      accountStatus: args.isDeactivated ? "DEACTIVATED" : "ACTIVE",
+      emailLookupKey: normalizeEmail(targetUser.email),
+    });
+  },
+});
+
+/**
+ * List deletion jobs for admin visibility.
+ */
+export const listDeletionJobs = query({
+  args: {},
+  handler: async (ctx) => {
+    await checkSuperAdmin(ctx);
+
+    return await ctx.db.query("deletionJobs").order("desc").collect();
+  },
+});
+
+/**
+ * Manually trigger (or re-trigger) a user deletion sweep.
+ * Accepts an email to look up the deletion job. Resets the job to "queued"
+ * with 0 attempts (giving it a fresh set of retries) and schedules the sweep.
+ */
+export const triggerUserDeletion = mutation({
+  args: {
+    email: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await checkSuperAdmin(ctx);
+
+    const normalizedEmail = normalizeEmail(args.email);
+    const now = Date.now();
+
+    const jobByEmail = await ctx.db
+      .query("deletionJobs")
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+      .unique();
+
+    if (jobByEmail) {
+      await ctx.db.patch(jobByEmail._id, {
+        status: "queued",
+        attempts: 0,
+        lastError: undefined,
+        nextRunAt: now,
+        updatedAt: now,
+      });
+
+      await ctx.scheduler.runAfter(0, internal.users.processUserDeletionSweep, {
+        jobId: jobByEmail._id,
+      });
+
+      return { success: true, jobId: jobByEmail._id, userId: jobByEmail.userId };
+    }
+
+    const userByEmail = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+      .unique();
+
+    if (!userByEmail) {
+      throwError("No user found with that email", "NOT_FOUND", 404);
+    }
+
+    const jobByUserId = await ctx.db
+      .query("deletionJobs")
+      .withIndex("by_userId", (q) => q.eq("userId", userByEmail._id))
+      .unique();
+
+    if (!jobByUserId) {
+      throwError(
+        "No deletion job found for this user. The user may not have requested deletion.",
+        "NOT_FOUND",
+        404
+      );
+    }
+
+    await ctx.db.patch(jobByUserId._id, {
+      status: "queued",
+      email: normalizedEmail,
+      attempts: 0,
+      lastError: undefined,
+      nextRunAt: now,
+      updatedAt: now,
+    });
+
+    await ctx.scheduler.runAfter(0, internal.users.processUserDeletionSweep, {
+      jobId: jobByUserId._id,
+    });
+
+    return { success: true, jobId: jobByUserId._id, userId: userByEmail._id };
   },
 });

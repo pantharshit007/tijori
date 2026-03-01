@@ -1,7 +1,6 @@
-const domain = process.env.CLERK_JWT_ISSUER_DOMAIN;
-if (!domain) {
-  throw new Error("Missing CLERK_JWT_ISSUER_DOMAIN");
-}
+import { getConvexAuthEnv } from "./lib/env";
+
+const { CLERK_JWT_ISSUER_DOMAIN: domain } = getConvexAuthEnv();
 
 export default {
   providers: [

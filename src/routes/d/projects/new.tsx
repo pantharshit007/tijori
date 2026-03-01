@@ -306,7 +306,7 @@ function NewProject() {
         </Card>
 
         <div className="mt-6 flex justify-end gap-4">
-          <Link to="/">
+          <Link to="/d/dashboard">
             <Button type="button" variant="outline" disabled={isLoading}>
               Cancel
             </Button>

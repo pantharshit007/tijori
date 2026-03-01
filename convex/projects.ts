@@ -7,6 +7,7 @@ import {
   getProjectOwnerLimits,
   getTierLimits,
 } from "./lib/roleLimits";
+import { isUserBlocked } from "./lib/accountStatus";
 import { throwError, validateLength } from "./lib/errors";
 import type { QueryCtx } from "./_generated/server";
 import type { Tier } from "./lib/roleLimits";
@@ -22,7 +23,7 @@ async function getUserId(ctx: QueryCtx) {
     .withIndex("by_tokenIdentifier", (q: any) => q.eq("tokenIdentifier", identity.tokenIdentifier))
     .unique();
   if (!user) throwError("User not found in database", "NOT_FOUND", 404);
-  if (user.isDeactivated) {
+  if (isUserBlocked(user)) {
     throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
   }
   return user._id;
@@ -79,7 +80,7 @@ export const create = mutation({
       throwError("User not found", "NOT_FOUND", 404);
     }
 
-    if (user.isDeactivated) {
+    if (isUserBlocked(user)) {
       throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
@@ -312,7 +313,7 @@ export const batchUpdatePasscodes = mutation({
       throwError("User not found", "NOT_FOUND", 404);
     }
 
-    if (user.isDeactivated) {
+    if (isUserBlocked(user)) {
       throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
@@ -398,7 +399,8 @@ export const listMembers = query({
             name: user.name,
             email: user.email,
             image: user.image,
-            isDeactivated: user.isDeactivated,
+            isDeactivated: isUserBlocked(user),
+            accountStatus: user.accountStatus,
           };
         })
       )
@@ -431,7 +433,7 @@ export const addMember = mutation({
       .unique();
 
     if (!currentUser) throwError("User not found", "NOT_FOUND", 404);
-    if (currentUser.isDeactivated) {
+    if (isUserBlocked(currentUser)) {
       throwError("User account is deactivated", "USER_DEACTIVATED", 403, {
         user_id: currentUser._id,
       });
@@ -488,13 +490,26 @@ export const addMember = mutation({
     }
 
     const normalizedEmail = args.email.toLowerCase();
-    const targetUser = await ctx.db
+    const targetUserByLookupKey = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+      .withIndex("by_emailLookupKey", (q) => q.eq("emailLookupKey", normalizedEmail))
       .unique();
+    const targetUser =
+      targetUserByLookupKey ??
+      (await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+        .unique());
 
     if (!targetUser) {
       throwError("User not found with that email address", "NOT_FOUND", 404, {
+        user_id: currentUser._id,
+        project_id: args.projectId,
+      });
+    }
+
+    if (isUserBlocked(targetUser)) {
+      throwError("Cannot add a deactivated user", "FORBIDDEN", 403, {
         user_id: currentUser._id,
         project_id: args.projectId,
       });

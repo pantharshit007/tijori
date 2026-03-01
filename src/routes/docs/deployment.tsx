@@ -141,6 +141,54 @@ CLERK_JWT_ISSUER_DOMAIN=https://clerk.custom.domain
 `}
             />
           </div>
+
+          <div className="rounded-2xl border border-border/50 bg-muted/30 p-6 space-y-4">
+            <h3 className="font-bold text-foreground">
+              3. Optional: Sync User Deletion (Recommended)
+            </h3>
+            <p className="doc-p-tag">
+              If you allow users to delete accounts from the Clerk Dashboard, set up a webhook to
+              keep Convex in sync. This is optional if users can only delete accounts through the
+              Tijori UI.
+            </p>
+            <p className="doc-p-tag">
+              See the{" "}
+              <a
+                href="https://clerk.com/docs/guides/development/webhooks/syncing"
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary underline underline-offset-4"
+              >
+                Clerk Webhook Docs
+              </a>{" "}
+              for more details.
+            </p>
+            <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+              <li>
+                In Clerk Dashboard → Webhooks → Add Webhook:
+                <ul className="list-disc list-inside ml-4 mt-1">
+                  <li>
+                    <strong>Endpoint URL</strong>:{" "}
+                    <code className="rounded-[5px] bg-muted-foreground/20 px-1 py-0.5">
+                      https://your-deployment.convex.cloud/webhooks/clerk
+                    </code>
+                  </li>
+                  <li>
+                    <strong>Events</strong>: Select{" "}
+                    <code className="rounded-[5px] bg-muted-foreground/20 px-1 py-0.5">
+                      user.deleted
+                    </code>
+                  </li>
+                </ul>
+              </li>
+              <li>
+                Set the webhook signing secret in Convex:
+                <DocsCodeBlock
+                  code={`bunx convex env set CLERK_WEBHOOK_SIGNING_SECRET "whsec_..."`}
+                />
+              </li>
+            </ol>
+          </div>
         </div>
       </section>
 

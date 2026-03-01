@@ -92,3 +92,5 @@ export interface BulkEditVariable {
   isNew?: boolean;
   toDelete?: boolean;
 }
+
+export type StoreUserStatus = "idle" | "synced" | "deletion_in_progress" | "deactivated" | "error";

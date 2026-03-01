@@ -10,6 +10,7 @@ export type ErrorType =
   | "NOT_FOUND"
   | "BAD_REQUEST"
   | "USER_DEACTIVATED"
+  | "DELETION_IN_PROGRESS"
   | "LIMIT_REACHED"
   | "CONFLICT"
   | "INTERNAL_ERROR";

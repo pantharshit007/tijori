@@ -64,6 +64,7 @@ import { keyStore } from "@/lib/key-store";
 import { decrypt } from "@/lib/crypto";
 import { UserAvatar } from "@/components/user-avatar";
 import { getErrorMessage } from "@/lib/errors";
+import { toastStyle } from "@/utilities/toast-style";
 
 type SharedSearchParams = {
   p?: string;
@@ -200,11 +201,11 @@ function SharedDashboard() {
 
     try {
       await bulkRemove({ ids: Array.from(selectedIds) as Id<"sharedSecrets">[] });
-      toast.success(`${selectedIds.size} links deleted`);
+      toast.success(`${selectedIds.size} links deleted`, toastStyle.success);
       setSelectedIds(new Set());
     } catch (err: any) {
       console.error("Bulk delete failed:", err);
-      toast.error(getErrorMessage(err, "Failed to delete links"));
+      toast.error(getErrorMessage(err, "Failed to delete links"), toastStyle.error);
     }
   }
 
@@ -216,11 +217,14 @@ function SharedDashboard() {
         ids: Array.from(selectedIds) as Id<"sharedSecrets">[],
         isDisabled,
       });
-      toast.success(`${selectedIds.size} links ${isDisabled ? "disabled" : "enabled"}`);
+      toast.success(`${selectedIds.size} links ${isDisabled ? "disabled" : "enabled"}`, toastStyle.success);
       setSelectedIds(new Set());
     } catch (err: any) {
       console.error("Bulk toggle failed:", err);
-      toast.error(getErrorMessage(err, `Failed to ${isDisabled ? "disable" : "enable"} links`));
+      toast.error(
+        getErrorMessage(err, `Failed to ${isDisabled ? "disable" : "enable"} links`),
+        toastStyle.error
+      );
     }
   }
 
@@ -266,17 +270,17 @@ function SharedDashboard() {
 
   async function handleCopyPasscode(id: string, passcode: string) {
     if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
-      toast.error("Clipboard access is unavailable");
+      toast.error("Clipboard access is unavailable", toastStyle.error);
       return;
     }
     try {
       await navigator.clipboard.writeText(passcode);
       setCopiedPasscodeId(id);
       setTimeout(() => setCopiedPasscodeId(null), 2000);
-      toast.success("Passcode copied");
+      toast.success("Passcode copied", toastStyle.success);
     } catch (err: any) {
       console.error("Failed to copy passcode:", err);
-      toast.error(getErrorMessage(err, "Failed to copy passcode"));
+      toast.error(getErrorMessage(err, "Failed to copy passcode"), toastStyle.error);
     }
   }
 
@@ -304,7 +308,7 @@ function SharedDashboard() {
     try {
       if (!trimmed) {
         await updateMaxViews({ id: viewLimitTarget._id, maxViews: -1 });
-        toast.success("View limit removed");
+        toast.success("View limit removed", toastStyle.success);
       } else {
         const parsed = Number.parseInt(trimmed, 10);
         if (!Number.isFinite(parsed) || parsed < 1) {
@@ -320,7 +324,7 @@ function SharedDashboard() {
           return;
         }
         await updateMaxViews({ id: viewLimitTarget._id, maxViews: parsed });
-        toast.success("View limit updated");
+        toast.success("View limit updated", toastStyle.success);
       }
       setIsViewLimitOpen(false);
       setViewLimitTarget(null);
@@ -328,17 +332,17 @@ function SharedDashboard() {
       setViewLimitError(null);
     } catch (err: any) {
       console.error("Failed to update view limit:", err);
-      toast.error(getErrorMessage(err, "Failed to update view limit"));
+      toast.error(getErrorMessage(err, "Failed to update view limit"), toastStyle.error);
     }
   }
 
   async function handleRemoveViewLimit(share: SharedSecret) {
     try {
       await updateMaxViews({ id: share._id, maxViews: -1 });
-      toast.success("View limit removed");
+      toast.success("View limit removed", toastStyle.success);
     } catch (err: any) {
       console.error("Failed to remove view limit:", err);
-      toast.error(getErrorMessage(err, "Failed to remove view limit"));
+      toast.error(getErrorMessage(err, "Failed to remove view limit"), toastStyle.error);
     }
   }
 

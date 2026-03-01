@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { useClerk, useUser } from "@clerk/tanstack-react-start";
 import { useMutation, useQuery } from "convex/react";
-import { useEffect, useRef, useState  } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Check, KeyRound, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 
@@ -20,7 +21,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-
 import { decrypt, deriveKey, encrypt, generateSalt, hash } from "@/lib/crypto";
 import { getErrorMessage } from "@/lib/errors";
 
@@ -33,12 +33,14 @@ import { getErrorMessage } from "@/lib/errors";
  * 5. Batch update projects and update user's master key hash
  */
 
-
 function Settings() {
   const user = useQuery(api.users.me);
   const ownedProjects = useQuery(api.projects.listOwned);
   const setMasterKeyMutation = useMutation(api.users.setMasterKey);
   const batchUpdatePasscodes = useMutation(api.projects.batchUpdatePasscodes);
+  const deleteAccount = useMutation(api.users.deleteAccount);
+  const { signOut } = useClerk();
+  const { user: clerkUser } = useUser();
 
   // Ref to track rotation dialog close timeout
   const rotationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -62,6 +64,11 @@ function Settings() {
   // Progress state for re-encryption
   const [rotationProgress, setRotationProgress] = useState(0);
   const [rotationStatus, setRotationStatus] = useState("");
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const hasMasterKey = user?.masterKeyHash !== undefined;
 
@@ -290,6 +297,84 @@ function Settings() {
     }
   }
 
+  function handleDeleteDialogOpenChange(open: boolean) {
+    setDeleteDialogOpen(open);
+    if (!open) {
+      setDeleteConfirmText("");
+      setDeleteError(null);
+    }
+  }
+
+  function isDeleteAccountNotFoundError(err: unknown): boolean {
+    if (!err || typeof err !== "object") {
+      return false;
+    }
+
+    const maybeError = err as { data?: unknown; message?: unknown };
+    const data = maybeError.data;
+
+    if (data && typeof data === "object") {
+      const code = (data as { code?: unknown }).code;
+      const type = (data as { type?: unknown }).type;
+      if (code === 404 || type === "NOT_FOUND") {
+        return true;
+      }
+    }
+
+    const message = typeof maybeError.message === "string" ? maybeError.message : "";
+    return (
+      message.includes("NOT_FOUND") || message.includes("User not found") || message.includes("404")
+    );
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteError(null);
+
+    if (deleteConfirmText.trim().toUpperCase() !== "DELETE") {
+      setDeleteError('Type "DELETE" to confirm account removal.');
+      return;
+    }
+
+    if (!clerkUser) {
+      setDeleteError("Unable to access Clerk account. Please refresh and try again.");
+      return;
+    }
+
+    setIsDeleting(true);
+    let deletedInClerk = false;
+    try {
+      await clerkUser.delete();
+      deletedInClerk = true;
+
+      try {
+        await deleteAccount();
+      } catch (err) {
+        if (!isDeleteAccountNotFoundError(err)) {
+          throw err;
+        }
+      }
+
+      try {
+        await signOut();
+      } finally {
+        window.location.href = "/";
+      }
+    } catch (err: any) {
+      setDeleteError(getErrorMessage(err, "Failed to delete account"));
+      if (deletedInClerk) {
+        try {
+          await signOut();
+        } catch {
+          // Ignore sign-out errors here: Clerk user is already deleted.
+        } finally {
+          window.location.href = "/";
+        }
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   if (user === undefined) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -317,12 +402,27 @@ function Settings() {
         </CardHeader>
         <CardContent>
           {hasMasterKey ? (
-            // === User HAS a master key: Show rotation option ===
-            (<div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm text-green-500">
-                <ShieldCheck className="h-4 w-4" />
-                Master key is configured
+            // === User HAS a master key: Show success message + rotation option ===
+            <div className="space-y-4">
+              <div className="p-4 rounded-lg border border-green-500/20 bg-green-500/5">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-green-500">
+                      <ShieldCheck className="h-4 w-4" />
+                      <span className="font-medium">Master key is configured!</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      You can now navigate to the projects directory in the dashboard.
+                    </p>
+                  </div>
+                  <Link to="/d/projects">
+                    <Button variant="secondary" size="sm" title="Go to projects">
+                      Go to Projects
+                    </Button>
+                  </Link>
+                </div>
               </div>
+
               <div className="p-4 rounded-lg border border-border bg-card">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
@@ -334,7 +434,7 @@ function Settings() {
                   </div>
                   <Dialog open={rotationDialogOpen} onOpenChange={handleDialogOpenChange}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" title="Rotate master key">
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Rotate Key
                       </Button>
@@ -342,7 +442,7 @@ function Settings() {
                     <DialogContent className="sm:max-w-md">
                       {rotationStep === "verify" ? (
                         // Step 1: Verify current master key
-                        (<form onSubmit={handleVerifyCurrentKey} className="space-y-4">
+                        <form onSubmit={handleVerifyCurrentKey} className="space-y-4">
                           <DialogHeader>
                             <DialogTitle>Verify Current Master Key</DialogTitle>
                             <DialogDescription>
@@ -376,6 +476,7 @@ function Settings() {
                               onClick={() => handleDialogOpenChange(false)}
                               disabled={rotationLoading}
                               type="button"
+                              title="Cancel"
                             >
                               Cancel
                             </Button>
@@ -384,10 +485,10 @@ function Settings() {
                               Verify & Continue
                             </Button>
                           </DialogFooter>
-                        </form>)
+                        </form>
                       ) : rotationStep === "update" ? (
                         // Step 2: Enter new master key
-                        (<form
+                        <form
                           onSubmit={(e) => {
                             e.preventDefault();
                             handleUpdateMasterKey();
@@ -455,6 +556,7 @@ function Settings() {
                               onClick={() => setRotationStep("verify")}
                               disabled={rotationLoading}
                               type="button"
+                              title="Go back"
                             >
                               Back
                             </Button>
@@ -471,10 +573,10 @@ function Settings() {
                               Update Master Key
                             </Button>
                           </DialogFooter>
-                        </form>)
+                        </form>
                       ) : (
                         // Step 3: Processing - Re-encrypting projects
-                        (<>
+                        <>
                           <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
                               <RefreshCw className="h-5 w-5 animate-spin" />
@@ -496,7 +598,7 @@ function Settings() {
                               </div>
                             )}
                           </div>
-                        </>)
+                        </>
                       )}
                     </DialogContent>
                   </Dialog>
@@ -508,10 +610,10 @@ function Settings() {
                   Master key updated successfully!
                 </div>
               )}
-            </div>)
+            </div>
           ) : (
             // === User does NOT have a master key: First-time setup ===
-            (<>
+            <>
               <div className="flex items-center gap-2 text-sm text-amber-500 mb-4">
                 <AlertTriangle className="h-4 w-4" />
                 No master key set. You'll need to set one before creating projects.
@@ -558,7 +660,7 @@ function Settings() {
                   Set Master Key
                 </Button>
               </form>
-            </>)
+            </>
           )}
 
           <div className="mt-6 p-4 rounded-lg bg-muted text-sm">
@@ -574,8 +676,84 @@ function Settings() {
           </div>
         </CardContent>
       </Card>
+
+      <Card className="border-destructive/40">
+        <CardHeader>
+          <CardTitle className="text-destructive">Danger Zone</CardTitle>
+          <CardDescription>
+            Delete your account and all associated projects, secrets, and memberships.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-muted-foreground">
+            This action is permanent. It removes your account data in Convex and deletes your Clerk
+            identity.
+          </div>
+          <Dialog open={deleteDialogOpen} onOpenChange={handleDeleteDialogOpenChange}>
+            <DialogTrigger asChild>
+              <Button variant="destructive" title="Delete account">
+                Delete Account
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete your account?</DialogTitle>
+                <DialogDescription>
+                  Type <strong>DELETE</strong> to confirm. This cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2 py-2">
+                <Label htmlFor="deleteConfirm">Confirmation</Label>
+                <Input
+                  id="deleteConfirm"
+                  placeholder="Type DELETE"
+                  value={deleteConfirmText}
+                  onChange={(event) => setDeleteConfirmText(event.target.value)}
+                  disabled={isDeleting}
+                />
+                {renderDeleteErrorMessage(deleteError)}
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteDialogOpen(false)}
+                  disabled={isDeleting}
+                  title="Cancel deletion"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting || deleteConfirmText.trim().toUpperCase() !== "DELETE"}
+                  title="Confirm delete account"
+                >
+                  {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Permanently Delete
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </CardContent>
+      </Card>
     </div>
-  )
+  );
+}
+
+function renderDeleteErrorMessage(deleteError: string | null) {
+  if (!deleteError) return null;
+  if (deleteError === "You need to provide additional verification to perform this operation") {
+    return (
+      <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+        Please <b>re-login</b> to continue.
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+      {deleteError}
+    </div>
+  );
 }
 
 export const Route = createFileRoute("/d/settings")({

@@ -83,6 +83,24 @@ bunx convex env list
 - The `auth.config.ts` file must use `process.env.CLERK_JWT_ISSUER_DOMAIN` (Convex-provided).
 - The JWT issuer domain is found in Clerk Dashboard → API Keys or JWT Templates.
 
+#### Optional: Clerk Webhooks for User Deletion
+
+If you allow users to delete accounts from the **Clerk Admin Dashboard**, you need to set up a webhook to keep Convex in sync:
+
+1. In Clerk Dashboard → Webhooks → Add Webhook:
+   - **Endpoint URL**: `https://your-convex-deployment.convex.cloud/webhooks/clerk`
+   - **Events**: Select `user.deleted`
+
+2. Set the webhook signing secret in Convex:
+
+   ```bash
+   bunx convex env set CLERK_WEBHOOK_SIGNING_SECRET "whsec_..."
+   ```
+
+3. The webhook handler (`convex/http.ts`) will call `users.deleteAccountByTokenIdentifier` to clean up Convex data.
+
+**If users can only delete accounts through the Tijori UI (not Clerk Dashboard)**, you can skip this webhook setup - the UI handles cleanup internally.
+
 ### shadcn/ui with TanStack Start
 
 - Use `bunx shadcn@latest init --template start` for proper TanStack Start configuration.
@@ -197,6 +215,51 @@ We learned to distinguish between **Master Key Rotation** and **Project Passcode
 - **Decision**: Always warn users about the cost and consider making high-cost rotations a background or multi-step process.
 
 ### ID Ownership Validation (Defense in Depth)
+
+---
+
+## 2026-02-03 - TanStack Start Routes (Post-demo Cleanup)
+
+We removed the bundled demo routes and data, but here is the quick knowledge base for how those
+worked in TanStack Start so we can reproduce patterns later.
+
+### Route File Pattern
+
+- Files under `src/routes/` map directly to URLs.
+- Each file exports `createFileRoute("/path")({ component, loader, beforeLoad })`.
+- Use `beforeLoad` for auth redirects and guardrails.
+- Use `loader` for data fetching that should run on the server.
+
+### Server Functions
+
+- Use TanStack Start server functions inside route files for server-only work.
+- This is ideal for secure data access or operations that must stay off the client.
+
+### API-Style Routes
+
+- You can create JSON endpoints by using a route file and returning a response in its handler.
+- Example (previous demo): `src/routes/demo/api.names.ts` backed `/demo/api/names`.
+
+---
+
+## 2026-02-03 - Account Deletion + Clerk Admin Panel
+
+We added an in-app “Delete Account” flow that:
+
+1. Deletes all user data in Convex.
+2. Deletes the Clerk user.
+3. Signs the user out and redirects home.
+
+### Handling Deletion From Clerk Admin Panel
+
+Clerk can delete users directly from its dashboard. To keep Convex in sync:
+
+- Add a Clerk webhook for `user.deleted`.
+- In the webhook handler, call the internal Convex mutation
+  `users.deleteAccountByTokenIdentifier` with the Clerk `user.id` as the token identifier.
+- This ensures Convex data is removed even if deletion happens outside the app UI.
+
+> **Note**: This webhook setup is **optional** if you don't allow deletions from the Clerk dashboard or admin panel. If users can only delete their accounts through the Tijori UI (which handles cleanup internally), you can skip the webhook configuration.
 
 When performing mutations that take multiple IDs (e.g. `projectId` and `environmentId`), always verify that the sub-resource actually belongs to the parent-resource:
 
@@ -454,6 +517,48 @@ if (!membership || membership.role === "member") {
   throw new Error("Access denied");
 }
 ```
+
+---
+
+## 2026-02-22 - Account Status + Deferred Deletion Queue
+
+### Account State Model Is Clearer Than Boolean Flags
+
+Using a dedicated account state is more robust than relying on a single boolean:
+
+- `ACTIVE`
+- `DEACTIVATED`
+- `DELETION_QUEUED`
+
+We still keep `isDeactivated` for backward compatibility, but runtime checks should prefer state-driven logic. A shared helper (`convex/lib/accountStatus.ts`) avoids drift across modules.
+
+### Email Reuse Policy Needs a Separate Lookup Key
+
+To support "deleted users can re-register with the same email" while still blocking deactivated users:
+
+- Add `users.emailLookupKey` + `by_emailLookupKey` index.
+- Keep deactivated users with `emailLookupKey = normalizedEmail` (blocks reuse).
+- On deletion request, set `emailLookupKey = deleted:<userId>` (frees primary lookup).
+
+> **Update (2026-03-01)**: We decided NOT to mangle the `email` field itself — only `emailLookupKey`. Instead, `DELETION_QUEUED` users are explicitly blocked with a `DELETION_IN_PROGRESS` error when they try to sign in or when a new user tries to register with the same email. This keeps the real email visible in admin/member UIs and avoids the complexity of dual-field mangling. See the 2026-03-01 section below.
+
+This avoids conflating admin deactivation with account deletion semantics.
+
+### Deferred Deletion Should Use Jobs + Bounded Sweeps
+
+Deep nested deletes in one mutation are risky for Convex limits. A safer pattern:
+
+1. Mark user `DELETION_QUEUED`.
+2. Insert/update a `deletionJobs` row.
+3. Process in bounded sweeps (`take(...)` batches + reschedule).
+4. Use cron as a backstop to pick queued/in-progress jobs.
+
+For low-volume deployments, biweekly cron is acceptable; immediate scheduling can still be used for faster cleanup.
+
+### Convex Module Path Constraint
+
+Convex module path components cannot contain hyphens in importable module segments.  
+`convex/lib/account-status.ts` caused deploy push errors; rename to `convex/lib/accountStatus.ts`.
 
 **Both layers are required**: UI restrictions improve UX, backend restrictions prevent bypass.
 
@@ -840,12 +945,119 @@ zero-knowledge guarantee. The key decisions:
 1. **Stronger Passcodes**: Replace fixed 6-digit codes with longer alphanumeric passcodes (min length 8).
 2. **View Limits**: Add optional max views and one-time link support to reduce exposure.
 3. **Public Link Model**: Keep encrypted payload access public, and rely on passcode strength + expiry
-   + view limits rather than server gating.
+   - view limits rather than server gating.
 
 Additional follow-ups:
+
 - Added random share passcode generation (10–16 chars) to reduce weak secrets.
 - Exposed view limit controls in `/d/shared` to manage limits after creation.
 
 Server-side verification update:
+
 - Project passcodes are now verified on the backend and passcode hashes are no longer sent to clients.
 - The server still never receives decrypted secret values; only passcodes for verification.
+
+## 2026-02-22 - Shared Link Safety During Deferred Deletion
+
+When account cleanup moved to queued/deferred deletion, shared links could remain technically valid until
+the cleanup worker removed `sharedSecrets`. To avoid that gap, public shared-link reads now also check
+the creator account status and treat the link as disabled when the creator is blocked (`DEACTIVATED` or
+`DELETION_QUEUED`) or missing.
+
+This gives immediate access revocation without forcing heavy synchronous deletes inside account deletion.
+
+---
+
+## 2026-03-01 - User Deletion Hardening
+
+### Don't Mangle Email Fields for Re-Registration
+
+**Tempting approach**: On deletion, mangle `email` and `emailLookupKey` to `deleted:<userId>` so the deleted user doesn't block re-registration with the same email.
+
+**Problems discovered**:
+
+1. Admin panel and member lists show `deleted:abc123` instead of the real email
+2. Makes the `emailLookupKey` field pointless — both fields hold the same value and both get mangled
+3. Any query using `by_email` (like `addMember`) would need special handling
+
+**Better approach**: Keep `email` real. Only mangle `emailLookupKey` (the primary lookup index). When a `DELETION_QUEUED` user tries to sign in or a new user tries to register with the same email, throw a `DELETION_IN_PROGRESS` error with a dedicated UI screen directing them to contact support to expedite data wipe.
+
+**Key insight**: Not every problem needs a clever data manipulation. Sometimes the cleanest solution is an explicit user-facing flow.
+
+### Distinct Error Types for Distinct Account States
+
+When a user is blocked, distinguish the reason:
+
+```typescript
+// In the store mutation and email conflict checks:
+if (user.accountStatus === "DELETION_QUEUED") {
+  throwError("...", "DELETION_IN_PROGRESS", 403, { user_id });
+}
+if (isUserBlocked(user)) {
+  throwError("...", "USER_DEACTIVATED", 403, { user_id });
+}
+```
+
+The frontend hook (`useStoreUserEffect`) parses the `ConvexError.data.type` and returns a typed status:
+
+```typescript
+type StoreUserStatus = "idle" | "synced" | "deletion_in_progress" | "deactivated" | "error";
+```
+
+This lets the dashboard layout render separate screens without relying on error message string matching.
+
+### Quota Decrements for Non-Owned Projects
+
+When deleting a user, their memberships and shared secrets from **other users' projects** must also decrement those projects' quotas:
+
+- **Members**: Use a `Set<Id<"projects">>` — each project has at most 1 membership per user
+- **Shared secrets**: Use a `Map<Id<"projects">, number>` — a user can have multiple secrets per project
+
+```typescript
+for (const projectId of affectedMemberProjects) {
+  const quota = await ctx.db
+    .query("quotas")
+    .withIndex("by_project_resource", (q) =>
+      q.eq("projectId", projectId).eq("resourceType", "members")
+    )
+    .unique();
+  if (quota && quota.used > 0) {
+    await ctx.db.patch(quota._id, { used: quota.used - 1 });
+  }
+}
+```
+
+**Key insight**: Deletion logic is where quotas silently drift. Always verify: "does this delete affect a counted resource?"
+
+### MAX_DELETION_ATTEMPTS Failsafe
+
+Without a ceiling, a perpetually-failing deletion sweep retries forever. Add a hard limit:
+
+```typescript
+const MAX_DELETION_ATTEMPTS = 10;
+
+if (job.attempts >= MAX_DELETION_ATTEMPTS) {
+  await ctx.db.patch(job._id, {
+    status: "failed",
+    lastError: `Exceeded max attempts (${MAX_DELETION_ATTEMPTS})`,
+  });
+  return;
+}
+```
+
+The admin panel can re-trigger failed jobs manually, resetting attempts to 0.
+
+### Guard Placement Matters: Block Check Before Writes
+
+```typescript
+// WRONG: patch runs before rejection
+const needsPatch = ...;
+if (needsPatch) await ctx.db.patch(user._id, { ... });
+if (isUserBlocked(user)) throwError(...); // too late!
+
+// CORRECT: check first
+if (isUserBlocked(user)) throwError(...);
+if (needsPatch) await ctx.db.patch(user._id, { ... });
+```
+
+For `DELETION_QUEUED` users, the patch would overwrite `emailLookupKey` back to the real email, undoing the `deleted:` freeing. Always check before writing.
