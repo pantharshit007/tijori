@@ -114,6 +114,7 @@ export default defineSchema({
 
   deletionJobs: defineTable({
     userId: v.id("users"),
+    email: v.string(),
     status: v.union(
       v.literal("queued"),
       v.literal("in_progress"),
@@ -127,5 +128,6 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_email", ["email"]),
 });

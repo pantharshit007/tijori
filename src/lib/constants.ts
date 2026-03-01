@@ -76,3 +76,9 @@ export const FALLBACK_USER_DATA = {
   email: "notfound@tijori.com",
   image: "https://api.dicebear.com/9.x/micah/svg",
 };
+
+export const FALLBACK_SUPPORT_EMAIL = "support@tijori.app";
+
+export function makeExpediteDeleteMailto(supportEmail: string) {
+  return `mailto:${supportEmail}?subject=Account%20Deletion%20-%20Expedite%20Data%20Wipe&body=Hi%20team%2C%0A%0AI%20previously%20requested%20account%20deletion%20and%20would%20like%20to%20re-register%20with%20the%20same%20email.%20Could%20you%20please%20expedite%20the%20data%20wipe%3F%0A%0AThank%20you`;
+}

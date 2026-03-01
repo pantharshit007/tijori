@@ -53,6 +53,14 @@ export const store = mutation({
         user.accountStatus ??
         (user.isDeactivated ? ACCOUNT_STATUS.DEACTIVATED : ACCOUNT_STATUS.ACTIVE);
 
+      if (user.accountStatus === ACCOUNT_STATUS.DELETION_QUEUED) {
+        throwError(
+          "Your account is scheduled for deletion. Contact support to expedite the data wipe if you wish to re-register.",
+          "DELETION_IN_PROGRESS",
+          403,
+          { user_id: user._id }
+        );
+      }
       if (isUserBlocked(user)) {
         throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
       }
@@ -91,6 +99,14 @@ export const store = mutation({
     const existingUserWithEmail = existingByEmail ?? legacyExistingByEmail;
 
     if (existingUserWithEmail) {
+      if (existingUserWithEmail.accountStatus === ACCOUNT_STATUS.DELETION_QUEUED) {
+        throwError(
+          "This email is associated with an account scheduled for deletion. Contact support to expedite the data wipe if you wish to re-register.",
+          "DELETION_IN_PROGRESS",
+          403,
+          { user_id: existingUserWithEmail._id }
+        );
+      }
       if (
         existingUserWithEmail.accountStatus === ACCOUNT_STATUS.DEACTIVATED ||
         existingUserWithEmail.isDeactivated
@@ -402,7 +418,7 @@ async function deleteUserData(ctx: GenericMutationCtx<DataModel>, user: Doc<"use
   const now = Date.now();
   const deletedLookupKey = `deleted:${user._id}`;
 
-  // Soft-delete and free the original email lookup key so a deleted user can re-register.
+  // Soft-delete: mark user as queued for deletion and free the emailLookupKey
   await ctx.db.patch(user._id, {
     isDeactivated: true,
     accountStatus: ACCOUNT_STATUS.DELETION_QUEUED,
@@ -418,6 +434,7 @@ async function deleteUserData(ctx: GenericMutationCtx<DataModel>, user: Doc<"use
   if (existingJob) {
     await ctx.db.patch(existingJob._id, {
       status: "queued",
+      email: user.email,
       attempts: existingJob.attempts,
       lastError: undefined,
       nextRunAt: now,
@@ -429,6 +446,7 @@ async function deleteUserData(ctx: GenericMutationCtx<DataModel>, user: Doc<"use
 
   await ctx.db.insert("deletionJobs", {
     userId: user._id,
+    email: user.email,
     status: "queued",
     attempts: 0,
     nextRunAt: now,
