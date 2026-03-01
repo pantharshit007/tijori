@@ -538,7 +538,9 @@ To support "deleted users can re-register with the same email" while still block
 
 - Add `users.emailLookupKey` + `by_emailLookupKey` index.
 - Keep deactivated users with `emailLookupKey = normalizedEmail` (blocks reuse).
-- On deletion request, set `emailLookupKey = deleted:<userId>` (frees original email immediately).
+- On deletion request, set `emailLookupKey = deleted:<userId>` (frees primary lookup).
+
+> **Update (2026-03-01)**: We decided NOT to mangle the `email` field itself — only `emailLookupKey`. Instead, `DELETION_QUEUED` users are explicitly blocked with a `DELETION_IN_PROGRESS` error when they try to sign in or when a new user tries to register with the same email. This keeps the real email visible in admin/member UIs and avoids the complexity of dual-field mangling. See the 2026-03-01 section below.
 
 This avoids conflating admin deactivation with account deletion semantics.
 
@@ -963,3 +965,99 @@ the creator account status and treat the link as disabled when the creator is bl
 `DELETION_QUEUED`) or missing.
 
 This gives immediate access revocation without forcing heavy synchronous deletes inside account deletion.
+
+---
+
+## 2026-03-01 - User Deletion Hardening
+
+### Don't Mangle Email Fields for Re-Registration
+
+**Tempting approach**: On deletion, mangle `email` and `emailLookupKey` to `deleted:<userId>` so the deleted user doesn't block re-registration with the same email.
+
+**Problems discovered**:
+
+1. Admin panel and member lists show `deleted:abc123` instead of the real email
+2. Makes the `emailLookupKey` field pointless — both fields hold the same value and both get mangled
+3. Any query using `by_email` (like `addMember`) would need special handling
+
+**Better approach**: Keep `email` real. Only mangle `emailLookupKey` (the primary lookup index). When a `DELETION_QUEUED` user tries to sign in or a new user tries to register with the same email, throw a `DELETION_IN_PROGRESS` error with a dedicated UI screen directing them to contact support to expedite data wipe.
+
+**Key insight**: Not every problem needs a clever data manipulation. Sometimes the cleanest solution is an explicit user-facing flow.
+
+### Distinct Error Types for Distinct Account States
+
+When a user is blocked, distinguish the reason:
+
+```typescript
+// In the store mutation and email conflict checks:
+if (user.accountStatus === "DELETION_QUEUED") {
+  throwError("...", "DELETION_IN_PROGRESS", 403, { user_id });
+}
+if (isUserBlocked(user)) {
+  throwError("...", "USER_DEACTIVATED", 403, { user_id });
+}
+```
+
+The frontend hook (`useStoreUserEffect`) parses the `ConvexError.data.type` and returns a typed status:
+
+```typescript
+type StoreUserStatus = "idle" | "synced" | "deletion_in_progress" | "deactivated" | "error";
+```
+
+This lets the dashboard layout render separate screens without relying on error message string matching.
+
+### Quota Decrements for Non-Owned Projects
+
+When deleting a user, their memberships and shared secrets from **other users' projects** must also decrement those projects' quotas:
+
+- **Members**: Use a `Set<Id<"projects">>` — each project has at most 1 membership per user
+- **Shared secrets**: Use a `Map<Id<"projects">, number>` — a user can have multiple secrets per project
+
+```typescript
+for (const projectId of affectedMemberProjects) {
+  const quota = await ctx.db
+    .query("quotas")
+    .withIndex("by_project_resource", (q) =>
+      q.eq("projectId", projectId).eq("resourceType", "members")
+    )
+    .unique();
+  if (quota && quota.used > 0) {
+    await ctx.db.patch(quota._id, { used: quota.used - 1 });
+  }
+}
+```
+
+**Key insight**: Deletion logic is where quotas silently drift. Always verify: "does this delete affect a counted resource?"
+
+### MAX_DELETION_ATTEMPTS Failsafe
+
+Without a ceiling, a perpetually-failing deletion sweep retries forever. Add a hard limit:
+
+```typescript
+const MAX_DELETION_ATTEMPTS = 10;
+
+if (job.attempts >= MAX_DELETION_ATTEMPTS) {
+  await ctx.db.patch(job._id, {
+    status: "failed",
+    lastError: `Exceeded max attempts (${MAX_DELETION_ATTEMPTS})`,
+  });
+  return;
+}
+```
+
+The admin panel can re-trigger failed jobs manually, resetting attempts to 0.
+
+### Guard Placement Matters: Block Check Before Writes
+
+```typescript
+// WRONG: patch runs before rejection
+const needsPatch = ...;
+if (needsPatch) await ctx.db.patch(user._id, { ... });
+if (isUserBlocked(user)) throwError(...); // too late!
+
+// CORRECT: check first
+if (isUserBlocked(user)) throwError(...);
+if (needsPatch) await ctx.db.patch(user._id, { ... });
+```
+
+For `DELETION_QUEUED` users, the patch would overwrite `emailLookupKey` back to the real email, undoing the `deleted:` freeing. Always check before writing.

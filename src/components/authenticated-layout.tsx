@@ -3,6 +3,7 @@
  * Renders children only after user is loaded.
  * Exposes `status` from the store hook so parent can handle special states.
  */
+import { useEffect } from "react";
 import type { StoreUserStatus } from "@/lib/types";
 import { useStoreUserEffect } from "@/hooks/use-store-user";
 
@@ -15,9 +16,11 @@ export function AuthenticatedLayout({
 }) {
   const { isLoaded, status } = useStoreUserEffect();
 
-  if (setUserSyncStatus && status !== "idle") {
-    setUserSyncStatus(status);
-  }
+  useEffect(() => {
+    if (setUserSyncStatus && status !== "idle") {
+      setUserSyncStatus(status);
+    }
+  }, [status, setUserSyncStatus]);
 
   if (!isLoaded) {
     return (
