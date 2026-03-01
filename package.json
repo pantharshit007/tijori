@@ -17,6 +17,7 @@
     "tsc": "bunx tsc",
     "cvx:dev": "bunx convex dev",
     "cvx:login": "bunx convex login",
+    "cvx:link": "bunx convex login --link-deployments",
     "cvx:logout": "bunx convex logout",
     "cvx:deploy": "bunx convex deploy",
     "cvx:dashboard": "bunx convex dashboard",
