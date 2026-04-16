@@ -5,7 +5,7 @@
   "version": "0.0.15",
   "scripts": {
     "dev": "vite dev",
-    "dev:convex": "bunx convex dev",
+    "dev:convex": "bunx convex dev --configure --dev-deployment local",
     "build": "vite build",
     "build:vercel": "bunx convex deploy --cmd 'bun run build'",
     "preview": "vite preview",
@@ -16,6 +16,7 @@
     "lint:fix": "eslint --fix",
     "tsc": "bunx tsc",
     "cvx:dev": "bunx convex dev",
+    "cvx:dev:anon": "CONVEX_AGENT_MODE=anonymous bunx convex dev",
     "cvx:login": "bunx convex login",
     "cvx:link": "bunx convex login --link-deployments",
     "cvx:logout": "bunx convex logout",

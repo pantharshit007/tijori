@@ -50,7 +50,7 @@ function LandingPage() {
 
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-        <div className="container flex h-16 max-w-screen-2xl items-center justify-between mx-auto px-4 lg:px-8">
+        <div className="container relative flex h-16 max-w-screen-2xl items-center justify-between mx-auto px-4 lg:px-8">
           <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/20">
               <KeyRound className="size-5" />
@@ -60,7 +60,7 @@ function LandingPage() {
             </span>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground absolute left-1/2 -translate-x-1/2">
             <a href="#features" className="hover:text-foreground transition-colors cursor-pointer">
               Features
             </a>
@@ -396,9 +396,16 @@ function LandingPage() {
                 Product
               </div>
               <ul className="space-y-2 text-muted-foreground">
-                <li className="hover:text-foreground transition-colors cursor-pointer">Features</li>
-                <li className="hover:text-foreground transition-colors cursor-pointer">Security</li>
-                <li className="hover:text-foreground transition-colors cursor-pointer">Pricing</li>
+                <li>
+                  <a href="#features" className="hover:text-foreground transition-colors">
+                    Features
+                  </a>
+                </li>
+                <li>
+                  <a href="#security" className="hover:text-foreground transition-colors">
+                    Security
+                  </a>
+                </li>
               </ul>
             </div>
             <div className="space-y-4">
@@ -406,25 +413,58 @@ function LandingPage() {
                 Resources
               </div>
               <ul className="space-y-2 text-muted-foreground">
-                <li className="hover:text-foreground transition-colors cursor-pointer">
-                  Documentation
+                <li>
+                  <Link to="/docs" className="hover:text-foreground transition-colors">
+                    Documentation
+                  </Link>
                 </li>
-                <li className="hover:text-foreground transition-colors cursor-pointer">
-                  API Reference
+                <li>
+                  <Link to="/docs/security" className="hover:text-foreground transition-colors">
+                    Security Docs
+                  </Link>
                 </li>
-                <li className="hover:text-foreground transition-colors cursor-pointer">
-                  Community
+                <li>
+                  <Link to="/docs/deployment" className="hover:text-foreground transition-colors">
+                    Deployment Guide
+                  </Link>
                 </li>
               </ul>
             </div>
             <div className="space-y-4 hidden sm:block">
               <div className="font-semibold uppercase tracking-wider text-xs text-foreground/70">
-                Company
+                Connect
               </div>
               <ul className="space-y-2 text-muted-foreground">
-                <li className="hover:text-foreground transition-colors cursor-pointer">About</li>
-                <li className="hover:text-foreground transition-colors cursor-pointer">Github</li>
-                <li className="hover:text-foreground transition-colors cursor-pointer">Privacy</li>
+                <li>
+                  <a
+                    href={SITE_CONFIG.links.githubRepo}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Github
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={SITE_CONFIG.links.twitter}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Twitter
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={SITE_CONFIG.links.githubIssues}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Report an Issue
+                  </a>
+                </li>
               </ul>
             </div>
           </div>

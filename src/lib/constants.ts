@@ -46,8 +46,8 @@ export const SHARE_PASSCODE_REGEX = /^[A-Za-z0-9]+$/;
 export const SHARE_MAX_VIEWS_LIMIT = 1000;
 
 export const META_DATA = {
-  github: "https://github.com/pantharshit007/tijori",
-  twitter: "https://x.com/pantharshit007",
+  github: "https://git.new/tijori",
+  twitter: "https://dub.sh/harshit-x?utm_source=tijori-web",
 };
 
 export const PAGINATION_LIMIT = 10;

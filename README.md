@@ -106,6 +106,6 @@ The AGPL ensures that if you run a modified version on a server, you must make t
 
 ---
 
-Made with 🔒 by [@pantharshit007](https://x.com/pantharshit007)
+Made with 🔒 by [@pantharshit007](https://dub.sh/harshit-x?utm_source=tijori-readme)
 
 #### धन्यवाद

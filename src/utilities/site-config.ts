@@ -12,11 +12,11 @@ export const SITE_CONFIG = {
     localSetup: "Local Setup | Tijori",
   },
   links: {
-    githubRepo: "https://github.com/pantharshit007/tijori",
-    githubProfile: "https://github.com/pantharshit007",
+    githubRepo: "https://git.new/tijori",
+    githubProfile: "https://git.new/harshit",
     githubIssues: "https://github.com/pantharshit007/tijori/issues",
     githubSecurity: "https://github.com/pantharshit007/tijori/security",
-    twitter: "https://x.com/pantharshit007",
+    twitter: "https://dub.sh/harshit-x?utm_source=tijori-web",
     clerkProdGuide:
       "https://clerk.com/docs/guides/development/deployment/production?utm_source=tijori.hrshit.in&utm_medium=docs",
     clerkApiKeys: "https://dashboard.clerk.com/last-active?path=api-keys",
