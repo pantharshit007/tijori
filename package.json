@@ -2,7 +2,7 @@
   "name": "tijori",
   "private": true,
   "type": "module",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "scripts": {
     "dev": "vite dev",
     "dev:convex": "bunx convex dev --configure --dev-deployment local",

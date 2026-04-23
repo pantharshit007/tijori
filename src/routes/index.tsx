@@ -13,7 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DashboardPreview } from "@/components/dashboard-preview";
+import { DashboardPreview } from "@/components/dashboard-preview/dashboard-preview";
 import { SITE_CONFIG } from "@/utilities/site-config";
 import { useTheme } from "@/components/theme-provider";
 

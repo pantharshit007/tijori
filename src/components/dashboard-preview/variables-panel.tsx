@@ -133,7 +133,7 @@ export function VariablesPanel({ isVisible, stagger }: PreviewPanelProps) {
               </div>
 
               {/* Name + env */}
-              <div className="min-w-0 w-28 sm:w-36">
+              <div className="min-w-0 w-36">
                 <div className="text-[12px] font-semibold truncate">{v.name}</div>
                 <div
                   className={`text-[8px] font-bold uppercase tracking-widest mt-0.5 ${
