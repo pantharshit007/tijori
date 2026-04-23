@@ -13,6 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DashboardPreview } from "@/components/dashboard-preview";
 import { SITE_CONFIG } from "@/utilities/site-config";
 import { useTheme } from "@/components/theme-provider";
 
@@ -44,7 +45,6 @@ function LandingPage() {
       {/* Background patterns */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
         <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-secondary/5 rounded-full blur-[100px]" />
       </div>
 
@@ -121,7 +121,7 @@ function LandingPage() {
 
       <main className="flex-1 z-10">
         {/* Hero Section */}
-        <section className="relative px-4 py-20 lg:py-32 xl:py-40">
+        <section className="relative px-4 py-20 lg:py-28">
           <div className="container max-w-7xl mx-auto text-center space-y-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary mb-4 animate-fade-in">
               <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
@@ -183,31 +183,8 @@ function LandingPage() {
               </Link>
             </div>
 
-            {/* Dashboard Preview Mockup */}
-            <div className="mt-16 relative mx-auto max-w-5xl rounded-xl border border-border/50 bg-background/50 shadow-2xl p-2 backdrop-blur-md animate-reveal">
-              <div className="rounded-lg border bg-background overflow-hidden shadow-inner">
-                <div className="h-10 bg-muted/30 border-b flex items-center px-4 gap-2">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-destructive/50" />
-                    <div className="w-3 h-3 rounded-full bg-amber-500/50" />
-                    <div className="w-3 h-3 rounded-full bg-green-500/50" />
-                  </div>
-                  <div className="flex-1 bg-muted/50 rounded h-6 max-w-md mx-auto" />
-                </div>
-                <div className="aspect-video bg-muted/10 p-8 flex flex-col gap-6">
-                  <div className="flex items-center justify-between">
-                    <div className="h-8 w-32 bg-muted/40 rounded" />
-                    <div className="h-8 w-24 bg-primary/20 rounded" />
-                  </div>
-                  <div className="grid grid-cols-3 gap-6">
-                    <div className="h-32 bg-muted/20 rounded-lg border border-border/50" />
-                    <div className="h-32 bg-muted/20 rounded-lg border border-border/50" />
-                    <div className="h-32 bg-muted/20 rounded-lg border border-border/50" />
-                  </div>
-                  <div className="h-40 bg-muted/10 rounded-lg border border-border/50 border-dashed" />
-                </div>
-              </div>
-            </div>
+            {/* Dashboard Preview */}
+            <DashboardPreview />
           </div>
         </section>
 
