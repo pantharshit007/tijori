@@ -39,7 +39,7 @@ export function DesktopPreview({
                   ? "project/acme"
                   : activePanel === "shared"
                     ? "shared"
-                    : "dashboard"}
+                    : "projects"}
               </span>
             </div>
           </div>
