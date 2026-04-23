@@ -1,6 +1,6 @@
 import { ChevronDown, MoreHorizontal, Search } from "lucide-react";
-import { PREVIEW_SHARED } from "@/lib/preview-data";
 import type { PreviewPanelProps } from "@/lib/types";
+import { PREVIEW_SHARED } from "@/lib/preview-data";
 
 export function SharedPanel({ isVisible, stagger }: PreviewPanelProps) {
   return (

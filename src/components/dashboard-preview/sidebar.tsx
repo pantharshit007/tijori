@@ -6,8 +6,8 @@ import {
   Share2,
   User,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { PreviewPanelId, PreviewSidebarItem, PreviewStaggerFn } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const SIDEBAR_NAV: PreviewSidebarItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", panelId: "dashboard" },

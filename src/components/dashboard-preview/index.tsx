@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { PreviewPanelId } from "@/lib/types";
 import { Sidebar } from "./sidebar";
 import { VariablesPanel } from "./variables-panel";
 import { SharedPanel } from "./shared-panel";
 import { ProjectsPanel } from "./projects-panel";
+import type { PreviewPanelId } from "@/lib/types";
 
 /** Animated, interactive dashboard preview for the landing page hero section. */
 export function DashboardPreview() {

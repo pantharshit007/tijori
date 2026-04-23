@@ -12,8 +12,8 @@ import {
   Share2,
   Users,
 } from "lucide-react";
-import { PREVIEW_VARIABLES } from "@/lib/preview-data";
 import type { PreviewPanelProps } from "@/lib/types";
+import { PREVIEW_VARIABLES } from "@/lib/preview-data";
 
 /**
  * Project detail view with env variables — shown under "Dashboard" sidebar tab.

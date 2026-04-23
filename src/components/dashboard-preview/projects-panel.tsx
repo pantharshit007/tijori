@@ -1,6 +1,6 @@
 import { Clock, FolderOpen, Plus } from "lucide-react";
-import { PREVIEW_PROJECTS } from "@/lib/preview-data";
 import type { PreviewPanelProps } from "@/lib/types";
+import { PREVIEW_PROJECTS } from "@/lib/preview-data";
 
 /** Grid of project cards — shown under "All Projects" sidebar tab. */
 export function ProjectsPanel({ isVisible, stagger }: PreviewPanelProps) {
