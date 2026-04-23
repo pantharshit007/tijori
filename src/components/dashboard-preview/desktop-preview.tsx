@@ -1,8 +1,8 @@
-import type { PreviewPanelId, PreviewStaggerFn } from "@/lib/types";
 import { Sidebar } from "./sidebar";
-import { VariablesPanel } from "./variables-panel";
+import { DashboardPanel } from "./dashboard-panel";
 import { SharedPanel } from "./shared-panel";
 import { ProjectsPanel } from "./projects-panel";
+import type { PreviewPanelId, PreviewStaggerFn } from "@/lib/types";
 
 interface DesktopPreviewProps {
   isVisible: boolean;
@@ -57,7 +57,7 @@ export function DesktopPreview({
 
           <div className="flex-1 min-w-0 overflow-hidden">
             {activePanel === "dashboard" && (
-              <VariablesPanel isVisible={isVisible} stagger={stagger} />
+              <DashboardPanel isVisible={isVisible} stagger={stagger} />
             )}
             {activePanel === "shared" && <SharedPanel isVisible={isVisible} stagger={stagger} />}
             {activePanel === "allProjects" && (

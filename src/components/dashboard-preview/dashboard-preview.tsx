@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { PreviewPanelId } from "@/lib/types";
 import { DesktopPreview } from "./desktop-preview";
 import { MobilePreview } from "./mobile-preview";
+import type { PreviewPanelId } from "@/lib/types";
 
 export function DashboardPreview() {
   const containerRef = useRef<HTMLDivElement>(null);

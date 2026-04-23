@@ -21,7 +21,7 @@ import { PREVIEW_VARIABLES } from "@/lib/preview-data";
  * The blinking cursor uses a pure CSS animation (`dshb-cursor-blink` keyframe
  * in styles.css) instead of a React `setInterval` to avoid re-renders every 530ms.
  */
-export function VariablesPanel({ isVisible, stagger }: PreviewPanelProps) {
+export function DashboardPanel({ isVisible, stagger }: PreviewPanelProps) {
   const [revealedRows, setRevealedRows] = useState<Set<number>>(new Set());
 
   const toggleReveal = useCallback((idx: number) => {
@@ -150,10 +150,12 @@ export function VariablesPanel({ isVisible, stagger }: PreviewPanelProps) {
 
               {/* Eye icon — click to toggle */}
               <button
+                type="button"
                 onClick={() => toggleReveal(i)}
                 className="shrink-0 text-muted-foreground/40 hover:text-primary transition-colors cursor-pointer p-0.5"
                 tabIndex={-1}
                 title={isRevealed ? "Hide value" : "Reveal value"}
+                aria-label={isRevealed ? "Hide value" : "Reveal value"}
               >
                 {isRevealed ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
               </button>
