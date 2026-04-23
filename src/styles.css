@@ -245,3 +245,114 @@ code {
   stroke-width: 2.5;
   opacity: 1;
 }
+
+/* ─── Dashboard Preview animations ─────────────────────────── */
+
+/* Staggered fade-in from below */
+.dshb-fade-in {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.dshb-fade-in.dshb-animate {
+  animation: dshb-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes dshb-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Sidebar slide-in from left */
+.dshb-slide-in-left {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.dshb-slide-in-left.dshb-animate {
+  animation: dshb-slide-left 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+}
+
+@keyframes dshb-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Decrypt reveal flash */
+.dshb-decrypt {
+  animation: dshb-decrypt-flash 0.5s ease-out;
+}
+
+@keyframes dshb-decrypt-flash {
+  0% {
+    opacity: 0;
+    filter: blur(4px) brightness(2);
+  }
+
+  40% {
+    opacity: 1;
+    filter: blur(0) brightness(1.5);
+  }
+
+  100% {
+    opacity: 1;
+    filter: blur(0) brightness(1);
+  }
+}
+
+/* Cursor blink — pure CSS, no React re-renders */
+.dshb-cursor-blink {
+  animation: dshb-blink 1.06s step-end infinite;
+}
+
+@keyframes dshb-blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .dshb-fade-in.dshb-animate,
+  .dshb-slide-in-left.dshb-animate,
+  .dshb-decrypt,
+  .dshb-cursor-blink {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .dshb-fade-in.dshb-animate,
+  .dshb-slide-in-left.dshb-animate {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .dshb-decrypt {
+    opacity: 1 !important;
+    filter: none !important;
+  }
+
+  .dshb-cursor-blink {
+    opacity: 1 !important;
+  }
+}

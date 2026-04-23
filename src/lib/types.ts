@@ -94,3 +94,20 @@ export interface BulkEditVariable {
 }
 
 export type StoreUserStatus = "idle" | "synced" | "deletion_in_progress" | "deactivated" | "error";
+
+export type PreviewPanelId = "dashboard" | "shared" | "allProjects";
+
+export interface PreviewSidebarItem {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  panelId: PreviewPanelId;
+}
+
+export interface PreviewStaggerFn {
+  (i: number): { animationDelay: string };
+}
+
+export interface PreviewPanelProps {
+  isVisible: boolean;
+  stagger: PreviewStaggerFn;
+}

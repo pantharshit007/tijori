@@ -31,7 +31,8 @@
 - [ ] break up the `@setting.tsx` file since its quite large now.
 - [ ] we can add option for -> invite user to project, which once they accepts, they can access the project, this setting can also be paused by the user if he wants to directly access the project, without the need to invite
 - [ ] update the dashboard for the mobile devices, currently it breaks on multiple places:
-    - admin panel
-    - the tutorial (step 1 always missing due to sidebar being closed)
-    - sidebar doesnt closes when we naviagte to one route to other
+  - admin panel
+  - the tutorial (step 1 always missing due to sidebar being closed)
+  - sidebar doesnt closes when we naviagte to one route to other
+
 ---
