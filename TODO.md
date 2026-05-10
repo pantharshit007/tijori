@@ -32,7 +32,8 @@
   - sidebar doesnt closes when we naviagte to one route to other
 - [ ] fix the tutorial bug where it keep coming back if not refreshed
 - [ ] add the eye option in the share passcode form
-- [ ] give user an option to generate code/pass for both passcode and Master Code 
+- [ ] give user an option with a generate button to generate a new project passcode/ Master Code, and then copy it to clipboard
 - [ ] To prevent single point of failure with Master Key, try creating 3-4 different master keys which all creating same results, but only 1 is available at a time so even though user might misplace one, we still have others to save the day.
 - [ ] The team invite, there is a possibility no one joins with the invite, create a section to see all active, exhausted invite, so that we can invalidate or make them expire with a timer to prevent any unforseen issues.
+
 ---
