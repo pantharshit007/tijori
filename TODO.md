@@ -5,9 +5,7 @@
 - [ ] update the enums such as "admin" and "member" to be "owner" and "member" in react files to types directly from convex.
 - [ ] Transfer ownership of project, pending.
 - [ ] add toast notifications for successful actions, ex: copy, delete, etc.
-- [x] Standardized error handling using `throwError` utility with numeric status codes and contextual server-side logging. (Implemented via `ConvexError` for frontend compatibility).
 - [ ] when the / loads, initially there is no sign in , get started and get started free button, they appear after a delay most probably network call to the clerk server, instead of waiting for the response and showing nothing add a suspense component to show get started, sign in until we get the response if we get user is logged in, we will just update the component in place else it will stay the same, just not via the suspense component.
-- [x] update the toast ui.
 - [x] **Plan Downgrade Enforcement**: Users who downgrade keep paid privileges — need to implement enforcement:
   - [x] **On downgrade**: Check if user's current usage exceeds the new tier's limits:
     - Compare `User.projectCount` against new tier's `maxProjects` limit, along with other limits such as environment count, members count, shared secret count, etc.
@@ -25,8 +23,6 @@
   - **TODO (Future)**: Implement cron job `enforcePlanLimits` to run daily and reconcile excess after deadline passes
 - [ ] re-check save mutation thoroughly in @convex/variable.ts, seems something is wrong there.
 - [ ] check if Bulk add dialog and Bulk edit dialog can use a common logic instead of duplicating the code.
-- [x] remove the demo routes and data, but add the learning and knowledge base to the docs (learning.md).
-- [x] add in account deletion option, also need to think of how to handle the case when user deletes their account from clerk, panel.
 - [ ] add rate-limiting for `verifyPasscode`: track failed attempts per user+project, lockout for 15 minutes after 5 failures, apply exponential backoff, and reset on success.
 - [ ] break up the `@setting.tsx` file since its quite large now.
 - [ ] we can add option for -> invite user to project, which once they accepts, they can access the project, this setting can also be paused by the user if he wants to directly access the project, without the need to invite
@@ -34,5 +30,10 @@
   - admin panel
   - the tutorial (step 1 always missing due to sidebar being closed)
   - sidebar doesnt closes when we naviagte to one route to other
+- [ ] fix the tutorial bug where it keep coming back if not refreshed
+- [ ] add the eye option in the share passcode form
+- [ ] give user an option with a generate button to generate a new project passcode/ Master Code, and then copy it to clipboard
+- [ ] To prevent single point of failure with Master Key, try creating 3-4 different master keys which all creating same results, but only 1 is available at a time so even though user might misplace one, we still have others to save the day.
+- [ ] The team invite, there is a possibility no one joins with the invite, create a section to see all active, exhausted invite, so that we can invalidate or make them expire with a timer to prevent any unforseen issues.
 
 ---
