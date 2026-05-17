@@ -1,192 +1,52 @@
-# Tijori Security Architecture
+# Tijori Security Guide
 
-> Last Updated: January 26, 2026
+Canonical system design lives in [ARCHITECTURE.md](./ARCHITECTURE.md). This file is intentionally narrower: it covers the controls contributors should preserve and the process for reporting vulnerabilities.
 
-## Overview
+## Security Controls
 
-Tijori employs a **zero-knowledge architecture** where the server never sees plaintext secrets. All encryption and decryption happens client-side in the browser using the Web Crypto API.  
-**Note**: Project passcodes are verified server-side (the passcode is sent for verification but never stored), while secret values remain client-only.
+- Secret values are encrypted and decrypted in the browser.
+- Project passcodes are verified server-side with `projects.passcodeHash`, but plaintext passcodes are not persisted.
+- Convex functions authenticate with Clerk identity and re-check project membership or role before reading or mutating data.
+- Nitro middleware sets `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy`, and `Permissions-Policy` headers.
 
-## Encryption Stack
+## Security Checklist for Contributors
 
-### Algorithms Used
-
-| Purpose              | Algorithm   | Parameters                                |
-| -------------------- | ----------- | ----------------------------------------- |
-| Symmetric Encryption | AES-256-GCM | 256-bit key, 96-bit IV, 128-bit auth tag  |
-| Key Derivation       | PBKDF2      | 100,000 iterations, SHA-256, 128-bit salt |
-| Hashing              | SHA-256     | With salt prepended                       |
-
-### Key Hierarchy
-
-```
-User's Master Key (memorized)
-    │
-    ├── Hash (SHA-256 + salt) → Stored in DB for verification
-    │
-    └── Derive via PBKDF2 → Master CryptoKey
-            │
-            └── Encrypts Project Passcodes (for recovery)
-
-Project Passcode (6-digit)
-    │
-    ├── Hash (SHA-256 + salt) → Stored in DB for verification
-    │
-    └── Derive via PBKDF2 → Project CryptoKey
-            │
-            └── Encrypts all Environment Variables
-```
-
-### Shared Secret Flow
-
-```
-Share Creation (by owner/admin):
-1. Decrypt selected variables with Project CryptoKey
-2. Generate random 256-bit ShareKey
-3. Encrypt variables with ShareKey → encryptedPayload
-4. User enters 8+ character share passcode (alphanumeric)
-5. Derive SharePassKey from share passcode + new salt
-6. Encrypt ShareKey with SharePassKey → encryptedShareKey
-7. Store encrypted data in Convex
-
-Share Access (by recipient):
-1. Recipient enters share passcode
-2. Derive SharePassKey from passcode + stored salt
-3. Decrypt ShareKey from encryptedShareKey
-4. Decrypt variables from encryptedPayload
-5. Display to user
-```
-
-## Authentication & Authorization
-
-### Authentication
-
-- **Provider**: Clerk (OAuth 2.0 / JWT)
-- **Token Validation**: `ctx.auth.getUserIdentity()` in all Convex functions
-- **User Binding**: `tokenIdentifier` links Clerk identity to Convex user record
-
-### Role-Based Access Control (RBAC)
-
-Three roles per project:
-
-| Role       | Permissions                                             |
-| ---------- | ------------------------------------------------------- |
-| **Owner**  | Full control, delete project, manage all members        |
-| **Admin**  | CRUD variables/environments, share secrets, add members |
-| **Member** | Read-only access to variables                           |
-
-### Access Control Enforcement
-
-Every Convex mutation/query:
-
-1. Validates JWT via `getUserIdentity()`
-2. Looks up user in database
-3. Checks project membership
-4. Verifies role has required permission
-
-## Data Protection
-
-### At Rest
-
-| Data                  | Storage    | Protection                 |
-| --------------------- | ---------- | -------------------------- |
-| Master Key            | Not stored | Only hash + salt stored    |
-| Project Passcode      | Convex     | Encrypted with Master Key  |
-| Environment Variables | Convex     | Encrypted with Project Key |
-| Shared Secrets        | Convex     | Encrypted with Share Key   |
-
-### In Transit
-
-- All connections use HTTPS/WSS
-- Convex uses encrypted WebSocket connections
-- Clerk handles OAuth flows over HTTPS
-
-### In Memory
-
-- `CryptoKey` objects stored in `keyStore` (Map)
-- Cleared on logout (`keyStore.clear()`)
-- Cleared on project lock (`keyStore.removeKey()`)
-- Never persisted to localStorage/sessionStorage
-
-## Security Headers
-
-Implemented via Nitro middleware and config:
-
-| Header                    | Value                                    | Purpose                  |
-| ------------------------- | ---------------------------------------- | ------------------------ |
-| `Content-Security-Policy` | Allowlist for self, Clerk, Convex, fonts | Prevent XSS              |
-| `X-Content-Type-Options`  | `nosniff`                                | Prevent MIME sniffing    |
-| `X-Frame-Options`         | `DENY`                                   | Prevent clickjacking     |
-| `X-XSS-Protection`        | `1; mode=block`                          | Legacy XSS filter        |
-| `Referrer-Policy`         | `strict-origin-when-cross-origin`        | Control referrer leakage |
-| `Permissions-Policy`      | Disable camera, mic, geo                 | Limit browser APIs       |
-
-## Input Validation & Verification
-
-### Client-Side
-
-- Project passcodes: Regex `/^\d{6}$/` + `maxLength={6}` + non-digit stripping
-- Share passcodes: 8+ alphanumeric characters
-- Form validation before API calls
-
-### Server-Side (Convex)
-
-- All arguments use strict `v.*` validators
-- Type-safe document IDs with `v.id("table")`
-- No raw SQL (document database)
-- Project passcodes are verified on the server using stored hashes; plaintext passcodes are not persisted
+- Never log secrets, passcodes, keys, or decrypted payloads.
+- Keep secret-value encryption and decryption in the browser.
+- Use `deriveKey()`, `encrypt()`, `decrypt()`, and `hash()` instead of ad hoc crypto code.
+- Generate a fresh salt or IV for every encryption operation.
+- Authenticate every Convex entry point with `ctx.auth.getUserIdentity()`.
+- Re-check project membership and role before resource access.
+- Use strict `v.*` validators and typed document IDs in Convex functions.
+- Clear project keys from `keyStore` on lock, logout, deactivation, and deletion flows.
+- Treat `src/lib/crypto.ts`, `src/lib/key-store.ts`, `convex/schema.ts`, `convex/projects.ts`, and `convex/sharedSecrets.ts` as security-sensitive files.
+- Review metadata exposure separately from secret encryption. Project names, environment names, variable names, roles, and timestamps are not ciphertext.
 
 ## Threat Model
 
 ### Protected Against
 
-✅ Eavesdropping (encryption at rest + in transit)
-✅ Server compromise (zero-knowledge design)
-✅ XSS attacks (CSP + React's escaping)
-✅ Clickjacking (X-Frame-Options: DENY)
-✅ CSRF (Convex's token-based auth)
-✅ IDOR (ownership verification on all resources)
-✅ SQL Injection (N/A - document database)
-✅ Unauthorized access (RBAC on all mutations)
+- Backend or database access to plaintext secret values
+- Network eavesdropping during normal app traffic
+- Unauthorized project access when auth and RBAC checks are implemented correctly
+- Common browser attack classes mitigated by headers and React escaping
 
 ### Out of Scope
 
-⚠️ Client-side keyloggers (user's machine compromised)
-⚠️ Shoulder surfing (physical access)
-⚠️ Weak passcodes (short or low-entropy)
-⚠️ Forgotten master key (no recovery possible by design)
-
-## Security Checklist for Contributors
-
-- [ ] Never log secrets or keys (check `console.log` calls)
-- [ ] Use `deriveKey()` for key derivation, never raw passwords
-- [ ] Generate fresh IV/salt for every encryption
-- [ ] Validate user identity in every Convex mutation
-- [ ] Check project membership before resource access
-- [ ] Use `v.*` validators for all mutation arguments
-- [ ] Clear keys on logout/navigation
-
----
+- Compromised client devices or browsers
+- Shoulder surfing, clipboard leakage, or other local machine exposure
+- Weak passcodes chosen by users
+- Recovery of forgotten master keys without the original secret
 
 ## Security Disclosure Policy
 
-We take security seriously. If you discover a security vulnerability, please follow responsible disclosure:
+Do not open public GitHub issues for vulnerabilities. Use the repository's private security reporting flow instead:
 
-### Reporting a Vulnerability
+- GitHub Security: <https://github.com/pantharshit007/tijori/security>
 
-1. **Do NOT** open a public GitHub issue for security vulnerabilities
-2. Email security concerns to the project maintainers
-3. Include:
-   - Description of the vulnerability
-   - Steps to reproduce
-   - Potential impact
-   - Any suggested fixes (optional)
+Please include:
 
-### Recognition
-
-Security researchers who report valid vulnerabilities will be:
-
-- Credited in our changelog (if desired)
-- Added to our security acknowledgments
-
-Thank you for helping keep Tijori secure!
+- A short description of the issue
+- Reproduction steps
+- Expected impact
+- Suggested remediation, if available

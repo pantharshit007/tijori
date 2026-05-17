@@ -1,69 +1,55 @@
-# Tijori Privacy & Compliance (GDPR)
+# Tijori Privacy & Data Handling
 
-> Last Updated: January 26, 2026
+System design lives in [ARCHITECTURE.md](./ARCHITECTURE.md). This file focuses on what data exists, where it lives, and what is and is not encrypted.
 
-## Overview
+## Data Locations
 
-Tijori is designed with "Privacy by Design" and "Privacy by Default" principles. Due to its **zero-knowledge architecture**, the service has several inherent privacy-preserving features that align with GDPR (General Data Protection Regulation) requirements.
+### Clerk
 
-## Data Processing Roles
+- Authentication identity and session data
+- Basic profile fields such as name, email, avatar, and provider identifiers
 
-- **Data Controller**: The user/organization hosting and using Tijori.
-- **Data Processor**: The infrastructure providers used by Tijori (Convex, Clerk).
-- **Sub-processors**: Clerk (Identity Management), Convex (Backend-as-a-Service).
+### Convex
 
-## Data Types Collected
+- Project metadata such as names, descriptions, passcode hints, ownership, and timestamps
+- Environment names and descriptions
+- Variable names
+- Membership roles, quota documents, share metadata, and view or expiry counters
+- Encrypted project passcodes, encrypted variable values, encrypted share payloads, encrypted share keys, and encrypted share passcodes
+- Account state such as master key verifier fields, tier, and deletion or deactivation metadata
 
-### 1. Personal Identity Data (Managed by Clerk)
+### Browser Session Only
 
-- Name
-- Email Address
-- Profile Image URL
-- OAuth Provider IDs (e.g., Google/GitHub ID)
+- Plaintext master keys while entered by the user
+- Plaintext project and share passcodes while entered by the user
+- Decrypted variable values shown in the UI
+- Derived `CryptoKey` objects cached in memory via `keyStore`
 
-### 2. Encrypted Secret Data (Managed by Convex)
+## What Is Not Encrypted
 
-- Project Names/Descriptions
-- **Encrypted** Environment Variable Names and Values
-- **Encrypted** Passcodes
-- **Encrypted** Share Keys
+Tijori is zero-knowledge for secret values, not for all application metadata. The backend can still see:
 
-**Note**: All secret data is encrypted client-side. The server and infrastructure providers do not have access to the decryption keys.
+- Project, environment, and variable names
+- Descriptions and passcode hints
+- Membership and role data
+- Timestamps, quotas, expiry values, and share view counters
+- Account and billing metadata
 
-## GDPR Principles Alignment
+## Provider Notes
 
-### 1. Data Minimization
+- Clerk handles authentication and related identity data.
+- Convex stores application state and encrypted blobs.
+- Deployment providers may collect standard request logs, telemetry, or error data.
+- The frontend includes `@vercel/analytics`, so hosted deployments may also emit Vercel Analytics events depending on environment and platform configuration.
 
-Tijori only collects the bare minimum data required for authentication and secret management. We do not track user behavior or collect analytics beyond what is provided by Clerk/Convex.
+## User Controls
 
-### 2. Integrity and Confidentiality (Security)
+- Users can delete variables, environments, shares, and projects from the application.
+- Account deletion work is tracked server-side through `deletionJobs`.
+- Keys are not persisted to `localStorage` or `sessionStorage`.
 
-Tijori uses AES-256-GCM encryption for all sensitive data at rest. Data is transmitted over encrypted channels (HTTPS/WSS).
+## References
 
-### 3. Purpose Limitation
-
-Data is used solely for the purpose of managing and sharing environment variables as directed by the user.
-
-### 4. Right to Access and Portability
-
-Users can view all their projects and secrets at any time through the interface. Data can be exported by copying variable values (decrypted client-side).
-
-### 5. Right to Erasure ("Right to be Forgotten")
-
-- Users can delete individual variables, environments, and entire projects.
-- Deleting a project removes all associated variables, shared secrets, and memberships from the database.
-
-## Privacy Recommendations for Self-Hosters
-
-If you are self-hosting Tijori or using it in a corporate environment:
-
-1. **Clerk Configuration**: Ensure your Clerk settings are configured to respect user privacy preferences.
-2. **Data Retention**: Periodically audit and delete old projects or shared secrets that are no longer needed.
-3. **Access Control**: Use the built-in RBAC (Owner/Admin/Member) to restrict access to sensitive data on a need-to-know basis.
-
-## Disclosure
-
-Tijori does not sell user data. All data is stored on Convex (sensitive data is encrypted) and managed through Clerk. For more information on their privacy practices, please refer to:
-
+- [Security](./SECURITY.md)
 - [Clerk Privacy Policy](https://clerk.com/privacy)
 - [Convex Privacy Policy](https://www.convex.dev/privacy)
