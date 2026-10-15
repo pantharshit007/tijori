@@ -1061,3 +1061,17 @@ if (needsPatch) await ctx.db.patch(user._id, { ... });
 ```
 
 For `DELETION_QUEUED` users, the patch would overwrite `emailLookupKey` back to the real email, undoing the `deleted:` freeing. Always check before writing.
+
+## 2026-10-15 - Master Key Rotation Concurrency
+
+Atomic writes alone do not make a client-prepared rewrap safe. Rotation must check the
+master key revision, the complete set of currently owned projects, and each project's
+previous recovery ciphertext before writing. Project salts and passcode hashes stay
+unchanged so existing variable and share encryption keys remain valid.
+
+Project creation also submits the revision used for encryption: if rotation commits
+first, the stale creation is rejected; if creation commits first, rotation must include
+that project. Legacy users without a revision start at zero. Initial master key setup
+is allowed only without existing configuration or owned projects; even empty rotations
+use the versioned atomic mutation. Settings fetches one consistent snapshot and verifies
+the current key again before preparing rewraps.

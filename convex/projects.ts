@@ -45,7 +45,6 @@ async function hashPasscode(passcode: string, salt: string): Promise<string> {
   return arrayBufferToBase64(digest);
 }
 
-
 /**
  * Create a new project.
  * This also creates a default "Development" environment.
@@ -54,6 +53,7 @@ async function hashPasscode(passcode: string, salt: string): Promise<string> {
  */
 export const create = mutation({
   args: {
+    expectedMasterKeyRevision: v.number(),
     name: v.string(),
     description: v.optional(v.string()),
     passcodeHint: v.optional(v.string()),
@@ -88,6 +88,10 @@ export const create = mutation({
       throwError("Master key not configured. Please set it in Settings.", "BAD_REQUEST", 400, {
         user_id: user._id,
       });
+    }
+
+    if (args.expectedMasterKeyRevision !== (user.masterKeyRevision ?? 0)) {
+      throwError("Master key changed. Please retry with the current master key.", "CONFLICT", 409);
     }
 
     // Check tier-based project limit
@@ -272,6 +276,34 @@ export const listOwned = query({
 });
 
 /**
+ * Read the verifier, revision, and recovery ciphertexts in one consistent snapshot.
+ */
+export const rotationSnapshot = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getUserId(ctx);
+    const user = (await ctx.db.get(userId))!;
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_ownerId", (q) => q.eq("ownerId", userId))
+      .collect();
+    return {
+      masterKeyHash: user.masterKeyHash,
+      masterKeySalt: user.masterKeySalt,
+      masterKeyRevision: user.masterKeyRevision ?? 0,
+      projects: projects.map(({ _id, name, passcodeSalt, encryptedPasscode, iv, authTag }) => ({
+        _id,
+        name,
+        passcodeSalt,
+        encryptedPasscode,
+        iv,
+        authTag,
+      })),
+    };
+  },
+});
+
+/**
  * Batch update project passcodes AND master key during Master Key rotation.
  * All encryption is done client-side; this just stores the new encrypted values.
  *
@@ -284,9 +316,15 @@ export const listOwned = query({
  */
 export const batchUpdatePasscodes = mutation({
   args: {
+    expectedMasterKeyRevision: v.number(),
     updates: v.array(
       v.object({
         projectId: v.id("projects"),
+        expectedRecovery: v.object({
+          encryptedPasscode: v.string(),
+          iv: v.string(),
+          authTag: v.string(),
+        }),
         encryptedPasscode: v.string(),
         passcodeSalt: v.string(),
         iv: v.string(),
@@ -317,27 +355,64 @@ export const batchUpdatePasscodes = mutation({
       throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
-    const now = Date.now();
-    let updatedCount = 0;
+    if (!user.masterKeyHash || !user.masterKeySalt) {
+      throwError("Master key is not configured.", "BAD_REQUEST", 400);
+    }
+    if (!args.newMasterKeyHash || !args.newMasterKeySalt) {
+      throwError("New master key configuration is required.", "BAD_REQUEST", 400);
+    }
+    const revision = user.masterKeyRevision ?? 0;
+    if (args.expectedMasterKeyRevision !== revision) {
+      throwError("Master key changed. Please restart rotation.", "CONFLICT", 409);
+    }
 
-    // Phase 1: Validate ownership for ALL projects first
+    // Reading the owner index also protects against concurrent project creation/deletion.
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_ownerId", (q) => q.eq("ownerId", user._id))
+      .collect();
+    const byId = new Map(projects.map((project) => [project._id, project]));
+    const seen = new Set();
     for (const update of args.updates) {
-      const project = await ctx.db.get(update.projectId);
-      if (!project || project.ownerId !== user._id) {
+      if (seen.has(update.projectId)) {
+        throwError("Duplicate project in rotation.", "BAD_REQUEST", 400);
+      }
+      seen.add(update.projectId);
+      const project = byId.get(update.projectId);
+      if (!project) {
         throwError(
-          `Access denied: Not the owner of project ${update.projectId}`,
-          "FORBIDDEN",
-          403,
-          { user_id: user._id, project_id: update.projectId }
+          "Rotation includes a missing or foreign project. Please restart rotation.",
+          "CONFLICT",
+          409
         );
       }
+      if (update.passcodeSalt !== project.passcodeSalt) {
+        throwError("Project salts cannot change during master key rotation.", "BAD_REQUEST", 400);
+      }
+      const previous = update.expectedRecovery;
+      if (
+        previous.encryptedPasscode !== project.encryptedPasscode ||
+        previous.iv !== project.iv ||
+        previous.authTag !== project.authTag
+      ) {
+        throwError("Project recovery data changed. Please restart rotation.", "CONFLICT", 409);
+      }
     }
+    if (seen.size !== projects.length) {
+      throwError(
+        "Project list changed or is incomplete. Please restart rotation.",
+        "CONFLICT",
+        409
+      );
+    }
+
+    const now = Date.now();
+    let updatedCount = 0;
 
     // Phase 2: Perform project updates once all ownerships are confirmed
     for (const update of args.updates) {
       await ctx.db.patch(update.projectId, {
         encryptedPasscode: update.encryptedPasscode,
-        passcodeSalt: update.passcodeSalt,
         iv: update.iv,
         authTag: update.authTag,
         updatedAt: now,
@@ -350,12 +425,12 @@ export const batchUpdatePasscodes = mutation({
     await ctx.db.patch(user._id, {
       masterKeyHash: args.newMasterKeyHash,
       masterKeySalt: args.newMasterKeySalt,
+      masterKeyRevision: revision + 1,
     });
 
     return { success: true, updatedCount };
   },
 });
-
 
 /**
  * List all members of a project.
@@ -867,9 +942,7 @@ export const verifyPasscode = mutation({
 
     const membership = await ctx.db
       .query("projectMembers")
-      .withIndex("by_project_user", (q) =>
-        q.eq("projectId", args.projectId).eq("userId", userId)
-      )
+      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", userId))
       .unique();
 
     if (!membership) {

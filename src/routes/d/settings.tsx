@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useClerk, useUser } from "@clerk/tanstack-react-start";
-import { useMutation, useQuery } from "convex/react";
+import { useConvex, useMutation, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Check, KeyRound, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
@@ -34,6 +34,7 @@ import { getErrorMessage } from "@/lib/errors";
  */
 
 function Settings() {
+  const convex = useConvex();
   const user = useQuery(api.users.me);
   const ownedProjects = useQuery(api.projects.listOwned);
   const setMasterKeyMutation = useMutation(api.users.setMasterKey);
@@ -186,31 +187,18 @@ function Settings() {
     }
 
     try {
-      const projects = ownedProjects;
-      const totalProjects = projects.length;
-
-      if (totalProjects === 0) {
-        // No projects to re-encrypt, just update the master key
-        setRotationStatus("Updating master key...");
-        const newSalt = generateSalt();
-        const newHash = await hash(newMasterKey, newSalt);
-
-        await setMasterKeyMutation({
-          masterKeyHash: newHash,
-          masterKeySalt: newSalt,
-        });
-
-        setRotationProgress(100);
-        setRotationStatus("Complete!");
-
-        // Wait a moment then close
-        setTimeout(() => {
-          setRotationDialogOpen(false);
-          resetRotationState();
-          setSuccess(true);
-        }, 1000);
+      const snapshot = await convex.query(api.projects.rotationSnapshot, {});
+      if (
+        !snapshot.masterKeySalt ||
+        !snapshot.masterKeyHash ||
+        (await hash(currentMasterKey, snapshot.masterKeySalt)) !== snapshot.masterKeyHash
+      ) {
+        setRotationStep("verify");
+        setRotationError("Master key changed. Please verify the current master key again.");
         return;
       }
+      const projects = snapshot.projects;
+      const totalProjects = projects.length;
 
       // Re-encrypt each project's passcode
       const updates: Array<ProjectPasscodeUpdate> = [];
@@ -236,6 +224,11 @@ function Settings() {
 
         updates.push({
           projectId: project._id,
+          expectedRecovery: {
+            encryptedPasscode: project.encryptedPasscode,
+            iv: project.iv,
+            authTag: project.authTag,
+          },
           encryptedPasscode: encryptedValue,
           passcodeSalt: project.passcodeSalt,
           iv,
@@ -252,6 +245,7 @@ function Settings() {
       setRotationProgress(Math.round((totalProjects / (totalProjects + 1)) * 100));
 
       await batchUpdatePasscodes({
+        expectedMasterKeyRevision: snapshot.masterKeyRevision,
         updates,
         newMasterKeyHash: newHash,
         newMasterKeySalt: newSalt,

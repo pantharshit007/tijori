@@ -152,7 +152,7 @@ export const me = query({
 });
 
 /**
- * Set or update the user's master key.
+ * Initialize the user's master key. Existing configurations must use atomic rotation.
  * The master key hash and salt are stored - never the plaintext.
  */
 export const setMasterKey = mutation({
@@ -179,7 +179,28 @@ export const setMasterKey = mutation({
       throwError("User account is deactivated", "USER_DEACTIVATED", 403, { user_id: user._id });
     }
 
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_ownerId", (q) => q.eq("ownerId", user._id))
+      .take(1);
+    if (
+      user.masterKeyHash !== undefined ||
+      user.masterKeySalt !== undefined ||
+      user.masterKeyRevision !== undefined ||
+      projects.length > 0
+    ) {
+      throwError(
+        "Master key already configured or projects exist. Use master key rotation.",
+        "CONFLICT",
+        409
+      );
+    }
+    if (!args.masterKeyHash || !args.masterKeySalt) {
+      throwError("Master key configuration is required.", "BAD_REQUEST", 400);
+    }
+
     await ctx.db.patch(user._id, {
+      masterKeyRevision: 1,
       masterKeyHash: args.masterKeyHash,
       masterKeySalt: args.masterKeySalt,
     });
