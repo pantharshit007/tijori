@@ -10,6 +10,7 @@ export default defineSchema({
     image: v.optional(v.string()),
     masterKeyHash: v.optional(v.string()),
     masterKeySalt: v.optional(v.string()),
+    masterKeyRevision: v.optional(v.number()), // Legacy configurations start at revision 0.
     accountStatus: v.optional(
       v.union(v.literal("ACTIVE"), v.literal("DEACTIVATED"), v.literal("DELETION_QUEUED"))
     ),

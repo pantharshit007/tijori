@@ -81,6 +81,7 @@ function NewProject() {
 
       // 5. Create the project in Convex
       const projectId = await createProject({
+        expectedMasterKeyRevision: user.masterKeyRevision ?? 0,
         name: name.trim(),
         description: description.trim() || undefined,
         passcodeHint: passcodeHint.trim() || undefined,

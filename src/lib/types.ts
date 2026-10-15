@@ -33,6 +33,7 @@ export interface SharedVariable {
 }
 
 export type ProjectPasscodeUpdate = {
+  expectedRecovery: { encryptedPasscode: string; iv: string; authTag: string };
   projectId: Id<"projects">;
   encryptedPasscode: string;
   passcodeSalt: string;
